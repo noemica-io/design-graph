@@ -9,3 +9,6 @@
 # Editor
 .vscode/
 *.swp
+
+# Data
+data/
