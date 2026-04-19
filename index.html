@@ -1,0 +1,2587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Graph</title>
+<link rel="icon" type="image/svg+xml" href="logos/dg-02-chunky.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,500;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ng-bg:        #f8f5e9;
+  --ng-surface:   #fffcf0;
+  --ng-card:      #fdfaea;
+  --ng-card-2:    #f3ecd6;
+  --ng-fg:        #1a1a1c;
+  --ng-secondary: rgba(26,26,28,0.72);
+  --ng-muted:     rgba(26,26,28,0.55);
+  --ng-dim:       rgba(26,26,28,0.42);
+  --ng-faint:     rgba(26,26,28,0.25);
+  --ng-border:    rgba(26,26,28,0.12);
+  --ng-border-s:  rgba(26,26,28,0.08);
+  --ng-accent:    #2563eb;
+  --ng-accent-2:  #3b82f6;
+  --ng-accent-a:  rgba(37,99,235,0.10);
+  --ng-accent-h:  rgba(37,99,235,0.22);
+  --ng-green:     #10b981;
+  --ng-green-a:   rgba(16,185,129,0.10);
+  --ng-red:       #c13a2e;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--ng-bg); color: var(--ng-fg); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+#toolbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 48px; z-index: 100;
+  background: #fffcf0; border-bottom: 1px solid rgba(26,26,28,0.10);
+  display: flex; align-items: center; padding: 0 16px; gap: 12px;
+}
+.toolbar-logo { color: #2563eb; font-size: 18px; }
+.toolbar-brand { white-space: nowrap; flex-shrink: 0; }
+.toolbar-title {
+  font-size: 15px; font-weight: 500; color: #1a1a1c;
+  font-family: 'EB Garamond', Georgia, serif; letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.toolbar-by {
+  font-size: 12px; color: rgba(26,26,28,0.55);
+  margin-left: 6px; letter-spacing: -0.005em;
+  display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.toolbar-wordmark {
+  display: inline-block;
+  text-decoration: none; font-weight: 500; color: #1a1a1c;
+  letter-spacing: -0.01em; cursor: pointer; line-height: 1;
+  border-bottom: 1px dotted rgba(37,99,235,0.35);
+  padding-bottom: 1px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.toolbar-wordmark:hover { border-bottom-color: #2563eb; border-bottom-style: solid; }
+.toolbar-wordmark .wm-n { color: #2563eb; font-weight: 600; }
+.toolbar-wordmark .wm-arrow {
+  font-size: 10px; color: #2563eb; opacity: 0.7; margin-left: 3px;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  display: inline-block;
+}
+.toolbar-wordmark:hover .wm-arrow { opacity: 1; transform: translate(1px,-1px); }
+.toolbar-sep { color: rgba(26,26,28,0.12); }
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.toolbar-btn {
+  height: 32px; padding: 0 12px; font-size: 12px; font-weight: 500;
+  background: #fdfaea; border: 1px solid rgba(26,26,28,0.12); border-radius: 6px;
+  color: rgba(26,26,28,0.55); cursor: pointer; font-family: inherit;
+}
+.toolbar-btn:hover { background: rgba(26,26,28,0.08); color: #1a1a1c; border-color: rgba(26,26,28,0.2); }
+.toolbar-btn:disabled, .toolbar-btn[disabled] { opacity: 0.35; cursor: not-allowed; }
+.toolbar-btn:disabled:hover, .toolbar-btn[disabled]:hover { background: #fdfaea; color: rgba(26,26,28,0.55); border-color: rgba(26,26,28,0.12); }
+
+canvas#graph { position: fixed; top: 48px; left: 0; cursor: grab; z-index: 2; }
+canvas#graph.panning { cursor: grabbing; }
+
+/* Iframe previews BEHIND canvas so cards draw on top */
+#preview-layer { position: fixed; top: 48px; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.pnode { position: absolute; pointer-events: none; overflow: hidden; border-radius: 0 0 6px 6px; }
+.pnode iframe {
+  width: 1280px; height: 800px;
+  pointer-events: none; border: none; display: block;
+  /* `zoom` re-layouts the iframe at target scale so text renders at final
+     pixel resolution — crisp at every scale. (vs. transform:scale which
+     rasterizes at native size and interpolates.) */
+  -webkit-font-smoothing: subpixel-antialiased;
+}
+.edge-hud {
+  display: inline-flex; gap: 6px; align-items: center;
+  margin-left: 8px;
+  font-family: 'JetBrains Mono','SF Mono','Menlo',monospace;
+  font-size: 10px; color: rgba(26,26,28,0.55);
+}
+.edge-hud-part {
+  padding: 3px 8px; border-radius: 4px;
+  background: rgba(26,26,28,0.05);
+  border: 1px solid rgba(26,26,28,0.08);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.edge-hud-part:empty { display: none; }
+.edge-hud-part.hover { color: #2563eb; background: rgba(37,99,235,0.08); border-color: rgba(37,99,235,0.2); }
+
+/* Modal */
+#modal { display: none; position: fixed; inset: 0; z-index: 500; background: #f8f5e9; outline: none; }
+#modal.open { display: block; }
+#modal-iframe { width: 100%; height: 100%; border: none; background: #f8f5e9; position: absolute; inset: 0; overflow: auto; }
+
+.edge-zone { position: fixed; z-index: 510; opacity: 0; transition: opacity 0.2s, top 0.18s; pointer-events: none; }
+.edge-zone.pinned { opacity: 1; pointer-events: auto; }
+.edge-zone::before { content: ''; position: absolute; pointer-events: none; }
+body.modal-open .edge-zone::before { pointer-events: auto; }
+body.modal-open .edge-zone:hover { opacity: 1; pointer-events: auto; }
+/* Top details bar stays behind #zone-top id — only shown when pinned (Up arrow) */
+#zone-top { z-index: 520; }
+/* When the top nav is toggled open inside full-screen (Up arrow), lift the main
+   toolbar above the modal and slide the details bar below the toolbar. */
+body.modal-nav-open #toolbar { z-index: 600; }
+body.modal-nav-open #zone-top { top: 48px; }
+/* In full-screen the main toolbar shows only branding + help; the grid-only controls
+   (filter, fit, reset, zoom-to-node) don't apply here and stay hidden. */
+body.modal-nav-open .toolbar-grid-only { display: none !important; }
+
+.edge-zone-top { top: 0; left: 0; right: 0; padding-top: 20px; }
+.edge-zone-top::before { top: 0; left: 0; right: 0; height: 24px; }
+.edge-zone-top .edge-panel {
+  background: rgba(248,245,233,0.94); backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(26,26,28,0.10); padding: 12px 24px; display: flex; align-items: center; gap: 12px;
+}
+.edge-desc { font-size: 13px; color: #8888a0; line-height: 1.6; padding: 10px 24px 14px; border-top: 1px solid rgba(26,26,28,0.08); background: rgba(248,245,233,0.94); }
+.edge-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.edge-label { font-size: 14px; font-weight: 600; color: #1a1a1c; }
+.edge-sublabel { font-size: 12px; color: rgba(26,26,28,0.55); margin-left: 2px; }
+.edge-date { font-size: 11px; color: rgba(26,26,28,0.42); margin-left: 8px; padding: 3px 8px; background: #fffcf0; border: 1px solid rgba(26,26,28,0.10); border-radius: 4px; font-variant-numeric: tabular-nums; cursor: help; }
+.edge-nav-card .nav-date { font-size: 9.5px; color: rgba(26,26,28,0.42); margin-top: 2px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.edge-id { font-size: 11px; color: #8a8a9e; font-family: 'SF Mono','Menlo',monospace; cursor: pointer; padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(26,26,28,0.12); background: #fdfaea; margin-left: 8px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.edge-id:hover, .edge-id.kb-focus { color: #1a1a1c; background: rgba(26,26,28,0.10); border-color: rgba(26,26,28,0.3); }
+.edge-id.copied { color: #fff; border-color: #10b981; background: #10b981; box-shadow: 0 0 24px rgba(16,185,129,0.45); animation: badgePulse 0.6s ease-out; }
+.edge-id kbd { font-size: 9px; background: #f8f5e9; border: 1px solid rgba(26,26,28,0.12); border-radius: 3px; padding: 1px 5px; font-family: inherit; color: rgba(26,26,28,0.55); }
+.edge-id.copied kbd { background: rgba(26,26,28,0.15); border-color: rgba(26,26,28,0.35); color: #fff; }
+.edge-id .copy-ico { opacity: 0.8; }
+.edge-exit { margin-left: auto; background: #fdfaea; border: 1px solid rgba(26,26,28,0.12); color: rgba(26,26,28,0.55); font-size: 12px; font-weight: 500; cursor: pointer; padding: 7px 16px; border-radius: 6px; font-family: inherit; display: flex; align-items: center; gap: 6px; }
+.edge-exit:hover { background: #1e1e30; color: #1a1a1c; border-color: rgba(26,26,28,0.3); }
+.edge-exit kbd { font-size: 10px; background: #f8f5e9; border: 1px solid rgba(26,26,28,0.12); border-radius: 3px; padding: 1px 5px; font-family: inherit; }
+
+.edge-zone-left, .edge-zone-right { top: 0; bottom: 0; width: 280px; display: flex; align-items: center; }
+.edge-zone-bottom { bottom: 0; left: 0; right: 0; display: flex; justify-content: center; padding-bottom: 20px; }
+.edge-zone-bottom::before { bottom: 0; left: 0; right: 0; height: 24px; }
+.edge-zone-bottom .edge-panel {
+  background: rgba(248,245,233,0.94); backdrop-filter: blur(12px); border: 1px solid rgba(26,26,28,0.10); border-radius: 10px;
+  padding: 12px 16px; max-width: 90vw; overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin; scrollbar-color: rgba(26,26,28,0.12) transparent;
+  display: flex; flex-wrap: nowrap; gap: 8px; align-items: center;
+}
+.edge-zone-bottom .edge-nav-title { flex-shrink: 0; margin-bottom: 0; margin-right: 4px; white-space: nowrap; }
+.edge-zone-bottom #variants-list { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; }
+.edge-zone-bottom .edge-nav-card { flex: 0 0 auto; min-width: 140px; margin-bottom: 0; }
+.edge-zone-bottom .edge-nav-edge-label { display: none; }
+.edge-zone-bottom .edge-nav-empty { white-space: nowrap; }
+
+.edge-zone-left { left: 0; padding-left: 24px; }
+.edge-zone-left::before { top: 0; left: 0; bottom: 0; width: 28px; }
+.edge-zone-right { right: 0; padding-right: 24px; justify-content: flex-end; }
+.edge-zone-right::before { top: 0; right: 0; bottom: 0; width: 28px; }
+.edge-zone-left .edge-panel, .edge-zone-right .edge-panel {
+  background: rgba(248,245,233,0.94); backdrop-filter: blur(12px); border: 1px solid rgba(26,26,28,0.10); border-radius: 10px;
+  padding: 16px; width: 240px; max-height: 80vh; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: rgba(26,26,28,0.12) transparent;
+}
+.edge-nav-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(26,26,28,0.42); margin-bottom: 10px; }
+.edge-nav-card { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(26,26,28,0.10); background: #fffcf0; margin-bottom: 6px; transition: border-color 0.15s; }
+.edge-nav-card:last-child { margin-bottom: 0; }
+.edge-nav-card:hover, .edge-nav-card.kb-focus { border-color: rgba(26,26,28,0.42); }
+.edge-nav-card.kb-focus { border-color: #2563eb; box-shadow: 0 0 0 1px rgba(37,99,235,0.22); }
+.edge-nav-card.kb-focus .copy-hint { display: flex; }
+.edge-nav-card.copied { border-color: #10b981; box-shadow: 0 0 20px rgba(16,185,129,0.28); animation: badgePulse 0.5s ease-out; }
+
+/* Copy hint pill on focused nav cards */
+/* Copy-hint consolidated into the card itself — inline footer row, shown only on kb-focus.
+   Replaces the old floating-pill-above-card treatment. */
+.copy-hint {
+  display: none; align-items: center; gap: 4px;
+  margin-left: auto; padding: 0 0 0 10px;
+  font-size: 9px; color: rgba(26,26,28,0.45); font-family: 'SF Mono','Menlo',monospace;
+  letter-spacing: 0.04em; cursor: pointer; white-space: nowrap;
+  flex-shrink: 0;
+}
+.copy-hint:hover { color: #2563eb; }
+.copy-hint kbd {
+  font-size: 8.5px; background: #fdfaea; border: 1px solid rgba(26,26,28,0.12);
+  border-radius: 2px; padding: 1px 4px; font-family: inherit; color: rgba(26,26,28,0.55);
+}
+.copy-hint .copy-ico { width: 10px; height: 10px; opacity: 0.7; }
+.edge-nav-card.kb-focus .copy-hint { display: inline-flex; }
+.edge-nav-dot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+.edge-nav-label { font-size: 12px; font-weight: 600; color: #1a1a1c; }
+.edge-nav-sub { font-size: 10px; color: rgba(26,26,28,0.55); margin-top: 1px; }
+.edge-nav-empty { font-size: 11px; color: rgba(26,26,28,0.3); font-style: italic; padding: 4px 0; }
+.edge-nav-edge-label { font-size: 10px; color: rgba(26,26,28,0.42); margin-bottom: 6px; }
+
+#zoom-controls {
+  position: fixed; bottom: 20px; right: 20px; z-index: 50;
+  display: flex; align-items: center; gap: 2px;
+  background: #fffcf0; border: 1px solid rgba(26,26,28,0.14); border-radius: 8px; padding: 4px;
+}
+.zoom-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: none; border: none; border-radius: 6px; color: rgba(26,26,28,0.55); font-size: 16px; cursor: pointer; }
+.zoom-btn:hover { background: rgba(26,26,28,0.08); color: #1a1a1c; }
+#zoom-level { font-size: 11px; color: rgba(26,26,28,0.55); min-width: 40px; text-align: center; padding: 0 4px; }
+#hint { position: fixed; bottom: 20px; left: 20px; z-index: 50; font-size: 11px; color: rgba(26,26,28,0.3); }
+
+/* ── Quick-find palette (⌘F / Ctrl+F) ── */
+#qf-backdrop {
+  position: fixed; inset: 0; z-index: 1799;
+  background: rgba(0,0,0,0.38); backdrop-filter: blur(2px);
+  display: none;
+}
+#quick-find {
+  position: fixed; top: 88px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 1800; width: 560px; max-width: calc(100vw - 32px);
+  display: none;
+}
+body.qf-open #qf-backdrop, body.qf-open #quick-find { display: block; }
+.qf-box {
+  background: #fffcf0; border: 1px solid rgba(26,26,28,0.12);
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(26,26,28,0.12);
+}
+.qf-input-wrap {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-bottom: 1px solid rgba(26,26,28,0.08);
+}
+.qf-icon { color: rgba(26,26,28,0.55); font-size: 16px; line-height: 1; }
+#qf-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: #1a1a1c; font-size: 15px; font-family: inherit;
+  min-width: 0;
+}
+#qf-input::placeholder { color: rgba(26,26,28,0.3); }
+.qf-hint { font-size: 11px; color: rgba(26,26,28,0.42); white-space: nowrap; flex-shrink: 0; }
+.qf-hint kbd {
+  font-family: inherit; font-size: 10px; font-weight: 600;
+  background: #fdfaea; border: 1px solid rgba(26,26,28,0.12); border-bottom-width: 2px;
+  padding: 1px 5px; border-radius: 3px; color: rgba(26,26,28,0.55);
+  margin: 0 1px;
+}
+#qf-results { max-height: 300px; overflow-y: auto; }
+.qf-item {
+  padding: 10px 18px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px;
+  border-left: 2px solid transparent;
+  transition: background 0.08s, border-color 0.08s;
+}
+.qf-item.selected {
+  background: rgba(124,58,237,0.12);
+  border-left-color: #2563eb;
+}
+.qf-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.qf-label { color: #1a1a1c; font-weight: 500; letter-spacing: -0.005em; }
+.qf-sub { color: #7a7a8e; font-size: 12px; }
+.qf-id {
+  margin-left: auto;
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 11px; color: rgba(26,26,28,0.42);
+  flex-shrink: 0;
+}
+.qf-empty { padding: 20px 18px; text-align: center; color: rgba(26,26,28,0.42); font-size: 13px; font-style: italic; }
+
+/* ── Minimap (bottom-right, above zoom controls) ── */
+#minimap {
+  position: fixed; bottom: 20px; right: 20px;
+  /* Size is set dynamically by JS via computeMinimapDims() — adapts to viewport. */
+  background: rgba(255,252,240,0.94);
+  border: 1px solid rgba(26,26,28,0.18); border-radius: 8px;
+  overflow: hidden; z-index: 50;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(26,26,28,0.12), 0 1px 3px rgba(26,26,28,0.06);
+  transition: width 0.2s ease, height 0.2s ease, opacity 0.2s ease;
+}
+#minimap canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+#minimap .mm-controls {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s;
+}
+#minimap:hover .mm-controls { opacity: 1; }
+#minimap .mm-btn {
+  width: 20px; height: 20px; border-radius: 3px;
+  background: rgba(255,252,240,0.85); border: 1px solid rgba(26,26,28,0.14);
+  color: rgba(26,26,28,0.55); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; padding: 0; line-height: 1;
+  font-family: 'JetBrains Mono',monospace;
+}
+#minimap .mm-btn:hover { background: #fffcf0; color: #1a1a1c; border-color: #2563eb; }
+#minimap .mm-drag {
+  position: absolute; top: 0; left: 0; right: 44px; height: 14px;
+  cursor: grab; z-index: 1;
+}
+#minimap .mm-drag:active { cursor: grabbing; }
+#minimap.mm-collapsed {
+  width: auto; height: auto;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+#minimap.mm-collapsed canvas, #minimap.mm-collapsed .mm-drag { display: none; }
+#minimap.mm-collapsed .mm-controls { position: static; opacity: 1; gap: 6px; }
+#minimap.mm-collapsed .mm-controls::before {
+  content: "MAP"; font-family: 'JetBrains Mono',monospace;
+  font-size: 10px; letter-spacing: 0.12em; color: rgba(26,26,28,0.55);
+  align-self: center; margin-right: 4px;
+}
+#minimap.mm-collapsed .mm-btn.mm-close { display: none; }
+body.modal-open #minimap { display: none; }
+
+/* Copy icon — inline SVG, reusable */
+.copy-ico {
+  display: inline-flex; width: 12px; height: 12px; flex-shrink: 0;
+  opacity: 0.7;
+}
+.copy-ico svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 1.5; }
+
+/* Copy-ID badge on focused graph node */
+#node-copy-badge {
+  position: fixed; z-index: 50; display: none;
+  background: #fffcf0; border: 1px solid rgba(26,26,28,0.12); border-radius: 6px;
+  padding: 6px 10px; font-size: 11px; color: #c0c0d0;
+  cursor: pointer; font-family: 'SF Mono', 'Menlo', monospace;
+  align-items: center; gap: 7px; user-select: none;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+#node-copy-badge.visible { display: flex; }
+#node-copy-badge:hover { border-color: #2563eb; color: #fff; background: #fdfaea; }
+#node-copy-badge.copied {
+  border-color: #10b981; color: #fff; background: #10b981;
+  box-shadow: 0 0 24px rgba(16,185,129,0.45);
+  animation: badgePulse 0.6s ease-out;
+}
+@keyframes badgePulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+#node-copy-badge .copy-ico { opacity: 0.8; }
+#node-copy-badge kbd {
+  font-size: 9px; background: #fdfaea; border: 1px solid rgba(26,26,28,0.12);
+  border-radius: 3px; padding: 2px 5px; font-family: inherit; color: rgba(26,26,28,0.55);
+}
+#node-copy-badge.copied kbd { background: rgba(26,26,28,0.15); border-color: rgba(26,26,28,0.35); color: #fff; }
+
+/* Copy-confirmation toast — centered, large, bright */
+#copy-toast {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.88);
+  z-index: 2000; pointer-events: none; opacity: 0;
+  background: #10b981; color: #ffffff;
+  padding: 18px 28px; border-radius: 14px;
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 0 60px rgba(16,185,129,0.38), 0 16px 40px rgba(26,26,28,0.12);
+  transition: opacity 0.14s, transform 0.22s cubic-bezier(.18,1.3,.4,1);
+  letter-spacing: 0.2px;
+}
+#copy-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#copy-toast .check {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,0.22); color: #ffffff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+}
+#copy-toast code {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  background: rgba(255,255,255,0.18); color: #ffffff;
+  padding: 3px 8px; border-radius: 5px; font-size: 12px;
+}
+
+/* Help modal (hotkey guide) */
+#help-modal {
+  display: none; position: fixed; inset: 0; z-index: 1500;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+#help-modal.open { display: flex; }
+#help-modal .help-card {
+  background: #fffcf0; border: 1px solid rgba(26,26,28,0.12); border-radius: 14px;
+  padding: 28px 32px; max-width: 680px; width: 90%;
+  box-shadow: 0 20px 60px rgba(26,26,28,0.12);
+}
+#help-modal h2 {
+  font-size: 17px; font-weight: 700; color: #1a1a1c; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 10px;
+}
+#help-modal h2 .help-close {
+  margin-left: auto; font-size: 11px; color: rgba(26,26,28,0.55); cursor: pointer;
+  padding: 4px 10px; border-radius: 5px; border: 1px solid rgba(26,26,28,0.12); background: #fdfaea;
+  font-weight: 500;
+}
+#help-modal h2 .help-close:hover { color: #1a1a1c; border-color: rgba(26,26,28,0.3); }
+#help-modal .help-sub { font-size: 12px; color: rgba(26,26,28,0.55); margin-bottom: 20px; }
+#help-modal table { width: 100%; border-collapse: collapse; font-size: 12px; }
+#help-modal thead th {
+  text-align: left; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px; color: #2563eb;
+  padding: 0 14px 10px;
+}
+#help-modal thead th.grid-head {
+  text-align: center; color: #3b82f6; border-bottom: 1px solid rgba(26,26,28,0.12); padding-bottom: 6px;
+}
+#help-modal thead th.sub {
+  font-size: 9px; font-weight: 600; color: rgba(26,26,28,0.55); padding-top: 6px; letter-spacing: 1px;
+}
+#help-modal thead th.rowspan-bottom { border-bottom: 1px solid rgba(26,26,28,0.10); }
+#help-modal thead th:first-child { padding-left: 0; }
+#help-modal tbody tr:first-child td { border-top: 1px solid rgba(26,26,28,0.10); padding-top: 11px; }
+#help-modal tbody td {
+  padding: 9px 14px; color: rgba(26,26,28,0.55); vertical-align: middle;
+  border-bottom: 1px solid #fffcf0; font-size: 11.5px;
+}
+#help-modal tbody tr:last-child td { border-bottom: none; }
+#help-modal tbody td:first-child { padding-left: 0; }
+#help-modal tbody td.key-cell { width: 84px; white-space: nowrap; }
+#help-modal tbody td.grid-cell { width: 200px; }
+#help-modal tbody td.grid-cell + .grid-cell { border-left: 1px dashed #16161f; }
+#help-modal kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  font-size: 10px; font-weight: 600;
+  background: #fdfaea; border: 1px solid rgba(26,26,28,0.12); border-bottom-width: 2px;
+  border-radius: 4px; color: #1a1a1c; font-family: inherit;
+}
+#help-modal .muted { color: rgba(26,26,28,0.3); }
+
+#btn-help {
+  width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  background: #fdfaea; border: 1px solid rgba(26,26,28,0.12); border-radius: 6px;
+  color: rgba(26,26,28,0.55); font-size: 12px; cursor: pointer; font-family: inherit;
+  font-weight: 600;
+}
+#btn-help:hover { background: rgba(26,26,28,0.08); color: #1a1a1c; border-color: rgba(26,26,28,0.2); }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <a href="/" class="toolbar-brand" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+    <img src="logos/dg-02-chunky.svg" alt="" class="toolbar-logo-img" style="width:20px;height:20px;display:block;">
+    <span class="toolbar-title">Design Graph</span>
+  </a>
+  <span class="toolbar-by">
+    by <a href="https://noemica.io" target="_blank" rel="noopener" class="toolbar-wordmark"><span class="wm-n">n</span>oemica<span class="wm-arrow">↗</span></a>
+  </span>
+  <span class="toolbar-project-wrap" style="margin-left:14px;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(26,26,28,0.42);">project</span>
+    <select id="project-picker" title="Switch project" style="
+      height:26px;padding:0 22px 0 10px;font-size:12px;font-family:inherit;
+      background:#fdfaea;border:1px solid rgba(26,26,28,0.12);border-radius:5px;
+      color:#1a1a1c;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;
+      background-image:url(&quot;data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%232563eb' stroke-width='1.5' fill='none'/></svg>&quot;);
+      background-repeat:no-repeat;background-position:right 7px center;
+    "></select>
+  </span>
+  <div style="display:flex;gap:6px;align-items:center;margin-left:16px;">
+    <input id="filter-input" type="text" placeholder="Filter: text or /regex/flags" style="
+      width:200px;height:30px;padding:0 10px;font-size:11px;font-family:inherit;
+      background:#fffcf0;border:1px solid rgba(26,26,28,0.12);border-radius:5px;color:#1a1a1c;outline:none;
+    ">
+    <select id="filter-date-preset" title="Time window (ANDs with the text filter)" style="
+      height:30px;padding:0 26px 0 10px;font-size:11px;font-family:inherit;
+      background:#fffcf0;border:1px solid rgba(26,26,28,0.12);border-radius:5px;color:#1a1a1c;outline:none;cursor:pointer;color-scheme:dark;
+      appearance:none;-webkit-appearance:none;
+      background-image:linear-gradient(45deg,transparent 50%,rgba(26,26,28,0.55) 50%),linear-gradient(135deg,rgba(26,26,28,0.55) 50%,transparent 50%);
+      background-position:calc(100% - 14px) 13px,calc(100% - 9px) 13px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+    ">
+      <option value="">Any time</option>
+      <option value="1d">Last 24h</option>
+      <option value="3d">Last 3 days</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+      <option value="custom">Custom range…</option>
+    </select>
+    <input id="filter-date-from" type="datetime-local" title="Range start" tabindex="-1" style="
+      display:none;height:30px;padding:0 6px;font-size:10.5px;font-family:inherit;
+      background:#fffcf0;border:1px solid rgba(26,26,28,0.12);border-radius:5px;color:#1a1a1c;outline:none;color-scheme:dark;
+    ">
+    <input id="filter-date-to" type="datetime-local" title="Range end" tabindex="-1" style="
+      display:none;height:30px;padding:0 6px;font-size:10.5px;font-family:inherit;
+      background:#fffcf0;border:1px solid rgba(26,26,28,0.12);border-radius:5px;color:#1a1a1c;outline:none;color-scheme:dark;
+    ">
+    <span style="font-size:10px;color:rgba(26,26,28,0.55);margin-left:4px;white-space:nowrap">also show:</span>
+    <button class="toolbar-btn" id="btn-upstream" style="font-size:10px;height:28px;padding:0 10px;opacity:0.5" title="Add every page that leads to a filter match (upstream / ancestors)">&#8593; pages leading here</button>
+    <button class="toolbar-btn" id="btn-downstream" style="font-size:10px;height:28px;padding:0 10px;opacity:0.5" title="Add every page reached from a filter match (downstream / descendants)">&#8595; pages reached from here</button>
+    <button class="toolbar-btn" id="btn-clear-filter" style="font-size:10px;height:28px;padding:0 8px;display:none">Clear</button>
+  </div>
+  <div class="toolbar-right">
+    <button class="toolbar-btn toolbar-grid-only" id="btn-zoom-node" disabled title="Zoom in on the focused node">Zoom to node</button>
+    <button class="toolbar-btn toolbar-grid-only" id="btn-fit">Fit view</button>
+    <button class="toolbar-btn toolbar-grid-only" id="btn-reset">Reset layout</button>
+    <button id="btn-help" title="Keyboard shortcuts (?)">?</button>
+  </div>
+</div>
+
+<canvas id="graph"></canvas>
+<div id="preview-layer"></div>
+
+<div id="modal" tabindex="-1">
+  <iframe id="modal-iframe"></iframe>
+</div>
+
+<!-- Top nav bar — always visible whenever the modal is open -->
+<div class="edge-zone edge-zone-top" id="zone-top">
+  <div class="edge-panel">
+    <div class="edge-dot" id="edge-dot"></div>
+    <span class="edge-label" id="edge-label"></span>
+    <span class="edge-sublabel" id="edge-sublabel"></span>
+    <span class="edge-date" id="edge-date" title=""></span>
+    <span class="edge-id" id="edge-id" title="Click or press space to copy ID"><span class="copy-ico"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M2 11V3a1 1 0 011-1h8"/></svg></span><span id="edge-id-text"></span><kbd>space</kbd></span>
+    <span class="edge-hud" id="edge-hud">
+      <span class="edge-hud-part" id="edge-hud-hover" title="hovered node"></span>
+      <span class="edge-hud-part" id="edge-hud-zoom" title="zoom level"></span>
+    </span>
+    <button class="edge-exit" id="edge-exit"><kbd>esc</kbd> Back to graph</button>
+  </div>
+  <div class="edge-desc" id="edge-desc"></div>
+</div>
+
+<!-- Panel overlays — shared between grid and full-screen modes -->
+<div class="edge-zone edge-zone-left" id="zone-left">
+  <div class="edge-panel"><div class="edge-nav-title">&#8592; Previous</div><div id="upstream-list"></div></div>
+</div>
+<div class="edge-zone edge-zone-right" id="zone-right">
+  <div class="edge-panel"><div class="edge-nav-title">Next &#8594;</div><div id="downstream-list"></div></div>
+</div>
+<div class="edge-zone edge-zone-bottom" id="zone-bottom">
+  <div class="edge-panel"><div class="edge-nav-title">&#8595; Variants</div><div id="variants-list"></div></div>
+</div>
+
+<!-- Quick-find palette (⌘F / Ctrl+F). Does not touch the filter. -->
+<div id="qf-backdrop"></div>
+<div id="quick-find" role="dialog" aria-label="Quick find">
+  <div class="qf-box">
+    <div class="qf-input-wrap">
+      <span class="qf-icon">&#9906;</span>
+      <input id="qf-input" type="text" placeholder="Jump to a node — type its title or id" autocomplete="off" />
+      <span class="qf-hint"><kbd>&uarr;</kbd><kbd>&darr;</kbd> pick &middot; <kbd>&crarr;</kbd> go &middot; <kbd>esc</kbd> cancel</span>
+    </div>
+    <div id="qf-results"></div>
+  </div>
+</div>
+
+<div id="minimap" title="Minimap — click canvas to pan; drag bar to move panel">
+  <div class="mm-drag" title="Drag to reposition"></div>
+  <div class="mm-controls">
+    <button class="mm-btn mm-collapse" title="Minimize">–</button>
+    <button class="mm-btn mm-close" title="Hide (press m to restore)">×</button>
+  </div>
+  <canvas id="minimap-canvas"></canvas>
+</div>
+
+<div id="zoom-controls">
+  <button class="zoom-btn" id="btn-zoom-out">&minus;</button>
+  <span id="zoom-level">100%</span>
+  <button class="zoom-btn" id="btn-zoom-in">+</button>
+</div>
+<div id="hint">Scroll to zoom &middot; Drag to pan &middot; Click node to view</div>
+
+<div id="node-copy-badge" title="Click or press space to copy ID">
+  <span class="copy-ico"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M2 11V3a1 1 0 011-1h8"/></svg></span>
+  <span id="node-copy-id"></span>
+  <kbd>space</kbd>
+</div>
+
+<div id="copy-toast">
+  <span class="check">&#10003;</span>
+  <span>Copied</span>
+  <code id="copy-toast-id"></code>
+</div>
+
+<div id="help-modal">
+  <div class="help-card">
+    <h2>
+      Keyboard shortcuts
+      <span class="help-close" id="help-close"><kbd>esc</kbd> close</span>
+    </h2>
+    <div class="help-sub">
+      Two grid states — <strong>focused</strong> (arrows open panels) and <strong>hovered</strong> (arrows step through nodes spatially). <kbd style="font-size:9px">enter</kbd> promotes hovered &rarr; focused; <kbd style="font-size:9px">esc</kbd> demotes back.
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2" class="rowspan-bottom">Key</th>
+          <th colspan="2" class="grid-head">Grid view</th>
+          <th rowspan="2" class="rowspan-bottom">Full-screen view</th>
+        </tr>
+        <tr>
+          <th class="sub rowspan-bottom">Focused</th>
+          <th class="sub rowspan-bottom">Hovered / none</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="key-cell"><kbd>?</kbd></td><td class="grid-cell">Toggle this help</td><td class="grid-cell">Toggle this help</td><td>Toggle this help</td></tr>
+        <tr><td class="key-cell"><kbd>esc</kbd></td><td class="grid-cell">Close panel, or demote to hovered</td><td class="grid-cell">Clear hover, or blur filter</td><td>Back to grid, or close panel</td></tr>
+        <tr><td class="key-cell"><kbd>/</kbd></td><td class="grid-cell">Focus filter input</td><td class="grid-cell">Focus filter input</td><td class="muted">—</td></tr>
+        <tr><td class="key-cell"><kbd>⌘</kbd><kbd>F</kbd></td><td class="grid-cell">Quick-find &mdash; jump hover to a node</td><td class="grid-cell">Quick-find &mdash; jump hover to a node</td><td>Quick-find &mdash; navigate to a node</td></tr>
+        <tr><td class="key-cell"><kbd>f</kbd></td><td class="grid-cell">Fit all to view</td><td class="grid-cell">Fit all to view</td><td class="muted">—</td></tr>
+        <tr><td class="key-cell"><kbd>click</kbd></td><td class="grid-cell">Focus node</td><td class="grid-cell">Focus node</td><td class="muted">—</td></tr>
+        <tr><td class="key-cell"><kbd>dbl-click</kbd></td><td class="grid-cell">Open full-screen</td><td class="grid-cell">Open full-screen</td><td class="muted">—</td></tr>
+        <tr><td class="key-cell"><kbd>enter</kbd></td><td class="grid-cell">Open node full-screen</td><td class="grid-cell">Focus the hovered node</td><td>Navigate to focused card</td></tr>
+        <tr><td class="key-cell"><kbd>&#8592;</kbd></td><td class="grid-cell">Open upstream panel</td><td class="grid-cell">Hover the node on the left</td><td>Open upstream panel</td></tr>
+        <tr><td class="key-cell"><kbd>&#8594;</kbd></td><td class="grid-cell">Open downstream panel</td><td class="grid-cell">Hover the node on the right</td><td>Open downstream panel</td></tr>
+        <tr><td class="key-cell"><kbd>&#8595;</kbd></td><td class="grid-cell">Open variants panel</td><td class="grid-cell">Hover the node below</td><td>Open variants panel</td></tr>
+        <tr><td class="key-cell"><kbd>&#8593;</kbd></td><td class="grid-cell">Back to previous focus</td><td class="grid-cell">Hover the node above</td><td>Open node info panel</td></tr>
+        <tr><td class="key-cell"><kbd>space</kbd></td><td class="grid-cell">Copy focused ID</td><td class="grid-cell">Copy hovered ID</td><td>Copy focused or current ID</td></tr>
+        <tr><td class="key-cell" colspan="4" style="padding-top:16px;border-top:1px solid rgba(26,26,28,0.10);color:rgba(26,26,28,0.55);font-size:10px;text-transform:uppercase;letter-spacing:1.2px">Inside a panel (either mode)</td></tr>
+        <tr><td class="key-cell"><kbd>&#8593;</kbd> <kbd>&#8595;</kbd></td><td colspan="3">Step through cards (left / right panels)</td></tr>
+        <tr><td class="key-cell"><kbd>&#8592;</kbd> <kbd>&#8594;</kbd></td><td colspan="3">Step through cards (bottom / variants panel)</td></tr>
+        <tr><td class="key-cell"><kbd>enter</kbd></td><td colspan="3">Pick the focused card</td></tr>
+        <tr><td class="key-cell">same arrow</td><td colspan="3">Pressing the opening arrow again commits the focused card</td></tr>
+        <tr><td class="key-cell">opposite arrow</td><td colspan="3">Pressing the opposite arrow closes the panel</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// PROJECT RESOLUTION — loads data/{project}/graph-data.js synchronously so
+// the rest of the script can reference GRAPH on first evaluation.
+// ──────────────────────────────────────────────
+let PROJECT = null;
+let PROJECT_PATH = null;  // e.g. 'data/noemica'
+(function loadProject(){
+  const params = new URLSearchParams(location.search);
+  const explicit = params.get('project');
+
+  // Sync XHR to fetch manifest + graph-data.js so we don't have to restructure
+  // the entire script into async. This runs once, at init, on local HTTP.
+  function syncFetch(url){
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, false);
+    try { xhr.send(); } catch(e) { return null; }
+    return xhr.status === 200 ? xhr.responseText : null;
+  }
+
+  let manifest = null;
+  const manifestText = syncFetch('data/manifest.json');
+  if (manifestText) {
+    try { manifest = JSON.parse(manifestText); } catch(e) {}
+  }
+
+  const defaultProject = manifest?.default || 'noemica';
+  PROJECT = explicit || defaultProject;
+  PROJECT_PATH = 'data/' + PROJECT;
+
+  const graphText = syncFetch(PROJECT_PATH + '/graph-data.js');
+  if (!graphText) {
+    document.body && (document.body.innerHTML =
+      '<div style="padding:64px;font-family:sans-serif;color:#1a1a1c;background:#f8f5e9;height:100vh">' +
+      '<h1>Project not found</h1>' +
+      '<p>Could not load <code>' + PROJECT_PATH + '/graph-data.js</code></p>' +
+      '<p>Available projects: ' + (manifest?.projects?.map(p=>'<a href="?project='+p.id+'">'+p.id+'</a>').join(', ') || 'unknown') + '</p>' +
+      '</div>');
+    throw new Error('project load failed: ' + PROJECT);
+  }
+  // Eval in global scope so `GRAPH = ...` binds globally. Rewrite `const/let/var GRAPH`
+  // to bare `GRAPH =` + `window.GRAPH =` so lookups from other script tags work.
+  try {
+    const patched = graphText.replace(/\b(const|let|var)\s+GRAPH\s*=/, 'window.GRAPH =');
+    (0, eval)(patched);
+  } catch (e) {
+    console.error('[project] eval error:', e);
+    throw e;
+  }
+})();
+</script>
+<script>
+// ──────────────────────────────────────────────
+// CANVAS RENDERER — no iframes, no DOM nodes
+// ──────────────────────────────────────────────
+const NODE_W = 240, NODE_H = 170, NODE_R = 8;
+const MIN_ZOOM = 0.05, MAX_ZOOM = 3;
+const STORAGE_KEY = 'noemica-dg-pos-v2';
+
+const cvs = document.getElementById('graph');
+const ctx = cvs.getContext('2d');
+let W, H;
+let pan = { x: 0, y: 0 }, zoom = 1;
+let modalOpen = false;
+let hoveredNode = null;   // set by mouse OR keyboard — persistent until user clicks empty or escapes
+let focusedNode = null;   // hard focus — arrows open panels
+let filterSet = null;
+let filterShowUp = false, filterShowDown = false;
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight - 48;
+  cvs.width = W * devicePixelRatio;
+  cvs.height = H * devicePixelRatio;
+  cvs.style.width = W + 'px';
+  cvs.style.height = H + 'px';
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  draw();
+}
+window.addEventListener('resize', resize);
+
+// ──────────────────────────────────────────────
+// DEPTH COMPUTATION
+// ──────────────────────────────────────────────
+function computeDepth() {
+  const inc = {}, out = {};
+  GRAPH.nodes.forEach(n => { inc[n.id] = []; out[n.id] = []; });
+  GRAPH.edges.forEach(e => { if (inc[e.to]) inc[e.to].push(e.from); if (out[e.from]) out[e.from].push(e.to); });
+  const roots = GRAPH.nodes.filter(n => inc[n.id].length === 0).map(n => n.id);
+  const depth = {};
+  const q = [...roots];
+  roots.forEach(r => depth[r] = 0);
+  while (q.length) {
+    const id = q.shift();
+    (out[id] || []).forEach(child => {
+      if (!(child in depth)) { depth[child] = depth[id] + 1; q.push(child); }
+    });
+  }
+  // Unreached nodes
+  GRAPH.nodes.forEach(n => { if (!(n.id in depth)) depth[n.id] = 3; });
+  GRAPH.nodes.forEach(n => { n._depth = depth[n.id]; });
+  const maxD = Math.max(...GRAPH.nodes.map(n => n._depth));
+  GRAPH.nodes.forEach(n => { n._depthNorm = maxD > 0 ? n._depth / maxD : 0; });
+}
+
+// ──────────────────────────────────────────────
+// IFRAME PREVIEWS — real scaled iframes, synced to canvas transform
+// ──────────────────────────────────────────────
+const previewLayer = document.getElementById('preview-layer');
+const liveIframes = new Map(); // id -> DOM element
+const MAX_IFRAMES = 16;
+const IFRAME_ZOOM_MIN = 0.18; // minimum zoom to show iframes
+
+function syncPreviews() {
+  if (zoom < IFRAME_ZOOM_MIN || modalOpen) {
+    // Hide all
+    liveIframes.forEach((el, id) => { el.remove(); liveIframes.delete(id); });
+    return;
+  }
+
+  // Find visible nodes (respecting filter)
+  const visible = [];
+  GRAPH.nodes.forEach(n => {
+    if (filterSet && !filterSet.has(n.id)) return;
+    const [sx, sy] = worldToScreen(n.x, n.y);
+    const [sx2, sy2] = worldToScreen(n.x + NODE_W, n.y + NODE_H);
+    if (sx2 > -100 && sx < W + 100 && sy2 > -100 && sy < H + 100) {
+      const dist = Math.abs(sx + (sx2-sx)/2 - W/2) + Math.abs(sy + (sy2-sy)/2 - H/2);
+      visible.push({ n, dist });
+    }
+  });
+  visible.sort((a, b) => a.dist - b.dist);
+  const toShow = new Set(visible.slice(0, MAX_IFRAMES).map(v => v.n.id));
+
+  // Remove off-screen
+  liveIframes.forEach((el, id) => {
+    if (!toShow.has(id)) { el.remove(); liveIframes.delete(id); }
+  });
+
+  // Position each iframe exactly in the preview area of its card
+  // The preview layer is at position fixed top:48px, so screen Y needs -48 offset
+  toShow.forEach(id => {
+    const n = GRAPH.nodes.find(x => x.id === id);
+    if (!n) return;
+
+    // Card position in screen space
+    const cardLeft = n.x * zoom + pan.x;
+    const cardTop = n.y * zoom + pan.y;  // relative to viewport (below toolbar)
+    const cardW = NODE_W * zoom;
+
+    // Preview area starts 54 world-px below card top
+    const previewY = cardTop + 54 * zoom;
+    const previewH = (NODE_H - 54) * zoom;
+    const iframeScale = cardW / 1280;
+
+    if (previewH < 10) return;
+
+    let el = liveIframes.get(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'pnode';
+      el.dataset.nid = id;
+      el.addEventListener('click', () => { focusedNode = n; draw(); });
+      el.addEventListener('dblclick', () => { focusedNode = null; openModal(id); });
+      const iframe = document.createElement('iframe');
+      iframe.src = PROJECT_PATH + '/' + n.page;
+      iframe.loading = 'lazy';
+      el.appendChild(iframe);
+      previewLayer.appendChild(el);
+      liveIframes.set(id, el);
+    }
+
+    // Position relative to preview-layer which starts at top:48px
+    el.style.left = cardLeft + 'px';
+    el.style.top = previewY + 'px';
+    el.style.width = cardW + 'px';
+    el.style.height = previewH + 'px';
+    // Use CSS `zoom` instead of `transform: scale()` — zoom re-layouts and
+    // re-rasters the iframe content at the target scale, keeping text crisp.
+    // (transform+scale would draw at native 1280×800 and then interpolate.)
+    el.firstChild.style.zoom = iframeScale;
+  });
+}
+
+function savePositions() {
+  const p = {};
+  GRAPH.nodes.forEach(n => { p[n.id] = { x: Math.round(n.x), y: Math.round(n.y) }; });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+}
+function loadPositions() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!s) return false;
+    let found = 0;
+    GRAPH.nodes.forEach(n => { if (s[n.id]) { n.x = s[n.id].x; n.y = s[n.id].y; found++; } });
+    return found > GRAPH.nodes.length * 0.5;
+  } catch(e) { return false; }
+}
+
+// ──────────────────────────────────────────────
+// DRAWING
+// ──────────────────────────────────────────────
+function worldToScreen(wx, wy) {
+  return [wx * zoom + pan.x, wy * zoom + pan.y];
+}
+function screenToWorld(sx, sy) {
+  return [(sx - pan.x) / zoom, (sy - pan.y) / zoom];
+}
+
+let __lastHudZoom = null, __lastHudHover = null;
+function updateHud() {
+  const hoverEl = document.getElementById('edge-hud-hover');
+  const zoomEl = document.getElementById('edge-hud-zoom');
+  if (!hoverEl || !zoomEl) return;
+  const h = hoveredNode;
+  if (h && (!focusedNode || h.id !== focusedNode.id)) {
+    hoverEl.textContent = '↪ ' + h.id;
+    hoverEl.classList.add('hover');
+  } else {
+    hoverEl.textContent = '';
+    hoverEl.classList.remove('hover');
+  }
+  zoomEl.textContent = Math.round(zoom * 100) + '%';
+
+  // Sync URL when zoom or hover changes (not every frame)
+  const hoverKey = h ? h.id : null;
+  const zoomKey = Math.round(zoom * 100);
+  if (hoverKey !== __lastHudHover || zoomKey !== __lastHudZoom) {
+    __lastHudHover = hoverKey;
+    __lastHudZoom = zoomKey;
+    if (typeof scheduleURLWrite === 'function') scheduleURLWrite();
+  }
+}
+
+function draw() {
+  updateHud();
+  ctx.clearRect(0, 0, W, H);
+  // Draw background (since canvas is transparent for preview windows)
+  ctx.fillStyle = '#f8f5e9';
+  ctx.fillRect(0, 0, W, H);
+  // Higher-quality text rendering (prevents fuzzy antialiasing at fractional pixels)
+  ctx.textRendering = 'geometricPrecision';
+  ctx.imageSmoothingQuality = 'high';
+  ctx.save();
+  // Pixel-snap the pan so text lands on whole pixels — fractional translates
+  // produce subpixel positions which rasterize as blurry text.
+  ctx.translate(Math.round(pan.x), Math.round(pan.y));
+  ctx.scale(zoom, zoom);
+
+  const nMap = {};
+  GRAPH.nodes.forEach(n => { nMap[n.id] = n; });
+
+  // Compute FULL path from active node (focused or hovered) with DISTANCE
+  const activeNode = focusedNode || hoveredNode;
+  const hovId = activeNode ? activeNode.id : null;
+  const pathDist = {}; // nodeId -> distance from hovered node (0 = hovered)
+  if (hovId) {
+    pathDist[hovId] = 0;
+    // BFS forward (descendants)
+    let q = [hovId];
+    while (q.length) {
+      const cur = q.shift();
+      GRAPH.edges.forEach(e => {
+        if (e.from === cur && !(e.to in pathDist)) {
+          pathDist[e.to] = pathDist[cur] + 1; q.push(e.to);
+        }
+      });
+    }
+    // BFS backward (ancestors) - negative distance
+    q = [hovId];
+    while (q.length) {
+      const cur = q.shift();
+      GRAPH.edges.forEach(e => {
+        if (e.to === cur && !(e.from in pathDist)) {
+          pathDist[e.from] = pathDist[cur] - 1; q.push(e.from);
+        }
+      });
+    }
+  }
+  const fullPath = new Set(Object.keys(pathDist));
+  const maxFwd = Math.max(1, ...Object.values(pathDist).filter(d => d > 0));
+  const maxBwd = Math.max(1, ...Object.values(pathDist).filter(d => d < 0).map(d => -d));
+
+  // Draw edges — solid, non-fading. On-path = crisp ink; off-path = faint hairline.
+  const showAllEdges = zoom > 0.2;
+  GRAPH.edges.forEach(e => {
+    const a = nMap[e.from], b = nMap[e.to];
+    if (!a || !b) return;
+    if (filterSet && (!filterSet.has(e.from) || !filterSet.has(e.to))) return;
+    const onPath = hovId && (e.from in pathDist) && (e.to in pathDist);
+    if (!onPath && !showAllEdges) return;
+
+    const x1 = a.x + NODE_W/2, y1 = a.y + NODE_H;
+    const x2 = b.x + NODE_W/2, y2 = b.y;
+    const dy = Math.abs(y2 - y1);
+    const cp = Math.max(dy * 0.3, 30);
+
+    if (onPath) {
+      ctx.strokeStyle = 'rgba(26,26,28,0.85)';
+      ctx.lineWidth = 1.8 / zoom;
+    } else {
+      ctx.strokeStyle = 'rgba(26,26,28,0.22)';
+      ctx.lineWidth = 1.2 / zoom;
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.bezierCurveTo(x1, y1 + cp, x2, y2 - cp, x2, y2);
+    ctx.stroke();
+  });
+
+  // Draw nodes
+  const showLabels = zoom > 0.08;
+  const fontSize = Math.max(10, Math.min(13, 13));
+  GRAPH.nodes.forEach(n => {
+    // Skip filtered-out nodes
+    if (filterSet && !filterSet.has(n.id)) return;
+    const isFocused = focusedNode === n;
+    const isHovered = hoveredNode === n || isFocused;
+    const c = n.color || '#2563eb';
+
+    // Depth: roots brighter/bigger, leaves dimmer/smaller
+    const dNorm = n._depthNorm || 0;
+    const onPath = hovId && fullPath.has(n.id);
+    const nodeAlpha = onPath ? 1 : (hovId ? 0.25 : (1 - dNorm * 0.3));
+    ctx.globalAlpha = nodeAlpha;
+
+    // At ALL zoom levels: filled colored rectangle (visible even at 3%)
+    // Size scales with depth - roots are full NODE_W, leaves are slightly narrower
+    const nodeW = NODE_W * (1 - dNorm * 0.15);
+    const xOff = (NODE_W - nodeW) / 2;
+
+    // Card background with accent-colored fill at low zoom
+    if (zoom < 0.12) {
+      // Low zoom: accent-colored filled block, brighter for roots
+      const brightness = 1 - dNorm * 0.5;
+      ctx.fillStyle = c;
+      ctx.globalAlpha = nodeAlpha * (0.4 + brightness * 0.6);
+      roundRect(ctx, n.x + xOff, n.y, nodeW, NODE_H, 4);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      return;
+    }
+
+    // Normal zoom: card with preview area.
+    // Focused = solid thick border (never dimmed). Hovered (not focused) = dashed border.
+    ctx.fillStyle = isHovered ? '#f3ecd6' : (onPath ? '#fdfaea' : '#fffcf0');
+    roundRect(ctx, n.x, n.y, NODE_W, NODE_H, NODE_R);
+    ctx.fill();
+    if (isFocused) {
+      // Focused border must remain crisp at every zoom — no depth dimming, no alpha.
+      const prevAlpha = ctx.globalAlpha;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 3 / zoom;
+      ctx.stroke();
+      ctx.globalAlpha = prevAlpha;
+    } else if (isHovered) {
+      // Hovered border also needs to stay crisp — no alpha dimming.
+      const prevAlpha = ctx.globalAlpha;
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 2 / zoom;
+      ctx.setLineDash([6 / zoom, 4 / zoom]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = prevAlpha;
+    } else {
+      ctx.strokeStyle = onPath ? c + '60' : 'rgba(26,26,28,0.10)';
+      ctx.lineWidth = 1 / zoom;
+      ctx.stroke();
+    }
+
+    // Top accent bar
+    ctx.fillStyle = c;
+    ctx.fillRect(n.x + 1, n.y + 1, NODE_W - 2, 4);
+
+    // Depth badge (top-right) - always visible
+    const badge = 'D' + n._depth;
+    ctx.fillStyle = c + '30';
+    roundRect(ctx, n.x + NODE_W - 30, n.y + 8, 22, 16, 4);
+    ctx.fill();
+    ctx.fillStyle = c;
+    ctx.font = `600 9px 'Inter', system-ui, sans-serif`;
+    ctx.fillText(badge, n.x + NODE_W - 26, n.y + 20);
+
+    // Labels
+    if (showLabels) {
+      ctx.fillStyle = '#1a1a1c';
+      ctx.font = `600 ${fontSize}px 'Inter', system-ui, sans-serif`;
+      ctx.fillText(truncate(n.label, 20), n.x + 10, n.y + 28, NODE_W - 40);
+      ctx.fillStyle = 'rgba(26,26,28,0.55)';
+      ctx.font = `400 ${Math.max(9, fontSize - 2)}px 'Inter', system-ui, sans-serif`;
+      ctx.fillText(truncate(n.sublabel, 26), n.x + 10, n.y + 46, NODE_W - 20);
+    }
+
+    // Clear preview area to transparent so iframe behind shows through
+    ctx.clearRect(n.x + 1, n.y + 54, NODE_W - 2, NODE_H - 55);
+
+    ctx.globalAlpha = 1;
+  });
+
+  ctx.restore();
+  document.getElementById('zoom-level').textContent = Math.round(zoom * 100) + '%';
+  const zoomBtn = document.getElementById('btn-zoom-node');
+  if (zoomBtn) zoomBtn.disabled = !focusedNode;
+  syncPreviews();
+  syncCopyBadge();
+  drawMinimap();
+  scheduleURLWrite();
+}
+
+// ──────────────────────────────────────────────
+// MINIMAP — scaled overview of the whole graph, with a viewport rectangle
+// ──────────────────────────────────────────────
+// QUICK-FIND PALETTE (⌘F / Ctrl+F) — jump hover+view to any node without
+// touching the main filter. Distinct from the filter deliberately.
+// ──────────────────────────────────────────────
+const qfBackdrop = document.getElementById('qf-backdrop');
+const qfInput    = document.getElementById('qf-input');
+const qfResults  = document.getElementById('qf-results');
+
+let qfMatches = [];
+let qfSelectedIdx = 0;
+let qfPrevHovered = null;
+let qfPanTimer = null;
+let qfOpen = false;
+
+function qfEscape(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+}
+
+function qfScore(n, q) {
+  const id = n.id.toLowerCase();
+  const label = (n.label || '').toLowerCase();
+  const sub = (n.sublabel || '').toLowerCase();
+  if (id === q) return 1000;
+  if (id.startsWith(q)) return 800 + (50 - Math.min(50, id.length - q.length));
+  if (label.toLowerCase().startsWith(q)) return 700;
+  if (id.includes(q)) return 500;
+  if (label.includes(q)) return 400;
+  if (sub.includes(q)) return 250;
+  return 0;
+}
+
+function qfFind(q) {
+  if (!q) return [];
+  const ql = q.toLowerCase();
+  return GRAPH.nodes
+    .map(n => ({ n, s: qfScore(n, ql) }))
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 8)
+    .map(x => x.n);
+}
+
+function qfRender(q) {
+  qfMatches = qfFind(q);
+  qfSelectedIdx = 0;
+  if (!q) {
+    qfResults.innerHTML = '<div class="qf-empty">Type to find a node &mdash; by title, sublabel, or id.</div>';
+    return;
+  }
+  if (!qfMatches.length) {
+    qfResults.innerHTML = '<div class="qf-empty">No matches.</div>';
+    return;
+  }
+  qfResults.innerHTML = qfMatches.map((n, i) =>
+    '<div class="qf-item' + (i === 0 ? ' selected' : '') + '" data-idx="' + i + '">'
+    + '<div class="qf-dot" style="background:' + (n.color || '#2563eb') + '"></div>'
+    + '<span class="qf-label">' + qfEscape(n.label || '') + '</span>'
+    + '<span class="qf-sub">' + qfEscape(n.sublabel || '') + '</span>'
+    + '<span class="qf-id">' + qfEscape(n.id) + '</span>'
+    + '</div>'
+  ).join('');
+  qfResults.querySelectorAll('.qf-item').forEach(el => {
+    el.addEventListener('click', () => {
+      qfSelectedIdx = parseInt(el.dataset.idx, 10);
+      qfCommit();
+    });
+    el.addEventListener('mouseenter', () => {
+      qfSelectedIdx = parseInt(el.dataset.idx, 10);
+      qfUpdateSelection();
+      qfPreview();
+    });
+  });
+  qfPreview();
+}
+
+function qfUpdateSelection() {
+  qfResults.querySelectorAll('.qf-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === qfSelectedIdx);
+    if (i === qfSelectedIdx) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function qfPreview() {
+  if (!qfMatches.length) return;
+  const n = qfMatches[qfSelectedIdx];
+  hoveredNode = n;
+  draw();
+  if (modalOpen) return; // don't pan while a full-screen iframe is up
+  clearTimeout(qfPanTimer);
+  qfPanTimer = setTimeout(() => { centerOnNode(n); }, 140);
+}
+
+function qfCommit() {
+  if (!qfMatches.length) { closeQuickFind(false); return; }
+  const n = qfMatches[qfSelectedIdx];
+  if (modalOpen) {
+    // Inside full-screen: navigate the iframe to the found page.
+    navigateTo(n.id);
+  } else {
+    hoveredNode = n;
+    centerOnNode(n);
+  }
+  closeQuickFind(true);
+}
+
+function openQuickFind() {
+  if (qfOpen) { qfInput.select(); return; }
+  qfOpen = true;
+  qfPrevHovered = hoveredNode;
+  document.body.classList.add('qf-open');
+  qfInput.value = '';
+  qfRender('');
+  setTimeout(() => qfInput.focus(), 0);
+}
+
+function closeQuickFind(committed) {
+  if (!qfOpen) return;
+  qfOpen = false;
+  document.body.classList.remove('qf-open');
+  clearTimeout(qfPanTimer);
+  if (!committed) {
+    hoveredNode = qfPrevHovered;
+    draw();
+  }
+  qfPrevHovered = null;
+  qfMatches = [];
+  qfSelectedIdx = 0;
+}
+
+qfInput.addEventListener('input', e => qfRender(e.target.value.trim()));
+qfInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape')   { e.preventDefault(); e.stopPropagation(); closeQuickFind(false); return; }
+  if (e.key === 'Enter')    { e.preventDefault(); e.stopPropagation(); qfCommit(); return; }
+  if (e.key === 'ArrowDown'){
+    e.preventDefault();
+    if (qfMatches.length) { qfSelectedIdx = (qfSelectedIdx + 1) % qfMatches.length; qfUpdateSelection(); qfPreview(); }
+    return;
+  }
+  if (e.key === 'ArrowUp')  {
+    e.preventDefault();
+    if (qfMatches.length) { qfSelectedIdx = (qfSelectedIdx - 1 + qfMatches.length) % qfMatches.length; qfUpdateSelection(); qfPreview(); }
+    return;
+  }
+});
+qfBackdrop.addEventListener('click', () => closeQuickFind(false));
+
+// ──────────────────────────────────────────────
+// MINIMAP — scaled overview of the whole graph, with a viewport rectangle
+// ──────────────────────────────────────────────
+// Minimap dims adapt to viewport: cap at 14% width, 16% height, with floor/ceiling.
+let MM_W = 200, MM_H = 128;
+const MM_PAD = 8;
+function computeMinimapDims() {
+  const vw = window.innerWidth || 1200;
+  const vh = window.innerHeight || 800;
+  MM_W = Math.max(120, Math.min(220, Math.round(vw * 0.14)));
+  MM_H = Math.max(78, Math.min(140, Math.round(vh * 0.16)));
+}
+computeMinimapDims();
+const minimapCanvas = document.getElementById('minimap-canvas');
+const minimapCtx = minimapCanvas.getContext('2d');
+function sizeMinimapCanvas() {
+  minimapCanvas.width  = MM_W * devicePixelRatio;
+  minimapCanvas.height = MM_H * devicePixelRatio;
+  minimapCanvas.style.width  = MM_W + 'px';
+  minimapCanvas.style.height = MM_H + 'px';
+  minimapCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  // Sync the outer wrapper so its hit-area matches the canvas.
+  const mm = document.getElementById('minimap');
+  if (mm && !mm.classList.contains('mm-collapsed')) {
+    mm.style.width = MM_W + 'px';
+    mm.style.height = MM_H + 'px';
+  }
+}
+sizeMinimapCanvas();
+window.addEventListener('resize', () => {
+  computeMinimapDims();
+  sizeMinimapCanvas();
+  if (typeof drawMinimap === 'function') drawMinimap();
+});
+
+// Cache the most recent projection so the click handler can invert it.
+let mmProjection = null;
+
+function drawMinimap() {
+  if (modalOpen) return; // hidden via CSS
+
+  // 1. World bounds from ALL nodes (not filter-dependent, so layout is stable)
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  GRAPH.nodes.forEach(n => {
+    if (n.x < x0) x0 = n.x;
+    if (n.y < y0) y0 = n.y;
+    if (n.x + NODE_W > x1) x1 = n.x + NODE_W;
+    if (n.y + NODE_H > y1) y1 = n.y + NODE_H;
+  });
+  if (!Number.isFinite(x0)) return;
+
+  const wW = x1 - x0, wH = y1 - y0;
+  const scale = Math.min((MM_W - MM_PAD * 2) / wW, (MM_H - MM_PAD * 2) / wH);
+  const offX = (MM_W - wW * scale) / 2;
+  const offY = (MM_H - wH * scale) / 2;
+  mmProjection = { x0, y0, scale, offX, offY };
+
+  // Background
+  minimapCtx.clearRect(0, 0, MM_W, MM_H);
+  minimapCtx.fillStyle = '#f8f5e9';
+  minimapCtx.fillRect(0, 0, MM_W, MM_H);
+
+  // 2. Nodes — filtered-out nodes dim, matches bright
+  GRAPH.nodes.forEach(n => {
+    const mx = (n.x - x0) * scale + offX;
+    const my = (n.y - y0) * scale + offY;
+    const mw = Math.max(NODE_W * scale, 1.5);
+    const mh = Math.max(NODE_H * scale, 1);
+    const inFilter = !filterSet || filterSet.has(n.id);
+    minimapCtx.globalAlpha = inFilter ? 0.75 : 0.12;
+    minimapCtx.fillStyle = n.color || '#2563eb';
+    minimapCtx.fillRect(mx, my, mw, mh);
+  });
+  minimapCtx.globalAlpha = 1;
+
+  // 3. Highlight the focused/hovered node
+  const highlight = focusedNode || hoveredNode;
+  if (highlight) {
+    const mx = (highlight.x - x0) * scale + offX;
+    const my = (highlight.y - y0) * scale + offY;
+    const mw = Math.max(NODE_W * scale, 1.5);
+    const mh = Math.max(NODE_H * scale, 1);
+    minimapCtx.strokeStyle = 'rgba(26,26,28,0.35)';
+    minimapCtx.lineWidth = 1.2;
+    minimapCtx.strokeRect(mx - 0.5, my - 0.5, mw + 1, mh + 1);
+  }
+
+  // 4. Viewport rectangle — the slice of world currently visible on main canvas
+  const viewX0 = -pan.x / zoom;
+  const viewY0 = -pan.y / zoom;
+  const viewX1 = viewX0 + W / zoom;
+  const viewY1 = viewY0 + H / zoom;
+  const vx0 = (viewX0 - x0) * scale + offX;
+  const vy0 = (viewY0 - y0) * scale + offY;
+  const vw  = (viewX1 - viewX0) * scale;
+  const vh  = (viewY1 - viewY0) * scale;
+  // Clamp so we always draw a visible outline even when zoomed way out past bounds
+  const clx = Math.max(vx0, 0), cly = Math.max(vy0, 0);
+  const cx2 = Math.min(vx0 + vw, MM_W), cy2 = Math.min(vy0 + vh, MM_H);
+  if (cx2 > clx && cy2 > cly) {
+    minimapCtx.fillStyle = 'rgba(37,99,235,0.12)';
+    minimapCtx.fillRect(clx, cly, cx2 - clx, cy2 - cly);
+    minimapCtx.strokeStyle = 'rgba(37,99,235,0.75)';
+    minimapCtx.lineWidth = 1;
+    minimapCtx.strokeRect(clx + 0.5, cly + 0.5, cx2 - clx - 1, cy2 - cly - 1);
+  }
+}
+
+// Click on minimap → pan main canvas so the clicked world point becomes the viewport center.
+minimapCanvas.addEventListener('click', e => {
+  if (!mmProjection) return;
+  const rect = minimapCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const { x0, y0, scale, offX, offY } = mmProjection;
+  const wx = (mx - offX) / scale + x0;
+  const wy = (my - offY) / scale + y0;
+  pan.x = W / 2 - wx * zoom;
+  pan.y = H / 2 - wy * zoom;
+  draw();
+});
+
+// ──────────────────────────────────────────────
+// MINIMAP: draggable, collapsible, persistent, viewport-clamped
+// ──────────────────────────────────────────────
+(function(){
+  const MM_KEY = 'dg-minimap-v1';
+  const mm = document.getElementById('minimap');
+  const btnCollapse = mm.querySelector('.mm-collapse');
+  const btnClose = mm.querySelector('.mm-close');
+  const dragHandle = mm.querySelector('.mm-drag');
+
+  function loadState(){
+    try { return JSON.parse(localStorage.getItem(MM_KEY)) || {}; } catch { return {}; }
+  }
+  function saveState(s){
+    try { localStorage.setItem(MM_KEY, JSON.stringify(s)); } catch {}
+  }
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // Clamp stored coords so the minimap is always fully on-screen on resize.
+  function applyPosition(state){
+    if (state.hidden) { mm.style.display = 'none'; return; }
+    mm.style.display = '';
+    if (state.collapsed) mm.classList.add('mm-collapsed');
+    else mm.classList.remove('mm-collapsed');
+
+    // After layout, measure
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const rect = mm.getBoundingClientRect();
+    const w = rect.width || 200, h = rect.height || 128;
+    const TOOLBAR = 48, PAD = 8;
+
+    if (typeof state.left === 'number' && typeof state.top === 'number') {
+      const left = clamp(state.left, PAD, vw - w - PAD);
+      const top  = clamp(state.top, TOOLBAR + PAD, vh - h - PAD);
+      mm.style.left = left + 'px';
+      mm.style.top = top + 'px';
+      mm.style.right = 'auto';
+      mm.style.bottom = 'auto';
+    } else {
+      // Default corner — reset any prior absolute positioning
+      mm.style.left = '';
+      mm.style.top = '';
+      mm.style.right = '20px';
+      mm.style.bottom = '20px';
+    }
+  }
+
+  let mmState = loadState();
+  applyPosition(mmState);
+
+  // Re-clamp on window resize so it never slides off.
+  window.addEventListener('resize', () => applyPosition(mmState));
+
+  // Collapse / expand
+  btnCollapse.addEventListener('click', e => {
+    e.stopPropagation();
+    mmState.collapsed = !mmState.collapsed;
+    saveState(mmState);
+    applyPosition(mmState);
+    btnCollapse.textContent = mmState.collapsed ? '+' : '–';
+  });
+  // Clicking a collapsed minimap expands it back
+  mm.addEventListener('click', e => {
+    if (mm.classList.contains('mm-collapsed') && !e.target.classList.contains('mm-btn')) {
+      mmState.collapsed = false;
+      saveState(mmState);
+      applyPosition(mmState);
+      btnCollapse.textContent = '–';
+    }
+  });
+
+  // Hide
+  btnClose.addEventListener('click', e => {
+    e.stopPropagation();
+    mmState.hidden = true;
+    saveState(mmState);
+    applyPosition(mmState);
+  });
+
+  // Restore with "m" keyboard shortcut
+  window.addEventListener('keydown', e => {
+    if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      mmState.hidden = !mmState.hidden;
+      saveState(mmState);
+      applyPosition(mmState);
+    }
+  });
+
+  // Drag to reposition (via drag handle only — doesn't conflict with canvas click)
+  let dragStart = null;
+  dragHandle.addEventListener('pointerdown', e => {
+    const rect = mm.getBoundingClientRect();
+    dragStart = { mx: e.clientX, my: e.clientY, left: rect.left, top: rect.top };
+    dragHandle.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  dragHandle.addEventListener('pointermove', e => {
+    if (!dragStart) return;
+    const dx = e.clientX - dragStart.mx;
+    const dy = e.clientY - dragStart.my;
+    mmState.left = dragStart.left + dx;
+    mmState.top = dragStart.top + dy;
+    applyPosition(mmState);
+  });
+  dragHandle.addEventListener('pointerup', e => {
+    if (dragStart) { saveState(mmState); dragStart = null; }
+    dragHandle.releasePointerCapture(e.pointerId);
+  });
+})();
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function truncate(s, max) { return s && s.length > max ? s.slice(0, max-1) + '\u2026' : s || ''; }
+
+function hitTest(sx, sy) {
+  const [wx, wy] = screenToWorld(sx, sy);
+  for (let i = GRAPH.nodes.length - 1; i >= 0; i--) {
+    const n = GRAPH.nodes[i];
+    if (wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + NODE_H) return n;
+  }
+  return null;
+}
+
+// ──────────────────────────────────────────────
+// INTERACTION
+// ──────────────────────────────────────────────
+let isPanning = false, panStart = {x:0,y:0}, panDragged = false;
+let dragNode = null, dragStart = {x:0,y:0}, dragNodeStart = {x:0,y:0}, hasDragged = false;
+
+cvs.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  // Blur filter input so keyboard shortcuts work
+  if (document.activeElement && document.activeElement.tagName === 'INPUT') document.activeElement.blur();
+  const node = hitTest(e.offsetX, e.offsetY);
+  if (node) {
+    dragNode = node;
+    dragStart = {x: e.clientX, y: e.clientY};
+    dragNodeStart = {x: node.x, y: node.y};
+    hasDragged = false;
+  } else {
+    isPanning = true;
+    panDragged = false;
+    panStart = {x: e.clientX - pan.x, y: e.clientY - pan.y};
+    cvs.classList.add('panning');
+  }
+});
+
+window.addEventListener('mousemove', e => {
+  if (isPanning) {
+    pan.x = e.clientX - panStart.x;
+    pan.y = e.clientY - panStart.y;
+    panDragged = true;
+    draw();
+    return;
+  }
+  if (dragNode) {
+    const dx = (e.clientX - dragStart.x) / zoom;
+    const dy = (e.clientY - dragStart.y) / zoom;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasDragged = true;
+    dragNode.x = dragNodeStart.x + dx;
+    dragNode.y = dragNodeStart.y + dy;
+    draw();
+    return;
+  }
+  // Hover detection — only update on hitting a node. Empty space doesn't clear hover,
+  // so keyboard-set hover stays put when the mouse drifts.
+  const node = hitTest(e.offsetX, e.offsetY);
+  if (node && node !== hoveredNode) { hoveredNode = node; cvs.style.cursor = 'pointer'; draw(); }
+  else if (!node) { cvs.style.cursor = 'grab'; }
+});
+
+window.addEventListener('mouseup', e => {
+  if (isPanning) {
+    isPanning = false;
+    cvs.classList.remove('panning');
+    // Click on empty space clears both focus and hover.
+    if (!panDragged && (focusedNode || hoveredNode)) { focusedNode = null; hoveredNode = null; draw(); }
+  }
+  if (dragNode) {
+    if (!hasDragged) {
+      // Click focuses. Clicking the already-focused node unfocuses (keeps hover on it).
+      if (focusedNode === dragNode) { focusedNode = null; hoveredNode = dragNode; }
+      else { focusedNode = dragNode; hoveredNode = dragNode; }
+      draw();
+    } else {
+      savePositions();
+    }
+    dragNode = null;
+  }
+});
+
+// Double click = open modal
+cvs.addEventListener('dblclick', e => {
+  const node = hitTest(e.offsetX, e.offsetY);
+  if (node) { focusedNode = null; openModal(node.id); }
+});
+
+cvs.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * factor));
+  const mx = e.offsetX, my = e.offsetY;
+  const wx = (mx - pan.x) / zoom, wy = (my - pan.y) / zoom;
+  zoom = newZoom;
+  pan.x = mx - wx * zoom; pan.y = my - wy * zoom;
+  draw();
+}, {passive: false});
+
+// ──────────────────────────────────────────────
+// MODAL
+// ──────────────────────────────────────────────
+let currentNodeId = null;
+const navHistory = []; // stack of visited node IDs, most recent last
+const modal = document.getElementById('modal');
+const modalIframe = document.getElementById('modal-iframe');
+
+// Forward keyboard events from inside the iframe so hotkeys keep working
+// after the user clicks into the page content (which moves focus into the
+// iframe doc/window). We attach to BOTH the iframe's contentDocument AND
+// its contentWindow in capture phase — whichever one receives the event
+// first will forward it up to the parent.
+const FORWARDED_KEYS = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Escape','Enter',' ','?','/']);
+function forwardIframeKey(e) {
+  if (!modalOpen) return;
+  // Always forward Cmd/Ctrl+F so the graph viewer's filter takes priority
+  // over the browser's native Find dialog, even when focus is inside the iframe.
+  const isFindShortcut = (e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F');
+  if (!isFindShortcut && !FORWARDED_KEYS.has(e.key)) return;
+  // If the iframe ships with live-flow.js, it owns Escape (two-step: blur
+  // input first, then postMessage close). Forwarding Escape here would
+  // collapse that into one step.
+  if (e.key === 'Escape') {
+    try {
+      const cw = modalIframe.contentWindow;
+      if (cw && typeof cw.noemicaTransition === 'function') return;
+    } catch (_) {}
+  }
+  e.preventDefault();
+  window.dispatchEvent(new KeyboardEvent('keydown', {
+    key: e.key, code: e.code, keyCode: e.keyCode, which: e.which,
+    ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey,
+    bubbles: true, cancelable: true
+  }));
+}
+
+function attachIframeForwarders() {
+  try {
+    const doc = modalIframe.contentDocument;
+    const win = modalIframe.contentWindow;
+    if (doc) {
+      doc.removeEventListener('keydown', forwardIframeKey, true);
+      doc.addEventListener('keydown', forwardIframeKey, true);
+      // On every click inside the iframe, re-assert the keydown forwarder.
+      // This guards against the forwarder getting detached by in-iframe
+      // scripts, or against focus moving into a shadow root / nested
+      // document where the earlier binding no longer fires.
+      doc.removeEventListener('click', attachIframeForwarders, true);
+      doc.addEventListener('click', attachIframeForwarders, true);
+    }
+    if (win) {
+      win.removeEventListener('keydown', forwardIframeKey, true);
+      win.addEventListener('keydown', forwardIframeKey, true);
+    }
+  } catch (err) {
+    // Cross-origin iframe — can't attach
+  }
+}
+modalIframe.addEventListener('load', attachIframeForwarders);
+
+// Listen for postMessage signals from the live-flow pages:
+//   noemica-close     : the iframe wants to dismiss the full-screen overlay
+//   noemica-loaded    : the iframe just loaded this pageId — sync graph state
+//   noemica-navigating: optional nav hint; child already shows its own toast
+window.addEventListener('message', e => {
+  const data = e && e.data;
+  if (!data || typeof data !== 'object') return;
+
+  if (data.type === 'noemica-close' && modalOpen) {
+    // Re-anchor focus on the page the iframe is actually showing, so that
+    // when closeModal pans, the grid lands on where the user really was
+    // (not the page they originally opened).
+    if (data.pageId) {
+      const n = GRAPH.nodes.find(x => x.id === data.pageId);
+      if (n) focusedNode = n;
+    }
+    closeModal();
+    return;
+  }
+
+  if (data.type === 'noemica-loaded' && modalOpen && data.pageId) {
+    const n = GRAPH.nodes.find(x => x.id === data.pageId);
+    if (n && currentNodeId !== n.id) {
+      currentNodeId = n.id;
+      focusedNode = n;
+      renderPanelsFor(n.id);
+    }
+  }
+});
+const edgeDot = document.getElementById('edge-dot');
+const edgeLabel = document.getElementById('edge-label');
+const edgeSublabel = document.getElementById('edge-sublabel');
+const edgeId = document.getElementById('edge-id');
+const edgeIdText = document.getElementById('edge-id-text');
+const edgeDate = document.getElementById('edge-date');
+
+// ──────────────────────────────────────────────
+// DATE HELPERS
+// ──────────────────────────────────────────────
+function parseDate(iso) {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+function relativeTime(iso) {
+  const t = parseDate(iso);
+  if (!t) return '';
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 86400 * 2) return 'yesterday';
+  if (diff < 86400 * 7) return Math.floor(diff / 86400) + 'd ago';
+  if (diff < 86400 * 30) return Math.floor(diff / (86400 * 7)) + 'w ago';
+  if (diff < 86400 * 365) return Math.floor(diff / (86400 * 30)) + 'mo ago';
+  return Math.floor(diff / (86400 * 365)) + 'y ago';
+}
+function absoluteDate(iso) {
+  const t = parseDate(iso);
+  if (!t) return '';
+  const d = new Date(t);
+  return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+const upstreamList = document.getElementById('upstream-list');
+const downstreamList = document.getElementById('downstream-list');
+
+function getUpstream(id) {
+  return GRAPH.edges.filter(e=>e.to===id).map(e=>({edge:e,node:GRAPH.nodes.find(n=>n.id===e.from)}))
+    .filter(x=>x.node && (!filterSet || filterSet.has(x.node.id)));
+}
+function getDownstream(id) {
+  return GRAPH.edges.filter(e=>e.from===id).map(e=>({edge:e,node:GRAPH.nodes.find(n=>n.id===e.to)}))
+    .filter(x=>x.node && (!filterSet || filterSet.has(x.node.id)));
+}
+function getVariants(id) {
+  const n = GRAPH.nodes.find(x=>x.id===id); if (!n) return [];
+  const all = GRAPH.nodes.filter(x => x.label === n.label && (!filterSet || filterSet.has(x.id)));
+  if (all.length <= 1) return [];
+  return all.map(x => ({ edge: { label: x.sublabel }, node: x, isCurrent: x.id === id }));
+}
+
+function renderNavCards(container, items, dir) {
+  if (!items.length) { container.innerHTML = '<div class="edge-nav-empty">No '+(dir==='up'?'previous':dir==='variants'?'variants':'next')+' pages</div>'; return; }
+  // Sort by date, newest first. Undated items sink to the bottom.
+  items = items.slice().sort((a, b) => (parseDate(b.node.date) || 0) - (parseDate(a.node.date) || 0));
+
+  // Find the two most recently visited items in this list
+  const recencyRanked = items
+    .map(({node}) => ({ id: node.id, hi: navHistory.lastIndexOf(node.id) }))
+    .filter(x => x.hi >= 0)
+    .sort((a, b) => b.hi - a.hi);
+  const mostRecent = recencyRanked[0]?.id;
+  const secondRecent = recencyRanked[1]?.id;
+
+  const copyIconSvg = '<span class="copy-ico"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M2 11V3a1 1 0 011-1h8"/></svg></span>';
+  container.innerHTML = items.map(({edge,node,isCurrent}) => {
+    let tag = '';
+    if (isCurrent) tag = '<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(16,185,129,0.12);color:#4ade80;margin-left:auto;flex-shrink:0">current</span>';
+    else if (node.id === mostRecent) tag = '<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(124,58,237,0.15);color:#3b82f6;margin-left:auto;flex-shrink:0">recent</span>';
+    else if (node.id === secondRecent) tag = '<span style="font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(26,26,28,0.08);color:rgba(26,26,28,0.55);margin-left:auto;flex-shrink:0">prev</span>';
+    const currentClass = isCurrent ? ' data-is-current="1"' : '';
+    const copyHint = '<span class="copy-hint" data-copy-id="'+node.id+'">'+copyIconSvg+'<kbd>space</kbd></span>';
+    const relDate = relativeTime(node.date);
+    const absDate = absoluteDate(node.date);
+    const dateLine = relDate ? '<div class="nav-date" title="'+absDate+'">'+relDate+'</div>' : '';
+    return (edge.label?'<div class="edge-nav-edge-label">'+edge.label+'</div>':'')+
+    '<div class="edge-nav-card" data-nav-to="'+node.id+'"'+currentClass+'><div class="edge-nav-dot" style="background:'+node.color+'"></div><div style="flex:1;min-width:0"><div class="edge-nav-label">'+node.label+'</div><div class="edge-nav-sub">'+node.sublabel+'</div>'+dateLine+'</div>'+tag+copyHint+'</div>';
+  }).join('');
+  container.querySelectorAll('.edge-nav-card').forEach(c => {
+    c.addEventListener('click', e => {
+      if (e.target.closest('.copy-hint')) return;
+      navigateTo(c.dataset.navTo);
+    });
+  });
+  container.querySelectorAll('.copy-hint').forEach(h => {
+    h.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = h.dataset.copyId;
+      navigator.clipboard.writeText(id).then(() => {
+        showCopyToast(id);
+        const card = h.closest('.edge-nav-card');
+        if (card) { card.classList.add('copied'); setTimeout(()=>card.classList.remove('copied'), 700); }
+      });
+    });
+  });
+}
+
+// Render the side/top panels for a given node ID.
+// Used by both modal (full-screen) and grid mode — identical logic.
+function renderPanelsFor(id) {
+  const n = GRAPH.nodes.find(x=>x.id===id); if (!n) return;
+  edgeDot.style.background = n.color;
+  edgeLabel.textContent = n.label;
+  edgeSublabel.textContent = n.sublabel;
+  edgeIdText.textContent = n.id;
+  edgeId.classList.remove('copied');
+  if (edgeDate) {
+    const rel = relativeTime(n.date);
+    edgeDate.textContent = rel;
+    edgeDate.title = absoluteDate(n.date) || '';
+    edgeDate.style.display = rel ? '' : 'none';
+  }
+  document.getElementById('edge-desc').textContent = n.desc || '';
+  const up = getUpstream(id), down = getDownstream(id), variants = getVariants(id);
+  renderNavCards(upstreamList, up, 'up');
+  renderNavCards(downstreamList, down, 'down');
+  renderNavCards(document.getElementById('variants-list'), variants, 'variants');
+  upstreamList.scrollTop = 0;
+  downstreamList.scrollTop = 0;
+}
+
+function navigateTo(id) {
+  const n = GRAPH.nodes.find(x=>x.id===id); if(!n) return;
+  currentNodeId = id;
+  const idx = navHistory.indexOf(id);
+  if (idx !== -1) navHistory.splice(idx, 1);
+  navHistory.push(id);
+  modalIframe.src = PROJECT_PATH + '/' + n.page;
+  renderPanelsFor(id);
+  // Keep the grid's focus in sync with the modal's current page so exiting
+  // full-screen lands you on whichever page you last viewed.
+  focusedNode = n;
+  writeURL();
+}
+
+function openModal(id) {
+  navigateTo(id);
+  modal.classList.add('open');
+  modalOpen = true;
+  document.body.classList.add('modal-open');
+  requestAnimationFrame(()=>modal.focus());
+  writeURL();
+}
+function closeModal() {
+  modal.classList.remove('open');
+  modalIframe.src='';
+  modalOpen = false;
+  document.body.classList.remove('modal-open');
+  currentNodeId = null;
+  kbExit();
+  // Pan the grid to the node that was last in focus (the modal updates
+  // focusedNode on every navigateTo) so exiting lands you on that card.
+  if (focusedNode) centerOnNode(focusedNode);
+  else draw();
+  writeURL();
+}
+
+document.getElementById('edge-exit').addEventListener('click', closeModal);
+edgeId.addEventListener('click', e => {
+  e.stopPropagation();
+  const id = edgeIdText.textContent;
+  navigator.clipboard.writeText(id).then(()=>{
+    showCopyToast(id);
+    edgeId.classList.add('copied');
+    setTimeout(()=>edgeId.classList.remove('copied'), 900);
+  });
+});
+
+// ──────────────────────────────────────────────
+// COPY TOAST + GRAPH NODE COPY BADGE
+// ──────────────────────────────────────────────
+const copyToast = document.getElementById('copy-toast');
+const copyToastId = document.getElementById('copy-toast-id');
+const nodeCopyBadge = document.getElementById('node-copy-badge');
+const nodeCopyIdEl = document.getElementById('node-copy-id');
+let _toastTimer = null;
+function showCopyToast(id) {
+  copyToastId.textContent = id;
+  copyToast.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => copyToast.classList.remove('show'), 1400);
+}
+
+function copyFocusedNodeId() {
+  const active = focusedNode || hoveredNode;
+  if (!active) return;
+  const id = active.id;
+  navigator.clipboard.writeText(id).then(() => {
+    showCopyToast(id);
+    nodeCopyBadge.classList.add('copied');
+    setTimeout(() => nodeCopyBadge.classList.remove('copied'), 900);
+  });
+}
+
+nodeCopyBadge.addEventListener('click', e => {
+  e.stopPropagation();
+  copyFocusedNodeId();
+});
+
+// ──────────────────────────────────────────────
+// GRID NAVIGATION (arrow keys while focused on a node)
+// ──────────────────────────────────────────────
+const gridHistory = []; // stack of focused-node IDs in grid
+
+// Spatial step: find the nearest node in the given direction and hover it.
+// Reference is the current hover (or focus), or viewport center if neither.
+function cartesianStep(dir) {
+  const active = focusedNode || hoveredNode;
+  let refX, refY;
+  if (active) {
+    refX = active.x + NODE_W/2;
+    refY = active.y + NODE_H/2;
+  } else {
+    const [wx, wy] = screenToWorld(W/2, H/2);
+    refX = wx; refY = wy;
+  }
+
+  let best = null, bestScore = Infinity;
+  GRAPH.nodes.forEach(n => {
+    if (filterSet && !filterSet.has(n.id)) return;
+    if (active === n) return;
+    const cx = n.x + NODE_W/2, cy = n.y + NODE_H/2;
+    const dx = cx - refX, dy = cy - refY;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+
+    if (dir === 'right' && (dx <= 0 || absDx < absDy * 0.7)) return;
+    if (dir === 'left'  && (dx >= 0 || absDx < absDy * 0.7)) return;
+    if (dir === 'down'  && (dy <= 0 || absDy < absDx * 0.7)) return;
+    if (dir === 'up'    && (dy >= 0 || absDy < absDx * 0.7)) return;
+
+    const primary = (dir === 'right' || dir === 'left') ? absDx : absDy;
+    const offAxis = (dir === 'right' || dir === 'left') ? absDy : absDx;
+    const score = primary + offAxis * 1.5;
+    if (score < bestScore) { bestScore = score; best = n; }
+  });
+
+  if (!best) return;
+  hoveredNode = best;
+  const idx = navHistory.indexOf(best.id);
+  if (idx !== -1) navHistory.splice(idx, 1);
+  navHistory.push(best.id);
+  centerOnNode(best);
+}
+
+function gridNavBack() {
+  const prev = gridHistory.pop();
+  if (!prev) return;
+  const n = GRAPH.nodes.find(x => x.id === prev);
+  if (!n) return;
+  focusedNode = n;
+  centerOnNode(n);
+}
+
+function centerOnNode(n, explicitZoom) {
+  // Keep current zoom — only the "Zoom to node" button passes an explicit override
+  const targetZoom = (typeof explicitZoom === 'number') ? explicitZoom : zoom;
+  const targetPanX = W/2 - (n.x + NODE_W/2) * targetZoom;
+  const targetPanY = H/2 - (n.y + NODE_H/2) * targetZoom;
+  const startZoom = zoom, startPanX = pan.x, startPanY = pan.y;
+  const t0 = performance.now();
+  const duration = 240;
+  function tick(t) {
+    const p = Math.min(1, (t - t0) / duration);
+    const ease = 1 - Math.pow(1 - p, 3);
+    zoom = startZoom + (targetZoom - startZoom) * ease;
+    pan.x = startPanX + (targetPanX - startPanX) * ease;
+    pan.y = startPanY + (targetPanY - startPanY) * ease;
+    draw();
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ──────────────────────────────────────────────
+// HELP MODAL
+// ──────────────────────────────────────────────
+let helpOpen = false;
+function toggleHelpModal(force) {
+  helpOpen = (typeof force === 'boolean') ? force : !helpOpen;
+  document.getElementById('help-modal').classList.toggle('open', helpOpen);
+}
+document.getElementById('btn-help').addEventListener('click', () => toggleHelpModal());
+document.getElementById('help-close').addEventListener('click', () => toggleHelpModal(false));
+document.getElementById('help-modal').addEventListener('click', e => {
+  if (e.target.id === 'help-modal') toggleHelpModal(false);
+});
+
+function syncCopyBadge() {
+  const active = focusedNode || hoveredNode;
+  if (!active || modalOpen) { nodeCopyBadge.classList.remove('visible'); return; }
+  const cardLeft = active.x * zoom + pan.x;
+  const cardTop = active.y * zoom + pan.y + 48; // toolbar offset
+  const cardW = NODE_W * zoom;
+  // Position above the card, right-aligned with card
+  nodeCopyIdEl.textContent = active.id;
+  nodeCopyBadge.classList.add('visible');
+  const badgeRect = nodeCopyBadge.getBoundingClientRect();
+  const badgeW = badgeRect.width || 120;
+  let left = cardLeft + cardW - badgeW;
+  let top = cardTop - 30;
+  if (top < 52) top = cardTop + 6; // push below if above toolbar
+  nodeCopyBadge.style.left = Math.max(8, left) + 'px';
+  nodeCopyBadge.style.top = top + 'px';
+}
+
+// ──────────────────────────────────────────────
+// FIT VIEW
+// ──────────────────────────────────────────────
+function fitView() {
+  if (!GRAPH.nodes.length) return;
+  let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  GRAPH.nodes.forEach(n=>{x0=Math.min(x0,n.x);y0=Math.min(y0,n.y);x1=Math.max(x1,n.x+NODE_W);y1=Math.max(y1,n.y+NODE_H);});
+  const gw=x1-x0, gh=y1-y0, pad=60;
+  zoom = Math.min((W-pad*2)/gw, (H-pad*2)/gh, 1.5);
+  pan.x = (W-gw*zoom)/2 - x0*zoom;
+  pan.y = (H-gh*zoom)/2 - y0*zoom;
+  draw();
+}
+
+document.getElementById('btn-fit').addEventListener('click', fitView);
+document.getElementById('btn-reset').addEventListener('click', ()=>{localStorage.removeItem(STORAGE_KEY);location.reload();});
+
+const btnZoomNode = document.getElementById('btn-zoom-node');
+btnZoomNode.addEventListener('click', () => {
+  if (!focusedNode) return;
+  centerOnNode(focusedNode, 1.8);
+});
+document.getElementById('btn-zoom-in').addEventListener('click',()=>{zoom=Math.min(MAX_ZOOM,zoom*1.2);draw();});
+document.getElementById('btn-zoom-out').addEventListener('click',()=>{zoom=Math.max(MIN_ZOOM,zoom/1.2);draw();});
+
+// ──────────────────────────────────────────────
+// KEYBOARD NAVIGATION — shared between grid and full-screen
+// ──────────────────────────────────────────────
+let kbState = 'none'; // 'none' | 'top' | 'left' | 'right' | 'bottom'
+let kbMode  = 'none'; // 'none' | 'grid' | 'modal'  — who owns the panels
+let kbNavIndex = -1;
+
+function kbClearAll() {
+  document.querySelectorAll('.kb-focus').forEach(el => el.classList.remove('kb-focus'));
+  document.querySelectorAll('.edge-zone.pinned').forEach(el => el.classList.remove('pinned'));
+  document.body.classList.remove('modal-nav-open');
+  kbState = 'none'; kbNavIndex = -1;
+}
+function kbExit() { kbClearAll(); kbMode = 'none'; }
+
+// Open a panel in either mode. The panel contents reflect the "current" node:
+//   - modal mode: currentNodeId
+//   - grid mode:  focusedNode.id
+function openPanel(mode, side) {
+  const nodeId = mode === 'modal' ? currentNodeId : (focusedNode && focusedNode.id);
+  if (!nodeId) return;
+  kbMode = mode;
+  renderPanelsFor(nodeId);
+  if (!kbShowZone(side)) return;
+  if (side === 'bottom') kbFocusCurrentOrFirst(side);
+  else if (side !== 'top') kbFocusMostRecent(side);
+}
+
+// Commit the user's pick. Navigation differs by mode; selection flow is shared.
+function kbCommit(targetId) {
+  const mode = kbMode;
+  kbExit();
+  if (mode === 'modal') {
+    navigateTo(targetId);
+  } else if (mode === 'grid') {
+    gridJumpTo(targetId);
+  }
+}
+
+function gridJumpTo(id) {
+  const n = GRAPH.nodes.find(x => x.id === id); if (!n) return;
+  if (focusedNode) gridHistory.push(focusedNode.id);
+  focusedNode = n;
+  const idx = navHistory.indexOf(id);
+  if (idx !== -1) navHistory.splice(idx, 1);
+  navHistory.push(id);
+  centerOnNode(n);
+}
+function kbShowZone(side) {
+  kbClearAll();
+  const zone = document.getElementById('zone-' + side);
+  if (!zone) return false;
+  zone.style.display = '';
+  zone.classList.add('pinned');
+  // Top zone in modal also lifts the main toolbar above the iframe as a nav bar.
+  if (side === 'top' && modalOpen) document.body.classList.add('modal-nav-open');
+  kbState = side;
+  kbNavIndex = -1;
+  return true;
+}
+function kbGetCards(side) {
+  const el = side==='left' ? upstreamList : side==='right' ? downstreamList : document.getElementById('variants-list');
+  return Array.from(el.querySelectorAll('.edge-nav-card'));
+}
+function kbFocusCard(side, idx) {
+  const cards = kbGetCards(side); if (!cards.length) return;
+  if (idx < 0) idx = cards.length - 1; if (idx >= cards.length) idx = 0;
+  cards.forEach(c => c.classList.remove('kb-focus'));
+  cards[idx].classList.add('kb-focus'); kbNavIndex = idx;
+  cards[idx].scrollIntoView({ block: 'nearest' });
+}
+function kbFocusMostRecent(side) {
+  // Find the most recently visited card in this panel, default to 0
+  const cards = kbGetCards(side);
+  if (!cards.length) return;
+  let bestIdx = 0, bestRecency = -1;
+  cards.forEach((c, i) => {
+    const hi = navHistory.lastIndexOf(c.dataset.navTo);
+    if (hi > bestRecency) { bestRecency = hi; bestIdx = i; }
+  });
+  kbFocusCard(side, bestIdx);
+}
+function kbCopyCurrentId() {
+  let id = null;
+  let flashEl = null;
+  if (kbState === 'top') { id = currentNodeId; flashEl = edgeId; }
+  else if (kbState !== 'none' && kbNavIndex >= 0) {
+    const cards = kbGetCards(kbState);
+    if (cards[kbNavIndex]) { id = cards[kbNavIndex].dataset.navTo; flashEl = cards[kbNavIndex]; }
+  }
+  if (!id) return;
+  navigator.clipboard.writeText(id).then(() => {
+    showCopyToast(id);
+    if (flashEl) {
+      flashEl.classList.add('copied');
+      setTimeout(() => flashEl.classList.remove('copied'), 900);
+    }
+  });
+}
+
+function kbFocusCurrentOrFirst(side) {
+  const cards = kbGetCards(side);
+  if (!cards.length) return;
+  let idx = cards.findIndex(c => c.dataset.isCurrent === '1');
+  if (idx < 0) idx = 0;
+  kbFocusCard(side, idx);
+}
+
+window.addEventListener('keydown', e => {
+  const ae = document.activeElement;
+  const inFormEl = ae && /^(INPUT|TEXTAREA|BUTTON|SELECT)$/.test(ae.tagName);
+  // Ctrl/Cmd+F opens the quick-find palette — distinct from the filter (which
+  // lives in the toolbar and may already hold a regex). Quick-find just jumps
+  // your hover + viewport to a node without changing the filter.
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'f' || e.key === 'F')) {
+    e.preventDefault();
+    openQuickFind();
+    return;
+  }
+  // Global help toggle (works everywhere — ? doesn't collide with native form controls)
+  if (e.key === '?') { e.preventDefault(); toggleHelpModal(); return; }
+  if (helpOpen) {
+    if (e.key === 'Escape') { e.preventDefault(); toggleHelpModal(false); }
+    return;
+  }
+  // When a form control is focused, let it handle keys natively (Space/Enter activate buttons, etc.)
+  if (inFormEl) {
+    if (e.key === 'Escape') {
+      // Two-step: first Esc blurs the focused form (the user's immediate
+      // context). A subsequent Esc with nothing focused then falls through
+      // to the modal-idle branch below, which closes the overlay.
+      ae.blur();
+      if (modalOpen) modal.focus();
+    }
+    return;
+  }
+
+  const key = e.key;
+
+  // ── Panel is open — shared state machine for grid & modal
+  if (kbState === 'left' || kbState === 'right' || kbState === 'bottom') {
+    if (key === 'Escape') { e.preventDefault(); kbExit(); return; }
+    if (key === ' ') { e.preventDefault(); kbCopyCurrentId(); return; }
+    if (key === 'Enter') {
+      e.preventDefault();
+      const cards = kbGetCards(kbState);
+      if (cards[kbNavIndex]) kbCommit(cards[kbNavIndex].dataset.navTo);
+      return;
+    }
+    if (kbState === 'right') {
+      if (key === 'ArrowDown')      { e.preventDefault(); kbFocusCard('right', kbNavIndex + 1); }
+      else if (key === 'ArrowUp')   { e.preventDefault(); kbFocusCard('right', kbNavIndex - 1); }
+      else if (key === 'ArrowLeft') { e.preventDefault(); kbExit(); }
+      else if (key === 'ArrowRight'){ e.preventDefault(); const c = kbGetCards('right'); if (c[kbNavIndex]) kbCommit(c[kbNavIndex].dataset.navTo); }
+    } else if (kbState === 'left') {
+      if (key === 'ArrowDown')      { e.preventDefault(); kbFocusCard('left', kbNavIndex + 1); }
+      else if (key === 'ArrowUp')   { e.preventDefault(); kbFocusCard('left', kbNavIndex - 1); }
+      else if (key === 'ArrowRight'){ e.preventDefault(); kbExit(); }
+      else if (key === 'ArrowLeft') { e.preventDefault(); const c = kbGetCards('left'); if (c[kbNavIndex]) kbCommit(c[kbNavIndex].dataset.navTo); }
+    } else if (kbState === 'bottom') {
+      if (key === 'ArrowRight')     { e.preventDefault(); kbFocusCard('bottom', kbNavIndex + 1); }
+      else if (key === 'ArrowLeft') { e.preventDefault(); kbFocusCard('bottom', kbNavIndex - 1); }
+      else if (key === 'ArrowUp')   { e.preventDefault(); kbExit(); }
+      else if (key === 'ArrowDown') { e.preventDefault(); const c = kbGetCards('bottom'); if (c[kbNavIndex]) kbCommit(c[kbNavIndex].dataset.navTo); }
+    }
+    return;
+  }
+
+  // ── Modal top-panel state (modal-only) — nav + details bar shown together
+  if (modalOpen && kbState === 'top') {
+    if (key === 'ArrowDown')    { e.preventDefault(); kbExit(); return; }
+    if (key === 'ArrowUp')      { e.preventDefault(); closeModal(); return; } // up-again = back to grid
+    if (key === 'ArrowRight')   { e.preventDefault(); openPanel('modal', 'right'); return; }
+    if (key === 'ArrowLeft')    { e.preventDefault(); openPanel('modal', 'left'); return; }
+    if (key === 'Escape')       { e.preventDefault(); kbExit(); return; }
+    if (key === '/')            { e.preventDefault(); document.getElementById('filter-input').focus(); return; }
+    if (key === ' ')            { e.preventDefault(); kbCopyCurrentId(); return; }
+    return;
+  }
+
+  // ── Modal idle (no panel open)
+  if (modalOpen) {
+    if (key === 'Escape') { closeModal(); return; }
+    if (key === '/') { e.preventDefault(); document.getElementById('filter-input').focus(); return; }
+    if (key === ' ' && currentNodeId) {
+      e.preventDefault();
+      navigator.clipboard.writeText(currentNodeId).then(() => {
+        showCopyToast(currentNodeId);
+        edgeId.classList.add('copied');
+        setTimeout(() => edgeId.classList.remove('copied'), 900);
+      });
+      return;
+    }
+    if (key === 'ArrowUp')    { e.preventDefault(); kbMode='modal'; kbShowZone('top'); return; }
+    if (key === 'ArrowLeft')  { e.preventDefault(); openPanel('modal', 'left');  return; }
+    if (key === 'ArrowRight') { e.preventDefault(); openPanel('modal', 'right'); return; }
+    if (key === 'ArrowDown')  { e.preventDefault(); openPanel('modal', 'bottom'); return; }
+    return;
+  }
+
+  // ── Grid idle
+  if (key === '/') { e.preventDefault(); document.getElementById('filter-input').focus(); return; }
+  if (key === 'f') { fitView(); return; }
+
+  // Escape cascade: focused → demote to hover; hovered → clear
+  if (key === 'Escape') {
+    if (focusedNode) { hoveredNode = focusedNode; focusedNode = null; draw(); return; }
+    if (hoveredNode) { hoveredNode = null; draw(); return; }
+    return;
+  }
+
+  // Unfocused: Cartesian navigation mode. Enter promotes hover → focus.
+  if (!focusedNode) {
+    if (key === 'Enter' && hoveredNode) {
+      e.preventDefault();
+      focusedNode = hoveredNode;
+      draw();
+      return;
+    }
+    if (key === ' ' && hoveredNode) { e.preventDefault(); copyFocusedNodeId(); return; }
+    if (key === 'ArrowLeft')  { e.preventDefault(); cartesianStep('left');  return; }
+    if (key === 'ArrowRight') { e.preventDefault(); cartesianStep('right'); return; }
+    if (key === 'ArrowUp')    { e.preventDefault(); cartesianStep('up');    return; }
+    if (key === 'ArrowDown')  { e.preventDefault(); cartesianStep('down');  return; }
+    return;
+  }
+
+  // Hard focused
+  if (key === 'Enter') { e.preventDefault(); openModal(focusedNode.id); return; }
+  if (key === ' ')     { e.preventDefault(); copyFocusedNodeId(); return; }
+  if (key === 'ArrowUp')    { e.preventDefault(); gridNavBack(); return; }
+  if (key === 'ArrowLeft')  { e.preventDefault(); openPanel('grid', 'left');  return; }
+  if (key === 'ArrowRight') { e.preventDefault(); openPanel('grid', 'right'); return; }
+  if (key === 'ArrowDown')  { e.preventDefault(); openPanel('grid', 'bottom'); return; }
+});
+
+// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
+// FILTER
+// ──────────────────────────────────────────────
+function computeFilter() {
+  const rawQ = document.getElementById('filter-input').value.trim();
+  const q = rawQ.toLowerCase();
+  const preset = document.getElementById('filter-date-preset').value;
+  const fromVal = document.getElementById('filter-date-from').value;
+  const toVal   = document.getElementById('filter-date-to').value;
+  const clearBtn = document.getElementById('btn-clear-filter');
+
+  // If the query looks like /pattern/flags, use it as a regex. Case-insensitive
+  // by default if no flags are given. Falls back to substring on parse errors.
+  let regex = null;
+  if (rawQ) {
+    const m = rawQ.match(/^\/(.+)\/([a-z]*)$/);
+    if (m) {
+      try { regex = new RegExp(m[1], m[2] || 'i'); } catch (e) { regex = null; }
+    }
+  }
+
+  // Resolve the time window from the preset. "custom" reads the two pickers.
+  let fromMs = -Infinity, toMs = Infinity;
+  const now = Date.now();
+  const DAY = 86400000;
+  if (preset === '1d')        fromMs = now - DAY;
+  else if (preset === '3d')   fromMs = now - 3 * DAY;
+  else if (preset === '7d')   fromMs = now - 7 * DAY;
+  else if (preset === '30d')  fromMs = now - 30 * DAY;
+  else if (preset === 'custom') {
+    fromMs = fromVal ? new Date(fromVal).getTime() : -Infinity;
+    toMs   = toVal   ? new Date(toVal).getTime()   : Infinity;
+  }
+
+  const hasText = !!q;
+  const hasDate = Number.isFinite(fromMs) || Number.isFinite(toMs);
+
+  if (!hasText && !hasDate && !filterShowUp && !filterShowDown) {
+    filterSet = null;
+    clearBtn.style.display = 'none';
+    draw(); return;
+  }
+  clearBtn.style.display = '';
+
+  // Step 1: base matches — ANDs text filter with date range
+  let matches = GRAPH.nodes.filter(n => {
+    let textOk;
+    if (!hasText) {
+      textOk = true;
+    } else if (regex) {
+      textOk = regex.test(n.id) || regex.test(n.label) || regex.test(n.sublabel);
+    } else {
+      textOk = n.id.toLowerCase().includes(q) ||
+               n.label.toLowerCase().includes(q) ||
+               n.sublabel.toLowerCase().includes(q);
+    }
+    const dateMs = parseDate(n.date);
+    const dateOk = !hasDate || (dateMs >= fromMs && dateMs <= toMs);
+    return textOk && dateOk;
+  });
+
+  const result = new Set(matches.map(n => n.id));
+
+  // Step 2: expand with upstream/downstream
+  if (filterShowUp) {
+    const queue = [...result];
+    while (queue.length) {
+      const cur = queue.shift();
+      GRAPH.edges.forEach(e => {
+        if (e.to === cur && !result.has(e.from)) { result.add(e.from); queue.push(e.from); }
+      });
+    }
+  }
+  if (filterShowDown) {
+    const queue = [...result];
+    while (queue.length) {
+      const cur = queue.shift();
+      GRAPH.edges.forEach(e => {
+        if (e.from === cur && !result.has(e.to)) { result.add(e.to); queue.push(e.to); }
+      });
+    }
+  }
+
+  filterSet = result;
+  draw();
+}
+
+document.getElementById('filter-input').addEventListener('input', computeFilter);
+document.getElementById('filter-date-preset').addEventListener('change', function () {
+  const isCustom = this.value === 'custom';
+  const fromEl = document.getElementById('filter-date-from');
+  const toEl = document.getElementById('filter-date-to');
+  fromEl.style.display = isCustom ? '' : 'none';
+  toEl.style.display = isCustom ? '' : 'none';
+  fromEl.tabIndex = isCustom ? 0 : -1;
+  toEl.tabIndex = isCustom ? 0 : -1;
+  if (!isCustom) { fromEl.value = ''; toEl.value = ''; }
+  computeFilter();
+});
+document.getElementById('filter-date-from').addEventListener('change', computeFilter);
+document.getElementById('filter-date-to').addEventListener('change', computeFilter);
+document.getElementById('btn-upstream').addEventListener('click', function() {
+  filterShowUp = !filterShowUp;
+  this.style.opacity = filterShowUp ? '1' : '0.5';
+  this.style.borderColor = filterShowUp ? '#2563eb' : 'rgba(26,26,28,0.12)';
+  computeFilter();
+});
+document.getElementById('btn-downstream').addEventListener('click', function() {
+  filterShowDown = !filterShowDown;
+  this.style.opacity = filterShowDown ? '1' : '0.5';
+  this.style.borderColor = filterShowDown ? '#2563eb' : 'rgba(26,26,28,0.12)';
+  computeFilter();
+});
+document.getElementById('btn-clear-filter').addEventListener('click', () => {
+  document.getElementById('filter-input').value = '';
+  document.getElementById('filter-date-preset').value = '';
+  const fromEl = document.getElementById('filter-date-from');
+  const toEl = document.getElementById('filter-date-to');
+  fromEl.value = ''; toEl.value = '';
+  fromEl.style.display = 'none'; toEl.style.display = 'none';
+  fromEl.tabIndex = -1; toEl.tabIndex = -1;
+  filterShowUp = false; filterShowDown = false;
+  document.getElementById('btn-upstream').style.opacity = '0.5';
+  document.getElementById('btn-upstream').style.borderColor = 'rgba(26,26,28,0.12)';
+  document.getElementById('btn-downstream').style.opacity = '0.5';
+  document.getElementById('btn-downstream').style.borderColor = 'rgba(26,26,28,0.12)';
+  computeFilter();
+});
+
+// ──────────────────────────────────────────────
+// URL STATE SYNC — persist focused node, modal, filters to the query
+// string so a reload lands you exactly where you were.
+// ──────────────────────────────────────────────
+let __urlSuppress = false;
+let __urlScheduled = false;
+function writeURL() {
+  if (__urlSuppress) return;
+  const p = new URLSearchParams();
+  // Preserve project (so deep links stay on the right project).
+  if (typeof PROJECT === 'string' && PROJECT) p.set('project', PROJECT);
+  const filterEl = document.getElementById('filter-input');
+  const presetEl = document.getElementById('filter-date-preset');
+  const fromEl   = document.getElementById('filter-date-from');
+  const toEl     = document.getElementById('filter-date-to');
+  const q = filterEl ? filterEl.value.trim() : '';
+  if (q) p.set('q', q);
+  if (presetEl && presetEl.value) {
+    p.set('date', presetEl.value);
+    if (presetEl.value === 'custom') {
+      if (fromEl && fromEl.value) p.set('from', fromEl.value);
+      if (toEl && toEl.value)     p.set('to',   toEl.value);
+    }
+  }
+  if (filterShowUp)   p.set('up', '1');
+  if (filterShowDown) p.set('down', '1');
+  if (modalOpen && currentNodeId) {
+    p.set('node', currentNodeId);
+    p.set('fs', '1');
+  } else if (focusedNode) {
+    p.set('node', focusedNode.id);
+  }
+  // Zoom: round to 2 decimals, omit when essentially 1.0
+  if (typeof zoom === 'number' && Math.abs(zoom - 1) > 0.005) {
+    p.set('zoom', zoom.toFixed(2).replace(/\.?0+$/, ''));
+  }
+  // Hover: only if different from focused, to keep the URL tidy
+  if (hoveredNode && (!focusedNode || hoveredNode.id !== focusedNode.id)) {
+    p.set('hover', hoveredNode.id);
+  }
+  const qs   = p.toString();
+  const next = location.pathname + (qs ? '?' + qs : '') + location.hash;
+  const cur  = location.pathname + location.search + location.hash;
+  if (next !== cur) history.replaceState(null, '', next);
+}
+function scheduleURLWrite() {
+  if (__urlScheduled || __urlSuppress) return;
+  __urlScheduled = true;
+  requestAnimationFrame(() => { __urlScheduled = false; writeURL(); });
+}
+function readURL() {
+  const p = new URLSearchParams(location.search);
+  __urlSuppress = true;
+  try {
+    const q = p.get('q'), date = p.get('date');
+    const from = p.get('from'), to = p.get('to');
+    const up = p.get('up'),   down = p.get('down');
+    if (q || date || from || to || up || down) {
+      const filterEl = document.getElementById('filter-input');
+      const presetEl = document.getElementById('filter-date-preset');
+      const fromEl   = document.getElementById('filter-date-from');
+      const toEl     = document.getElementById('filter-date-to');
+      if (filterEl) filterEl.value = q || '';
+      if (presetEl) {
+        presetEl.value = date || '';
+        if (date === 'custom') {
+          if (fromEl) { fromEl.value = from || ''; fromEl.style.display = ''; fromEl.tabIndex = 0; }
+          if (toEl)   { toEl.value   = to   || ''; toEl.style.display   = ''; toEl.tabIndex   = 0; }
+        }
+      }
+      if (up === '1') {
+        filterShowUp = true;
+        const btn = document.getElementById('btn-upstream');
+        if (btn) { btn.style.opacity = '1'; btn.style.borderColor = '#14b8a6'; }
+      }
+      if (down === '1') {
+        filterShowDown = true;
+        const btn = document.getElementById('btn-downstream');
+        if (btn) { btn.style.opacity = '1'; btn.style.borderColor = '#14b8a6'; }
+      }
+      computeFilter();
+    }
+    const nodeId = p.get('node');
+    if (nodeId) {
+      const n = GRAPH.nodes.find(x => x.id === nodeId);
+      if (n) {
+        focusedNode = n;
+        if (p.get('fs') === '1') openModal(nodeId);
+        else                     centerOnNode(n);
+      }
+    }
+    const zoomParam = parseFloat(p.get('zoom'));
+    if (!isNaN(zoomParam) && zoomParam >= MIN_ZOOM && zoomParam <= MAX_ZOOM) {
+      // Re-center on focused/hovered if possible, else viewport center
+      const anchor = focusedNode || (p.get('hover') ? GRAPH.nodes.find(x => x.id === p.get('hover')) : null);
+      const cx = anchor ? anchor.x + NODE_W/2 : (W/2 - pan.x) / zoom;
+      const cy = anchor ? anchor.y + NODE_H/2 : (H/2 - pan.y) / zoom;
+      zoom = zoomParam;
+      pan.x = W/2 - cx * zoom;
+      pan.y = H/2 - cy * zoom;
+    }
+    const hoverId = p.get('hover');
+    if (hoverId) {
+      const h = GRAPH.nodes.find(x => x.id === hoverId);
+      if (h) hoveredNode = h;
+    }
+  } finally {
+    __urlSuppress = false;
+  }
+}
+window.addEventListener('popstate', readURL);
+
+// ──────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────
+computeDepth();
+loadPositions();
+resize();
+fitView();
+readURL();
+
+// Populate project picker from manifest (fetched during boot — re-fetch here
+// since we didn't stash it in a global)
+(function wireProjectPicker(){
+  const sel = document.getElementById('project-picker');
+  if (!sel) return;
+  fetch('data/manifest.json', { cache: 'no-store' })
+    .then(r => r.json())
+    .then(m => {
+      sel.innerHTML = '';
+      (m.projects || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name || p.id;
+        if (p.id === PROJECT) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', () => {
+        const u = new URL(location.href);
+        u.searchParams.set('project', sel.value);
+        // Reset view-specific params on project switch
+        ['node','fs','zoom','hover','q','date','from','to','up','down'].forEach(k => u.searchParams.delete(k));
+        location.href = u.toString();
+      });
+    })
+    .catch(() => { sel.style.display = 'none'; });
+})();
+
+// ──────────────────────────────────────────────
+// LIVE MODE — poll graph-data.js for changes (opt-in via ?live)
+// ──────────────────────────────────────────────
+(function(){
+  // Live mode on by default. Opt out with ?live=off for a static demo view.
+  if (new URLSearchParams(location.search).get('live') === 'off') return;
+
+  const INTERVAL = 2000;
+  let lastText = null;
+  let indicator = null;
+  let firstTick = true;
+
+  function mountIndicator(){
+    indicator = document.createElement('div');
+    indicator.style.cssText = [
+      'position:fixed','bottom:14px','left:14px','z-index:9999',
+      'font-family:ui-monospace,Menlo,monospace','font-size:11px',
+      'color:#10b981','background:rgba(255,252,240,0.9)',
+      'border:1px solid rgba(16,185,129,0.3)','border-radius:4px',
+      'padding:4px 9px','letter-spacing:0.04em','pointer-events:none',
+      'backdrop-filter:blur(6px)'
+    ].join(';');
+    indicator.textContent = '● LIVE';
+    document.body.appendChild(indicator);
+  }
+
+  function flash(msg){
+    if (!indicator) return;
+    const prev = indicator.textContent;
+    indicator.textContent = msg;
+    indicator.style.color = '#fbbf24';
+    setTimeout(()=>{ indicator.textContent = prev; indicator.style.color = '#10b981'; }, 1400);
+  }
+
+  // Cheap structural count — regex over text, no parse. Used to detect a stale
+  // baked-in GRAPH vs the on-disk truth without having to eval on every tick.
+  function countGraphInText(text){
+    const nodesBlock = text.match(/nodes\s*:\s*\[([\s\S]*?)\]\s*,\s*edges/);
+    const edgesBlock = text.match(/edges\s*:\s*\[([\s\S]*)\]\s*\}?/);
+    if (!nodesBlock || !edgesBlock) return null;
+    const nodeCount = (nodesBlock[1].match(/\{\s*id\s*:/g) || []).length;
+    const edgeCount = (edgesBlock[1].match(/\{\s*from\s*:/g) || []).length;
+    return { nodes: nodeCount, edges: edgeCount };
+  }
+
+  async function tick(){
+    try {
+      const res = await fetch(PROJECT_PATH + '/graph-data.js?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const text = await res.text();
+
+      // First tick: compare disk content against the baked-in GRAPH (which may
+      // be stale if Chrome served a cached <script src>). If the node/edge
+      // counts differ from what's on disk, the in-memory graph is stale and
+      // we must apply the fresh disk copy now — not just snapshot it.
+      if (firstTick) {
+        firstTick = false;
+        const diskCounts = countGraphInText(text);
+        const memNodes = (window.GRAPH && GRAPH.nodes) ? GRAPH.nodes.length : 0;
+        const memEdges = (window.GRAPH && GRAPH.edges) ? GRAPH.edges.length : 0;
+        if (diskCounts && (diskCounts.nodes !== memNodes || diskCounts.edges !== memEdges)) {
+          console.log('[live] stale <script> cache detected — applying disk copy',
+            { memNodes, memEdges, diskNodes: diskCounts.nodes, diskEdges: diskCounts.edges });
+          // fall through to apply below
+        } else {
+          lastText = text;
+          return;
+        }
+      } else {
+        if (text === lastText) return;
+      }
+      lastText = text;
+
+      // graph-data.js declares `const GRAPH = {...}` — that binding is immutable
+      // and referenced by the draw code. We cannot reassign it. Instead, eval
+      // the text inside an IIFE that returns the fresh object, then mutate the
+      // EXISTING GRAPH's arrays in place so all existing references see updates.
+      let fresh;
+      try {
+        fresh = (0, eval)('(function(){ ' + text.replace(/\b(const|let|var)\s+GRAPH\s*=/, 'var GRAPH =') + '; return GRAPH; })()');
+      } catch (e) {
+        console.warn('[live] eval failed:', e); return;
+      }
+      if (!fresh || !Array.isArray(fresh.nodes) || !Array.isArray(fresh.edges)) {
+        console.warn('[live] fresh graph malformed', fresh); return;
+      }
+
+      // Snapshot prior positions before swap so drag state survives.
+      const prevPositions = {};
+      GRAPH.nodes.forEach(n => { prevPositions[n.id] = { x: n.x, y: n.y }; });
+
+      // Mutate in place: empty + repopulate both arrays.
+      GRAPH.nodes.length = 0;
+      Array.prototype.push.apply(GRAPH.nodes, fresh.nodes);
+      GRAPH.edges.length = 0;
+      Array.prototype.push.apply(GRAPH.edges, fresh.edges);
+
+      computeDepth();
+      loadPositions();
+
+      // Preserve drag positions for ids that existed before.
+      GRAPH.nodes.forEach(n => {
+        if (prevPositions[n.id]) {
+          n.x = prevPositions[n.id].x;
+          n.y = prevPositions[n.id].y;
+        }
+      });
+
+      draw();
+      if (typeof drawMinimap === 'function') drawMinimap();
+      flash('● UPDATED · ' + GRAPH.nodes.length + ' nodes');
+    } catch (e) {
+      console.warn('[live] poll error:', e);
+    }
+  }
+
+  mountIndicator();
+  setInterval(tick, INTERVAL);
+})();
+</script>
+</body>
+</html>

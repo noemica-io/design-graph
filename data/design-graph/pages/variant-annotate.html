@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>variant-03 · Minimalist — Design Graph</title>
+<style>
+  :root {
+    --ink: #0a0a0b;
+    --ink-2: #1a1a1c;
+    --paper: #fafaf7;
+    --muted: #6b7280;
+    --muted-2: #9ca3af;
+    --line: #e7e5e0;
+    --line-2: #eeece7;
+    --accent: #7c3aed;
+    --accent-soft: #a78bfa;
+    --accent-tint: #f3f0fb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { width: 1280px; height: 800px; overflow: hidden; }
+
+  /* NAV */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px; border-bottom: 1px solid var(--line);
+    background: #fff;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 20px; height: 20px; position: relative; }
+  .brand-mark::before, .brand-mark::after {
+    content: ""; position: absolute; inset: 0; border-radius: 4px;
+  }
+  .brand-mark::before { background: var(--accent); transform: translate(-3px, -3px); opacity: .85; }
+  .brand-mark::after { background: var(--ink); transform: translate(3px, 3px); mix-blend-mode: multiply; opacity: .9; }
+  .brand-name { font-weight: 600; font-size: 13px; letter-spacing: -0.01em; }
+  .brand-tag { color: var(--muted); font-size: 12.5px; }
+  .brand-tag em { font-style: italic; color: var(--ink); font-weight: 500; }
+
+  .nav-actions { display: flex; align-items: center; gap: 6px; }
+  .tbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 500; color: var(--ink);
+    padding: 7px 11px; border-radius: 7px;
+    border: 1px solid var(--line); background: #fff;
+    text-decoration: none;
+  }
+  .tbtn:hover { border-color: #d4d1c9; }
+  .tbtn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tbtn.primary:hover { background: #6d28d9; border-color: #6d28d9; }
+  .tbtn svg { width: 12px; height: 12px; }
+
+  /* BREADCRUMB */
+  .crumb-row {
+    padding: 8px 28px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+    font-variant-numeric: tabular-nums;
+    background: #fdfcf9;
+  }
+  .crumb-row a { color: var(--muted); text-decoration: none; }
+  .crumb-row a:hover { color: var(--ink); }
+  .crumb-row .sep { color: #c9c6be; }
+  .crumb-row .here { color: var(--ink); font-weight: 500; }
+  .crumb-row .variant-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent);
+    font-weight: 600; font-size: 11px;
+  }
+  .crumb-row .spacer { flex: 1; }
+  .crumb-row .keystroke {
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+    font-size: 10.5px; color: var(--muted-2);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 5px; background: #fff;
+  }
+
+  /* LAYOUT */
+  .wrap {
+    display: grid;
+    grid-template-columns: 200px 1fr 320px;
+    height: calc(800px - 44px - 32px);
+  }
+  .nav-col { border-right: 1px solid var(--line); background: #fdfcf9; overflow-y: auto; }
+  .canvas-col { border-right: 1px solid var(--line); background: #f5f3ee; position: relative; overflow: hidden; }
+  .thread-col { background: #fff; display: flex; flex-direction: column; }
+
+  /* LEFT: NAV */
+  .nav-head {
+    padding: 12px 14px 8px;
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-head .pager { display: flex; gap: 4px; }
+  .nav-head .pager button {
+    width: 20px; height: 20px; border-radius: 4px;
+    border: 1px solid var(--line); background: #fff;
+    color: var(--muted); font-size: 11px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .nav-head .pager button:hover { border-color: var(--accent); color: var(--accent); }
+  .thumbs { display: flex; flex-direction: column; gap: 9px; padding: 4px 12px 16px; }
+  .thumb {
+    position: relative;
+    border: 1px solid var(--line); background: #fff;
+    border-radius: 6px; overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .thumb:hover { border-color: #c9c6be; }
+  .thumb.active {
+    border-color: var(--accent); border-width: 2px;
+    box-shadow: 0 0 0 3px var(--accent-tint);
+  }
+  .thumb .tframe {
+    aspect-ratio: 5 / 4; background: #fff;
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .thumb .tlabel {
+    padding: 5px 7px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 10.5px;
+  }
+  .thumb .tlabel b { font-weight: 600; color: var(--ink); letter-spacing: -0.01em; }
+  .thumb .tlabel em {
+    color: var(--muted); font-style: normal;
+    font-variant-numeric: tabular-nums; font-size: 9.5px;
+  }
+  .thumb.active .tlabel b { color: var(--accent); }
+  .thumb .pin-dot {
+    position: absolute; top: 4px; right: 4px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* tiny thumbnail renderings (each ~170×136) */
+  .tn { position: absolute; inset: 0; padding: 7px; font-size: 4.5px; }
+  .tn-bold .h { font-family: Georgia, serif; font-size: 9px; font-weight: 700; color: #0a0a0b; line-height: 1.05; }
+  .tn-bold .tiers { display: flex; gap: 2px; margin-top: 6px; }
+  .tn-bold .tr { flex: 1; background: #0a0a0b; color: #fff; border-radius: 2px; padding: 3px 2px; text-align: center; }
+  .tn-bold .tr.mid { background: #7c3aed; }
+
+  .tn-min .h { font-family: Georgia, serif; font-size: 10px; color: #0a0a0b; }
+  .tn-min .sub { color: #6b7280; font-size: 5px; margin-top: 2px; }
+  .tn-min .tiers { display: flex; gap: 3px; margin-top: 7px; }
+  .tn-min .tr { flex: 1; border: 1px solid #e7e5e0; border-radius: 2px; padding: 4px 2px; text-align: center; color: #0a0a0b; }
+  .tn-min .tr.mid { background: #fafaf7; border-color: #0a0a0b; }
+  .tn-min .tr b { font-family: Georgia, serif; font-size: 8px; display: block; }
+
+  .tn-card { background: linear-gradient(160deg, #f5f3ff, #fff); }
+  .tn-card .h { font-size: 7px; color: #4c1d95; font-weight: 600; }
+  .tn-card .tiers { display: flex; gap: 2px; margin-top: 5px; }
+  .tn-card .tr { flex: 1; background: #fff; border: 1px solid #ddd6fe; border-radius: 4px; padding: 4px 2px; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .tn-card .tr.mid { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+  .tn-card .tr b { display: block; font-size: 7px; }
+
+  .tn-dark { background: #0a0a0b; color: #fafaf7; }
+  .tn-dark .h { font-family: Georgia, serif; font-size: 8px; color: #fafaf7; }
+  .tn-dark .tiers { display: flex; gap: 2px; margin-top: 5px; }
+  .tn-dark .tr { flex: 1; border: 1px solid #2a2a2c; border-radius: 2px; padding: 3px 2px; text-align: center; color: #fafaf7; }
+  .tn-dark .tr.mid { background: #a78bfa; color: #0a0a0b; border-color: #a78bfa; }
+
+  .tn-table .h { font-size: 6px; color: #0a0a0b; font-weight: 600; }
+  .tn-table table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .tn-table td { border-top: 1px solid #e7e5e0; padding: 2px 0; font-size: 4.5px; color: #1a1a1c; }
+  .tn-table td:last-child { text-align: right; }
+  .tn-table td.hdr { font-weight: 700; color: #7c3aed; border-top: none; }
+
+  /* CENTER: RENDERING */
+  .canvas-inner {
+    position: absolute; inset: 0;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 28px 20px 0;
+  }
+  .render-frame {
+    width: 640px; height: 560px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 20px 40px -25px rgba(10,10,11,.25), 0 2px 6px -2px rgba(10,10,11,.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .rf-chrome {
+    height: 28px; background: #fafaf7;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 10px;
+    font-size: 10.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .rf-chrome .dots { display: flex; gap: 4px; margin-right: 6px; }
+  .rf-chrome .dots i { width: 8px; height: 8px; border-radius: 50%; background: #e7e5e0; display: inline-block; }
+  .rf-chrome .url {
+    flex: 1; text-align: center; color: var(--muted);
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 4px; padding: 2px 8px;
+    font-size: 10px;
+  }
+  .rf-chrome .vm { color: var(--accent); font-weight: 600; font-size: 10px; }
+
+  /* pricing page rendering */
+  .page-render {
+    position: relative;
+    height: calc(560px - 28px);
+    background: #fff;
+    padding: 36px 48px 24px;
+    font-family: -apple-system, "Inter", sans-serif;
+  }
+  .page-render .brand-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px;
+  }
+  .page-render .brand-row .logo {
+    font-family: "Playfair Display", Georgia, serif;
+    font-weight: 600; letter-spacing: -0.02em; font-size: 15px;
+    color: var(--ink);
+  }
+  .page-render .brand-row nav { display: flex; gap: 20px; color: var(--muted); font-size: 11.5px; }
+  .page-render .brand-row nav a { color: var(--muted); text-decoration: none; }
+  .page-render .brand-row nav a.on { color: var(--ink); }
+
+  .hero-block {
+    margin-top: 34px; text-align: center;
+  }
+  .hero-block .eyebrow {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--muted);
+  }
+  .hero-block h1 {
+    font-family: "Playfair Display", Georgia, serif;
+    font-weight: 500;
+    font-size: 32px; line-height: 1.12; letter-spacing: -0.02em;
+    margin-top: 8px; color: var(--ink);
+  }
+  .hero-block h1 em { font-style: italic; color: var(--ink-2); }
+  .hero-block p {
+    margin-top: 10px; font-size: 13px; line-height: 1.5;
+    color: var(--muted); max-width: 380px; margin-left: auto; margin-right: auto;
+  }
+
+  .tier-grid {
+    margin-top: 30px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  .tier {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 14px 14px;
+    background: #fff;
+    display: flex; flex-direction: column;
+    min-height: 184px;
+  }
+  .tier.mid {
+    border-color: var(--ink);
+    border-width: 1px;
+    background: #fafaf7;
+  }
+  .tier .tname {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); font-weight: 600;
+  }
+  .tier.mid .tname { color: var(--ink); }
+  .tier .price {
+    margin-top: 8px;
+    font-family: "Playfair Display", Georgia, serif;
+    font-weight: 500; font-size: 26px; letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .tier .price small {
+    font-family: -apple-system, "Inter", sans-serif;
+    font-size: 11px; color: var(--muted); font-weight: 400;
+    letter-spacing: 0;
+  }
+  .tier ul {
+    list-style: none; margin-top: 10px;
+    font-size: 11px; color: var(--ink-2); line-height: 1.65;
+    flex: 1;
+  }
+  .tier ul li::before { content: "— "; color: var(--muted); }
+  .tier .tcta {
+    margin-top: 10px;
+    display: inline-block;
+    text-align: center;
+    font-size: 11.5px; font-weight: 500;
+    padding: 7px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    background: #fff;
+    text-decoration: none;
+  }
+  .tier.mid .tcta {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+  }
+
+  .page-footer {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 10px 48px 14px;
+    border-top: 1px solid var(--line-2);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 10px; color: var(--muted);
+    background: #fdfcf9;
+  }
+  .page-footer .fl { display: flex; gap: 14px; }
+  .page-footer .fl a { color: var(--muted); text-decoration: none; }
+
+  /* PINS */
+  .pin {
+    position: absolute;
+    width: 26px; height: 26px;
+    background: var(--accent); color: #fff;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow:
+      0 0 0 4px rgba(124, 58, 237, 0.18),
+      0 4px 10px -2px rgba(124, 58, 237, 0.5),
+      0 0 20px rgba(124, 58, 237, 0.35);
+    cursor: pointer;
+    z-index: 10;
+    font-variant-numeric: tabular-nums;
+  }
+  .pin.resolved {
+    background: #fff; color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+  }
+  .pin.resolved::after {
+    content: "✓"; position: absolute; top: -6px; right: -6px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #10b981; color: #fff;
+    font-size: 8px; line-height: 12px; text-align: center;
+    border: 1.5px solid #fff;
+  }
+
+  /* canvas floor controls */
+  .canvas-chrome-bottom {
+    position: absolute; bottom: 16px; left: 24px; right: 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--muted);
+    pointer-events: none;
+  }
+  .canvas-chrome-bottom .pill {
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 9px;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 6px -3px rgba(0,0,0,.08);
+    pointer-events: auto;
+  }
+  .canvas-chrome-bottom .pill b { color: var(--ink); font-weight: 600; }
+  .canvas-chrome-bottom .pill .sw {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 0 2px rgba(124,58,237,.2);
+  }
+
+  /* RIGHT: THREAD */
+  .thread-head {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .thread-head .top {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12.5px;
+  }
+  .thread-head .top b { font-weight: 600; color: var(--ink); }
+  .thread-head .top .open-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--accent); font-weight: 500;
+  }
+  .thread-head .top .open-pill::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  }
+  .diff-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--muted);
+    text-decoration: none;
+  }
+  .diff-toggle:hover { color: var(--accent); }
+  .diff-toggle .sw-track {
+    width: 22px; height: 12px; background: #e7e5e0;
+    border-radius: 999px; position: relative; display: inline-block;
+  }
+  .diff-toggle .sw-track::after {
+    content: ""; position: absolute; top: 1.5px; left: 1.5px;
+    width: 9px; height: 9px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  }
+  .diff-toggle u { text-decoration: none; color: var(--accent); font-weight: 500; }
+
+  .threads {
+    flex: 1; overflow-y: auto;
+    padding: 4px 0;
+  }
+  .thread {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--line-2);
+    font-size: 12px; line-height: 1.5;
+    position: relative;
+  }
+  .thread .thead {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .thread .pin-badge {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-size: 10px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .thread.resolved .pin-badge {
+    background: #fff; color: var(--accent); border: 1.5px solid var(--accent);
+  }
+  .thread .tmeta {
+    flex: 1;
+    font-size: 11px; color: var(--muted);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .thread .tmeta .loc {
+    color: var(--ink); font-weight: 500;
+  }
+  .thread .tmeta .status {
+    font-size: 10.5px;
+    padding: 1px 7px; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent);
+    font-weight: 600;
+  }
+  .thread .tmeta .status.resolved { background: #ecfdf5; color: #047857; }
+  .thread .tmeta .status.open { background: #fef3c7; color: #92400e; }
+
+  .thread .body {
+    color: var(--ink-2);
+    padding-left: 26px;
+  }
+  .thread .body .quote-ref {
+    font-size: 10.5px; color: var(--muted);
+    margin-bottom: 4px;
+    font-family: ui-monospace, "JetBrains Mono", monospace;
+  }
+  .thread .who-line {
+    margin-top: 6px;
+    padding-left: 26px;
+    font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .thread .who-line .av {
+    width: 14px; height: 14px; border-radius: 50%;
+    display: inline-block;
+  }
+  .av-tova { background: linear-gradient(135deg,#fb7185,#be185d); }
+  .av-yann { background: linear-gradient(135deg,#34d399,#059669); }
+  .av-maya { background: linear-gradient(135deg,#60a5fa,#1d4ed8); }
+  .av-agent {
+    background: radial-gradient(circle at 30% 30%, #c4b5fd 0%, #7c3aed 70%);
+    position: relative;
+  }
+
+  .replies {
+    margin-top: 8px;
+    padding-left: 26px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .reply {
+    background: #fafaf7;
+    border: 1px solid var(--line-2);
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-size: 11.5px; color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .reply .rh {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10.5px; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .reply .rh b { color: var(--ink); font-weight: 600; }
+  .reply .rh .av {
+    width: 13px; height: 13px; border-radius: 50%;
+  }
+
+  .reply.agent {
+    background: #faf8ff;
+    border-color: #ddd6fe;
+    border-left: 2px solid var(--accent);
+  }
+  .reply.agent .rh b {
+    font-family: ui-monospace, monospace;
+    color: var(--accent); font-weight: 600; font-size: 10.5px;
+  }
+  .reply.agent blockquote {
+    font-family: "Georgia", "Playfair Display", serif;
+    font-style: italic;
+    font-size: 12px; line-height: 1.55;
+    color: var(--ink);
+    padding-left: 10px;
+    border-left: 2px solid var(--accent-soft);
+    margin: 2px 0 6px;
+  }
+  .reply.agent .cite {
+    font-size: 10px; color: var(--muted);
+    font-family: ui-monospace, monospace;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .reply.agent .cite a { color: var(--accent); text-decoration: none; }
+  .reply.agent .cite a:hover { text-decoration: underline; }
+  .reply.agent .cite::before {
+    content: ""; width: 9px; height: 9px;
+    background: currentColor; color: var(--muted);
+    mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M8 13h8 M8 17h6' fill='none' stroke='currentColor' stroke-width='2'/></svg>") center/contain no-repeat;
+  }
+
+  .reply.ask-agent-input {
+    background: #fff;
+    border: 1px dashed #ddd6fe;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    font-size: 11px; color: var(--muted);
+    font-style: italic;
+  }
+  .reply.ask-agent-input::before {
+    content: "@"; color: var(--accent); font-weight: 700; font-style: normal;
+  }
+
+  /* compose */
+  .compose {
+    border-top: 1px solid var(--line);
+    padding: 10px 14px 12px;
+    background: #fdfcf9;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .compose input {
+    flex: 1;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--ink);
+    font-family: inherit;
+    outline: none;
+  }
+  .compose input::placeholder { color: var(--muted-2); }
+  .compose input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
+  .compose button {
+    font-size: 11.5px; color: var(--muted);
+    background: transparent; border: none; cursor: pointer;
+    padding: 5px 8px; border-radius: 5px;
+    font-family: inherit;
+  }
+  .compose button:hover { color: var(--accent); background: var(--accent-tint); }
+
+  .pin-leader {
+    position: absolute;
+    background: transparent;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <span class="brand-name">Design Graph</span>
+    <span class="brand-tag">— thinking in <em>variants</em>.</span>
+  </div>
+  <div class="nav-actions">
+    <a class="tbtn" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export
+    </a>
+    <a class="tbtn" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v3a4 4 0 0 1-4 4H9"/></svg>
+      Fork
+    </a>
+    <a class="tbtn primary" href="#">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>
+      Select as winner
+    </a>
+  </div>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="crumb-row">
+  <a href="#">Gallery</a>
+  <span class="sep">/</span>
+  <a href="#">Pricing page for Cascade</a>
+  <span class="sep">/</span>
+  <a href="#">Canvas</a>
+  <span class="sep">/</span>
+  <span class="here">variant-03</span>
+  <span class="variant-tag">● Minimalist</span>
+  <span class="spacer"></span>
+  <span style="font-size: 11px;">agent-03 · 64 tokens · 2.1s render</span>
+  <span class="keystroke">A</span>
+  <span style="font-size:10.5px;">annotate mode</span>
+</div>
+
+<!-- LAYOUT -->
+<div class="wrap">
+
+  <!-- LEFT NAV -->
+  <div class="nav-col">
+    <div class="nav-head">
+      <span>5 variants</span>
+      <div class="pager">
+        <button aria-label="prev">‹</button>
+        <button aria-label="next">›</button>
+      </div>
+    </div>
+    <div class="thumbs">
+
+      <div class="thumb">
+        <div class="tframe">
+          <div class="tn tn-bold">
+            <div class="h">Pricing, plain<br/>and clear.</div>
+            <div class="tiers">
+              <div class="tr">$9</div>
+              <div class="tr mid">$29</div>
+              <div class="tr">$49</div>
+            </div>
+          </div>
+        </div>
+        <div class="tlabel"><b>variant-01</b><em>Bold</em></div>
+      </div>
+
+      <div class="thumb">
+        <div class="tframe">
+          <div class="tn tn-card">
+            <div class="h">Three plans.</div>
+            <div class="tiers">
+              <div class="tr">Solo<b>$9</b></div>
+              <div class="tr mid">Team<b>$29</b></div>
+              <div class="tr">Co<b>$49</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="tlabel"><b>variant-02</b><em>Cards</em></div>
+      </div>
+
+      <div class="thumb active">
+        <div class="tframe">
+          <div class="tn tn-min">
+            <div class="h">Simple pricing.</div>
+            <div class="sub">Pick a plan. Change anytime.</div>
+            <div class="tiers">
+              <div class="tr">Solo<b>$9</b></div>
+              <div class="tr mid">Team<b>$29</b></div>
+              <div class="tr">Co<b>$49</b></div>
+            </div>
+          </div>
+          <div class="pin-dot">3</div>
+        </div>
+        <div class="tlabel"><b>variant-03</b><em>Minimalist</em></div>
+      </div>
+
+      <div class="thumb">
+        <div class="tframe">
+          <div class="tn tn-table">
+            <div class="h">Compare plans</div>
+            <table>
+              <tr><td class="hdr">Feature</td><td class="hdr">Team</td></tr>
+              <tr><td>Seats</td><td>10</td></tr>
+              <tr><td>API calls</td><td>50k</td></tr>
+              <tr><td>SSO</td><td>—</td></tr>
+              <tr><td>Support</td><td>Email</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="tlabel"><b>variant-04</b><em>Table</em></div>
+      </div>
+
+      <div class="thumb">
+        <div class="tframe">
+          <div class="tn tn-dark">
+            <div class="h">Pricing.</div>
+            <div class="tiers">
+              <div class="tr">$9</div>
+              <div class="tr mid">$29</div>
+              <div class="tr">$49</div>
+            </div>
+          </div>
+        </div>
+        <div class="tlabel"><b>variant-05</b><em>Dark</em></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CENTER CANVAS -->
+  <div class="canvas-col">
+    <div class="canvas-inner">
+      <div class="render-frame">
+        <div class="rf-chrome">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="url">cascade.app<span style="color:#c9c6be">/pricing</span></div>
+          <span class="vm">variant-03</span>
+        </div>
+
+        <!-- PRICING PAGE -->
+        <div class="page-render">
+          <div class="brand-row">
+            <div class="logo">Cascade</div>
+            <nav>
+              <a href="#">Product</a>
+              <a href="#" class="on">Pricing</a>
+              <a href="#">Docs</a>
+              <a href="#">Sign in</a>
+            </nav>
+          </div>
+
+          <div class="hero-block">
+            <div class="eyebrow">Pricing</div>
+            <h1>Simple pricing for <em>simple</em> teams.</h1>
+            <p>Pick a plan. Change it whenever. No contracts, no sales call.</p>
+          </div>
+
+          <div class="tier-grid">
+            <div class="tier">
+              <div class="tname">Solo</div>
+              <div class="price">$9 <small>/ mo</small></div>
+              <ul>
+                <li>1 seat</li>
+                <li>10k API calls</li>
+                <li>Community support</li>
+              </ul>
+              <a class="tcta" href="#">Try it</a>
+            </div>
+
+            <div class="tier mid">
+              <div class="tname">Team</div>
+              <div class="price">$29 <small>/ mo</small></div>
+              <ul>
+                <li>Up to 10 seats</li>
+                <li>50k API calls</li>
+                <li>Email support</li>
+              </ul>
+              <a class="tcta" href="#">Start free</a>
+            </div>
+
+            <div class="tier">
+              <div class="tname">Company</div>
+              <div class="price">$49 <small>/ mo</small></div>
+              <ul>
+                <li>Unlimited seats</li>
+                <li>250k API calls</li>
+                <li>SSO + SLA</li>
+              </ul>
+              <a class="tcta" href="#">Talk to us</a>
+            </div>
+          </div>
+
+          <div class="page-footer">
+            <div class="fl">
+              <a href="#">Cascade, 2026</a>
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+            </div>
+            <div>Built in Brooklyn</div>
+          </div>
+        </div>
+
+        <!-- PINS (positioned over rendering) -->
+        <!-- Pin 1: on the hero word "simple" -->
+        <div class="pin" style="top: 116px; left: 352px;">1</div>
+        <!-- Pin 2: on middle CTA "Start free" -->
+        <div class="pin resolved" style="top: 404px; left: 316px;">2</div>
+        <!-- Pin 3: on footer -->
+        <div class="pin" style="top: 518px; left: 40px;">3</div>
+
+      </div>
+    </div>
+
+    <div class="canvas-chrome-bottom">
+      <span class="pill"><span class="sw"></span>3 pins · <b>1 open</b></span>
+      <span class="pill" style="font-variant-numeric: tabular-nums;">640 × 560 · fidelity 100%</span>
+    </div>
+  </div>
+
+  <!-- RIGHT THREAD RAIL -->
+  <div class="thread-col">
+    <div class="thread-head">
+      <div class="top">
+        <b>3 notes · <span class="open-pill">1 open</span></b>
+        <a class="diff-toggle" href="#">
+          <span class="sw-track"></span>
+          diff vs <u>variant-04</u>
+        </a>
+      </div>
+    </div>
+
+    <div class="threads">
+
+      <!-- PIN 1 -->
+      <div class="thread">
+        <div class="thead">
+          <span class="pin-badge">1</span>
+          <span class="tmeta">
+            <span class="loc">Hero headline</span>
+            <span class="status">2 replies</span>
+          </span>
+        </div>
+        <div class="body">
+          The word "simple" is doing a lot of work here. Can we try <i>"the plan most teams choose"</i>? "Simple" is what every SaaS page claims; it doesn't earn the real estate.
+        </div>
+        <div class="who-line">
+          <span class="av av-tova"></span>
+          <b style="color:var(--ink); font-weight:600;">Tova</b> · 4h ago
+        </div>
+      </div>
+
+      <!-- PIN 2 -->
+      <div class="thread resolved">
+        <div class="thead">
+          <span class="pin-badge">2</span>
+          <span class="tmeta">
+            <span class="loc">Team plan CTA</span>
+            <span class="status resolved">✓ resolved</span>
+          </span>
+        </div>
+        <div class="body">
+          Why does the middle plan's button read "Start free"? Solo says "Try it", Company says "Talk to us". Three different verbs for three tiers reads like an oversight, not a decision.
+        </div>
+        <div class="who-line">
+          <span class="av av-yann"></span>
+          <b style="color:var(--ink); font-weight:600;">Yann</b> · 6h ago · 1 reply
+        </div>
+      </div>
+
+      <!-- PIN 3 -->
+      <div class="thread">
+        <div class="thead">
+          <span class="pin-badge">3</span>
+          <span class="tmeta">
+            <span class="loc">Footer / tier count</span>
+            <span class="status open">● open</span>
+          </span>
+        </div>
+        <div class="body">
+          <div class="quote-ref">@agent-03</div>
+          Why 3 tiers and not 2? A two-tier page would let us make the middle plan feel like the default without the "middle anchor" trick. Did you consider it?
+        </div>
+        <div class="who-line">
+          <span class="av av-maya"></span>
+          <b style="color:var(--ink); font-weight:600;">Maya</b> · 38m ago
+        </div>
+
+        <div class="replies">
+          <div class="reply agent">
+            <div class="rh">
+              <span class="av av-agent"></span>
+              <b>agent-03</b>
+              <span style="color:var(--muted-2);">· 2m ago</span>
+            </div>
+            <blockquote>
+              I considered 2 tiers (see draft#02) but the middle plan anchors the $29 vs $49 contrast, which the prompt flagged as a goal. A two-tier page tested fine on price legibility but lost the "Team is the obvious pick" read — the spec called that out as primary.
+            </blockquote>
+            <span class="cite">
+              cites <a href="#">design-note · draft#02 · line 41</a>
+            </span>
+          </div>
+
+          <div class="reply ask-agent-input">
+            ask agent-03 a follow-up…
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="compose">
+      <input type="text" placeholder="Reply to thread…" />
+      <button>Send</button>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

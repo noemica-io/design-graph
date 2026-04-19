@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Your canvases — Design Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --ink: #111113;
+    --ink-2: rgba(17,17,19,0.72);
+    --muted: rgba(17,17,19,0.52);
+    --dim: rgba(17,17,19,0.34);
+    --faint: rgba(17,17,19,0.18);
+    --hairline: rgba(17,17,19,0.10);
+    --hairline-s: rgba(17,17,19,0.06);
+    --accent: #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+    --running: #f97316;
+    --draft: #fbbf24;
+    --compare: #3b82f6;
+    --pub: #22c55e;
+  }
+  html, body {
+    width: 1280px; height: 800px; overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.006em;
+  }
+
+  /* Topbar */
+  .topbar {
+    height: 48px;
+    display: flex; align-items: center;
+    padding: 0 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    gap: 14px;
+  }
+  .logo {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent); position: relative;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -5px 0 0 #fff; }
+  .brand { font-weight: 600; font-size: 13.5px; letter-spacing: -0.012em; }
+  .brand .dim { color: var(--muted); font-weight: 450; margin-left: 6px; }
+
+  .topbar-nav { margin-left: 28px; display: flex; gap: 22px; }
+  .nav-item {
+    font-size: 13px; color: var(--muted);
+    text-decoration: none; position: relative;
+    padding: 14px 0;
+  }
+  .nav-item:hover { color: var(--ink); }
+  .nav-item.active { color: var(--ink); font-weight: 500; }
+  .nav-item.active::after {
+    content: ''; position: absolute;
+    left: 0; right: 0; bottom: -1px;
+    height: 2px; background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+  .plan-chip {
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.01em;
+  }
+  .user-email { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .signout {
+    font-size: 12.5px; color: var(--muted);
+    text-decoration: none;
+  }
+  .signout:hover { color: var(--ink); }
+
+  /* Main */
+  .main { height: calc(800px - 48px); overflow: hidden; display: flex; flex-direction: column; }
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 32px 40px 0;
+    flex: 1;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Hero */
+  .hero {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 24px; margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 34px; font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin-bottom: 6px;
+  }
+  .hero .sub {
+    font-size: 12.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero .sub b { color: var(--ink-2); font-weight: 500; }
+  .hero .sub .sep { color: var(--faint); margin: 0 6px; }
+
+  .cta-new {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(124,58,237,0.26);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .cta-new .plus { font-size: 15px; font-weight: 500; line-height: 1; }
+
+  /* Filter bar */
+  .filterbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .search {
+    position: relative; flex: 0 0 260px;
+  }
+  .search input {
+    width: 100%; height: 32px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 7px;
+    padding: 0 10px 0 30px;
+    color: var(--ink);
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+  }
+  .search input::placeholder { color: var(--dim); }
+  .search svg {
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--dim);
+  }
+  .search .kbd {
+    position: absolute; right: 8px; top: 50%;
+    transform: translateY(-50%);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px; color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--hairline);
+    padding: 1px 4px; border-radius: 3px;
+    letter-spacing: 0;
+  }
+
+  .chips { display: flex; gap: 6px; margin-left: auto; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 28px; padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px; color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    cursor: pointer;
+    letter-spacing: -0.003em;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--faint); }
+  .chip .n {
+    font-variant-numeric: tabular-nums;
+    color: var(--dim);
+    font-size: 11px;
+    opacity: 0.9;
+  }
+  .chip.active {
+    background: var(--ink);
+    color: #fff;
+    border-color: var(--ink);
+    font-weight: 500;
+  }
+  .chip.active .n { color: rgba(255,255,255,0.6); }
+  .chip .swatch {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+  .sw-running { background: var(--running); }
+  .sw-draft { background: var(--draft); }
+  .sw-compare { background: var(--compare); }
+  .sw-pub { background: var(--pub); }
+  .sw-arch { background: var(--dim); }
+
+  /* List */
+  .list-wrap {
+    flex: 1; min-height: 0;
+    overflow-y: auto;
+    margin: 0 -4px;
+    padding: 0 4px;
+  }
+  .list-wrap::-webkit-scrollbar { width: 6px; }
+  .list-wrap::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 3px; }
+
+  .list { display: flex; flex-direction: column; gap: 6px; }
+  .section-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    margin: 8px 6px 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label:first-child { margin-top: 0; }
+  .section-label .count {
+    background: var(--bg);
+    color: var(--muted);
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 9.5px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--hairline-s);
+  }
+
+  .row {
+    display: flex; align-items: center;
+    gap: 14px;
+    padding: 11px 16px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 9px;
+    cursor: pointer;
+    position: relative;
+  }
+  .row:hover { border-color: var(--faint); }
+  .row:hover .chev { opacity: 1; transform: translateX(0); }
+
+  .row.running-tint {
+    background: linear-gradient(to right, rgba(249,115,22,0.05), var(--surface) 40%);
+    border-color: rgba(249,115,22,0.22);
+  }
+
+  .sq {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    flex-shrink: 0;
+  }
+
+  .row-main { flex: 1; min-width: 0; }
+  .row-title {
+    font-size: 13.5px; font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 2px;
+  }
+  .slug {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--dim);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .row-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .row-meta .sep { color: var(--faint); margin: 0 5px; }
+  .row-meta .fork {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .right-cluster {
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .score {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 52px;
+    text-align: right;
+    letter-spacing: 0;
+  }
+  .score b { color: var(--ink); font-weight: 500; }
+
+  /* Status pill */
+  .status {
+    display: inline-flex; align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 78px;
+    justify-content: center;
+  }
+  .status.running {
+    color: #c2410c;
+    background: rgba(249,115,22,0.11);
+  }
+  .status.draft {
+    color: #a16207;
+    background: rgba(251,191,36,0.18);
+  }
+  .status.compare {
+    color: #1d4ed8;
+    background: rgba(59,130,246,0.11);
+  }
+  .status.pub {
+    color: #15803d;
+    background: rgba(34,197,94,0.13);
+  }
+  .status.arch {
+    color: var(--muted);
+    background: rgba(17,17,19,0.06);
+  }
+
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--running);
+    box-shadow: 0 0 0 0 rgba(249,115,22,0.55);
+    animation: pulse 1.6s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(249,115,22,0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(249,115,22,0); }
+    100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
+  }
+  .check {
+    display: inline-flex; width: 9px; height: 9px;
+    align-items: center; justify-content: center;
+  }
+  .check svg { display: block; }
+
+  .chev {
+    color: var(--dim);
+    font-size: 16px;
+    opacity: 0;
+    transform: translateX(-3px);
+    transition: opacity 0.15s, transform 0.15s;
+    width: 8px;
+    margin-left: -4px;
+  }
+
+  /* Footer */
+  .footer {
+    padding: 12px 40px 14px;
+    border-top: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11.5px;
+    color: var(--muted);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .footer .bar {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .bar-track {
+    width: 120px; height: 4px;
+    background: var(--hairline);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bar-fill {
+    position: absolute; inset: 0;
+    width: 34%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .foot-right { display: flex; gap: 16px; align-items: center; }
+  .foot-right a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .foot-right a:hover { color: var(--ink); }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0; }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="logo"></div>
+  <div class="brand">Design Graph</div>
+  <nav class="topbar-nav">
+    <a href="#" class="nav-item active">Canvases</a>
+    <a href="#" class="nav-item">Gallery</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="plan-chip">Pro</span>
+    <span class="user-email">1sebastian1sosa1@gmail.com</span>
+    <a href="#" class="signout">Sign out</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="container">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div>
+        <h1>Your canvases</h1>
+        <div class="sub">
+          <b>14 canvases</b>
+          <span class="sep">·</span>
+          1 running now
+          <span class="sep">·</span>
+          last opened <span class="mono">pricing-v2</span>, 8 min ago
+        </div>
+      </div>
+      <button class="cta-new"><span class="plus">+</span> New canvas</button>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filterbar">
+      <div class="search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" placeholder="Search canvases…">
+        <span class="kbd">⌘K</span>
+      </div>
+      <div class="chips">
+        <span class="chip active">All <span class="n">14</span></span>
+        <span class="chip"><span class="swatch sw-running"></span>Running <span class="n">1</span></span>
+        <span class="chip"><span class="swatch sw-draft"></span>Draft <span class="n">2</span></span>
+        <span class="chip"><span class="swatch sw-compare"></span>Compare-ready <span class="n">3</span></span>
+        <span class="chip"><span class="swatch sw-pub"></span>Published <span class="n">7</span></span>
+        <span class="chip"><span class="swatch sw-arch"></span>Archived <span class="n">1</span></span>
+      </div>
+    </div>
+
+    <!-- List -->
+    <div class="list-wrap">
+      <div class="list">
+
+        <!-- RUNNING -->
+        <div class="section-label">Running <span class="count">1</span></div>
+
+        <div class="row running-tint">
+          <div class="sq" style="background:#f97316;">P</div>
+          <div class="row-main">
+            <div class="row-title">pricing-v2 <span class="slug">dg.design/seb/pricing-v2</span></div>
+            <div class="row-meta">9 variants generating <span class="sep">·</span> <span class="fork">forked from pricing</span> <span class="sep">·</span> started 2 min ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">3 / 9 <b>done</b></span>
+            <span class="status running"><span class="pulse-dot"></span>RUNNING</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <!-- DRAFTS -->
+        <div class="section-label">Draft <span class="count">2</span></div>
+
+        <div class="row">
+          <div class="sq" style="background:#fbbf24;">F</div>
+          <div class="row-main">
+            <div class="row-title">feedback-form <span class="slug">dg.design/seb/feedback-form</span></div>
+            <div class="row-meta">brief written <span class="sep">·</span> 0 variants yet <span class="sep">·</span> saved 1h ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">—</span>
+            <span class="status draft">DRAFT</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#eab308;">4</div>
+          <div class="row-main">
+            <div class="row-title">404-page <span class="slug">dg.design/seb/404-page</span></div>
+            <div class="row-meta">brief draft <span class="sep">·</span> 0 variants <span class="sep">·</span> saved yesterday</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">—</span>
+            <span class="status draft">DRAFT</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <!-- COMPARE-READY -->
+        <div class="section-label">Compare-ready <span class="count">3</span></div>
+
+        <div class="row">
+          <div class="sq" style="background:#3b82f6;">O</div>
+          <div class="row-main">
+            <div class="row-title">onboarding-flow <span class="slug">dg.design/seb/onboarding-flow</span></div>
+            <div class="row-meta">6 variants <span class="sep">·</span> awaiting your pick <span class="sep">·</span> finished 14 min ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">6 <b>variants</b></span>
+            <span class="status compare">COMPARE</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#6366f1;">S</div>
+          <div class="row-main">
+            <div class="row-title">settings-page <span class="slug">dg.design/seb/settings-page</span></div>
+            <div class="row-meta">8 variants <span class="sep">·</span> <span class="fork">forked from maya.ro/settings</span> <span class="sep">·</span> 2h ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">8 <b>variants</b></span>
+            <span class="status compare">COMPARE</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#0ea5e9;">R</div>
+          <div class="row-main">
+            <div class="row-title">receipt <span class="slug">dg.design/seb/receipt</span></div>
+            <div class="row-meta">5 variants <span class="sep">·</span> original <span class="sep">·</span> finished yesterday</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">5 <b>variants</b></span>
+            <span class="status compare">COMPARE</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <!-- PUBLISHED -->
+        <div class="section-label">Published <span class="count">7</span></div>
+
+        <div class="row">
+          <div class="sq" style="background:#22c55e;">P</div>
+          <div class="row-main">
+            <div class="row-title">pricing <span class="slug">dg.design/seb/pricing</span></div>
+            <div class="row-meta">12 variants <span class="sep">·</span> chose <span class="mono" style="color:var(--ink-2);">tier-bold-03</span> <span class="sep">·</span> 2d ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>8.4</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#14b8a6;">C</div>
+          <div class="row-main">
+            <div class="row-title">checkout <span class="slug">dg.design/seb/checkout</span></div>
+            <div class="row-meta">9 variants <span class="sep">·</span> <span class="fork">forked from maya.ro/checkout</span> <span class="sep">·</span> 4d ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>7.9</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#ec4899;">L</div>
+          <div class="row-main">
+            <div class="row-title">landing <span class="slug">dg.design/seb/landing</span></div>
+            <div class="row-meta">15 variants <span class="sep">·</span> original <span class="sep">·</span> 6d ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>9.1</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#8b5cf6;">D</div>
+          <div class="row-main">
+            <div class="row-title">dashboard <span class="slug">dg.design/seb/dashboard</span></div>
+            <div class="row-meta">7 variants <span class="sep">·</span> <span class="fork">forked from helix.ops</span> <span class="sep">·</span> 9d ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>7.3</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#f43f5e;">E</div>
+          <div class="row-main">
+            <div class="row-title">email-signup <span class="slug">dg.design/seb/email-signup</span></div>
+            <div class="row-meta">4 variants <span class="sep">·</span> original <span class="sep">·</span> 12d ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>6.8</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#a16207;">P</div>
+          <div class="row-main">
+            <div class="row-title">portfolio <span class="slug">dg.design/seb/portfolio</span></div>
+            <div class="row-meta">11 variants <span class="sep">·</span> original <span class="sep">·</span> 3w ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>8.0</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="sq" style="background:#0891b2;">I</div>
+          <div class="row-main">
+            <div class="row-title">invoice-layout <span class="slug">dg.design/seb/invoice-layout</span></div>
+            <div class="row-meta">6 variants <span class="sep">·</span> <span class="fork">forked from lumen</span> <span class="sep">·</span> 5w ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score"><b>7.6</b>/10</span>
+            <span class="status pub"><span class="check"><svg width="8" height="8" viewBox="0 0 10 10"><path d="M1.5 5 L4 7.5 L8.5 2.5" stroke="#15803d" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>PUBLISHED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+        <!-- ARCHIVED -->
+        <div class="section-label">Archived <span class="count">1</span></div>
+
+        <div class="row" style="opacity: 0.72;">
+          <div class="sq" style="background:#94a3b8;">D</div>
+          <div class="row-main">
+            <div class="row-title" style="color: var(--ink-2);">docs-ia <span class="slug">dg.design/seb/docs-ia</span></div>
+            <div class="row-meta">8 variants <span class="sep">·</span> original <span class="sep">·</span> archived 2mo ago</div>
+          </div>
+          <div class="right-cluster">
+            <span class="score">—</span>
+            <span class="status arch">ARCHIVED</span>
+            <span class="chev">›</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="bar">
+      <span>Storage:</span>
+      <b style="color:var(--ink-2);font-weight:500;">34 of 100 canvases used</b>
+      <div class="bar-track"><div class="bar-fill"></div></div>
+    </div>
+    <div class="foot-right">
+      <span class="mono" style="color:var(--dim);">v0.9.2</span>
+      <a href="#">Shortcuts</a>
+      <a href="#">Docs</a>
+      <a href="#">Upgrade storage</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

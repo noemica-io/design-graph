@@ -1,0 +1,11 @@
+# Scratch / backups
+*.bak
+*.bak.*
+.prebrand.*
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp

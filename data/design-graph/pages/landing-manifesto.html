@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — An essay on the cost of premature conviction</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #faf8f4;
+    --ink: #1a1714;
+    --ink-soft: #3d3731;
+    --rule: #e8e2d6;
+    --mute: #8a8176;
+    --accent: #8b5cf6;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Faint paper texture via layered gradients */
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1200px 600px at 20% -10%, rgba(139, 92, 246, 0.035), transparent 60%),
+      radial-gradient(900px 500px at 110% 110%, rgba(139, 92, 246, 0.02), transparent 60%);
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 56px 96px 48px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Masthead */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .masthead .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .masthead .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .masthead .mark .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent);
+    display: inline-block;
+    transform: translateY(-1px);
+  }
+
+  .masthead .title {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+
+  .masthead .meta {
+    color: var(--mute);
+  }
+
+  /* Body: three-column editorial grid, but the measure is constrained */
+  .spread {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 180px 1fr 180px;
+    gap: 56px;
+    padding-top: 48px;
+    min-height: 0;
+  }
+
+  /* Left rail: folio + section mark */
+  .rail-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .rail-left .folio {
+    line-height: 1.6;
+  }
+
+  .rail-left .folio b {
+    display: block;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 4px;
+    letter-spacing: 0.2em;
+  }
+
+  .rail-left .roman {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 46px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 300;
+  }
+
+  .rail-left .roman-cap {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    color: var(--mute);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* Main column — the measure */
+  .essay {
+    max-width: 560px;
+    min-width: 0;
+  }
+
+  .kicker {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 20px;
+  }
+
+  .essay h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 1.08;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 18px;
+  }
+
+  .essay h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-soft);
+  }
+
+  .deck {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0 0 30px;
+    max-width: 480px;
+  }
+
+  .essay p {
+    font-size: 16.5px;
+    line-height: 1.68;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    font-weight: 400;
+  }
+
+  .essay p.lede::first-letter {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    float: left;
+    font-size: 62px;
+    line-height: 0.86;
+    padding: 6px 10px 0 0;
+    color: var(--accent);
+  }
+
+  .essay p em {
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  /* Closing line + CTA */
+  .close {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .signoff {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--mute);
+  }
+
+  .cta {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 16px;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 2px;
+    transition: color 120ms ease;
+  }
+
+  .cta::after {
+    content: " \2192";
+    color: var(--accent);
+    margin-left: 2px;
+  }
+
+  .cta:hover { color: var(--accent); }
+
+  /* Right rail: pull quote */
+  .rail-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 12px;
+  }
+
+  .pull {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 19px;
+    line-height: 1.42;
+    color: var(--ink);
+    border-left: 1px solid var(--accent);
+    padding: 2px 0 2px 18px;
+    max-width: 180px;
+  }
+
+  .pull small {
+    display: block;
+    margin-top: 14px;
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  /* Ornament — a single mark between essay and CTA feels earned */
+  .ornament {
+    text-align: center;
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.6em;
+    margin: 10px 0 2px;
+    user-select: none;
+  }
+
+  /* Colophon */
+  .colophon {
+    position: absolute;
+    left: 96px;
+    right: 96px;
+    bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .colophon .dots {
+    letter-spacing: 0.4em;
+    color: var(--rule);
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="masthead">
+      <div class="brand">
+        <span class="mark"><span class="dot"></span>Design Graph</span>
+        <span class="title">An essay on the cost of premature conviction</span>
+      </div>
+      <div class="meta">No. 01 &nbsp;·&nbsp; Spring 2026</div>
+    </header>
+
+    <section class="spread">
+
+      <aside class="rail-left">
+        <div class="folio">
+          <b>Section</b>
+          <div class="roman">I.</div>
+          <div class="roman-cap">Of Picking<br/>Too Soon</div>
+        </div>
+        <div class="folio">
+          <b>Reading time</b>
+          Nine minutes<br/>
+          <span style="color:var(--rule)">— · —</span>
+        </div>
+      </aside>
+
+      <article class="essay">
+        <div class="kicker">Design Graph &nbsp;/&nbsp; Essay</div>
+
+        <h1>The work happens <em>before</em> the picking.</h1>
+
+        <p class="deck">A short argument against the quiet, expensive habit of deciding what to make before you have seen what you could have made.</p>
+
+        <p class="lede">Designers are trained to converge. To narrow. To pick a direction in the first hour of the first meeting and then spend the next three weeks defending it in increasingly elaborate ways. The craft, we are told, is in the defending. The taste is in the picking.</p>
+
+        <p>This is mostly wrong. The defending is theater. The picking, done early, is a guess dressed up as a decision. The real work — the part where an idea gets better — happens in the space of the options you did not take. You can only see what a design <em>is</em> by standing it next to what it almost was.</p>
+
+        <p>The tax we pay for single-path design is not the variants we skipped. It is the quiet certainty that we shipped the right one, because we never let the others exist long enough to disagree with us.</p>
+
+        <div class="ornament">· · ·</div>
+
+        <div class="close">
+          <span class="signoff">— Continued inside.</span>
+          <a class="cta" href="#">Open a canvas</a>
+        </div>
+      </article>
+
+      <aside class="rail-right">
+        <blockquote class="pull">
+          &ldquo;A design you picked without alternatives is not a decision. It is a preference that has not yet been tested.&rdquo;
+          <small>From §ii</small>
+        </blockquote>
+      </aside>
+
+    </section>
+
+    <footer class="colophon">
+      <span>Set in Newsreader &amp; Inter</span>
+      <span class="dots">· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·</span>
+      <span>Design Graph · designgraph.studio</span>
+    </footer>
+
+  </div>
+</body>
+</html>

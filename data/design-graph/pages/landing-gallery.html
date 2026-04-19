@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Design Graph — where teams think in variants</title>
+<style>
+  :root {
+    --ink: #0a0a0b;
+    --ink-2: #1a1a1c;
+    --paper: #fafaf7;
+    --muted: #6b7280;
+    --line: #e7e5e0;
+    --accent: #9333ea;
+    --accent-soft: #c084fc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11"; }
+  body { width: 1280px; min-height: 800px; }
+
+  /* NAV */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px; border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 22px; height: 22px; position: relative;
+  }
+  .brand-mark::before, .brand-mark::after {
+    content: ""; position: absolute; inset: 0;
+    border-radius: 4px;
+  }
+  .brand-mark::before { background: var(--accent); transform: translate(-3px, -3px); opacity: .85; }
+  .brand-mark::after { background: var(--ink); transform: translate(3px, 3px); mix-blend-mode: multiply; opacity: .9; }
+  .brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+  .brand-tag { color: var(--muted); font-size: 13px; letter-spacing: -0.01em; }
+  .brand-tag em { font-style: italic; color: var(--ink); font-weight: 500; }
+
+  .nav-right { display: flex; align-items: center; gap: 24px; }
+  .nav-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .nav-link:hover { color: var(--ink); }
+  .cta {
+    background: var(--ink); color: #fff; font-size: 13px; font-weight: 500;
+    padding: 9px 14px; border-radius: 8px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .cta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-soft); }
+
+  /* FILTER BAR */
+  .filterbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tabs { display: flex; gap: 2px; }
+  .tab {
+    font-size: 13px; padding: 6px 12px; border-radius: 6px;
+    color: var(--muted); cursor: pointer; letter-spacing: -0.005em;
+  }
+  .tab.active { background: var(--ink); color: #fff; }
+  .tab .count { color: var(--muted); margin-left: 6px; font-variant-numeric: tabular-nums; font-size: 12px; }
+  .tab.active .count { color: rgba(255,255,255,.55); }
+
+  .meta {
+    font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .meta .live { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+  .meta .live::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,.2);
+  }
+  .sep { width: 1px; height: 12px; background: var(--line); }
+  .sort { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* GRID */
+  .grid {
+    padding: 20px 32px 28px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .card {
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    background: #fff; position: relative;
+    display: flex; flex-direction: column;
+    transition: transform .2s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card:hover .hover-reveal { opacity: 1; }
+
+  .thumb {
+    aspect-ratio: 4 / 3;
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .caption {
+    padding: 10px 12px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .cap-title {
+    font-size: 13px; font-weight: 500; letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .cap-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; font-size: 11.5px; color: var(--muted);
+  }
+  .author { display: inline-flex; align-items: center; gap: 6px; }
+  .avatar {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: linear-gradient(135deg, #c084fc, #6366f1);
+    flex-shrink: 0;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #f3f0fb; color: var(--accent);
+    font-size: 10.5px; font-weight: 500;
+    padding: 2px 7px; border-radius: 999px;
+    letter-spacing: -0.005em;
+  }
+  .pill::before {
+    content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
+  }
+
+  .hover-reveal {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(10,10,11,0) 50%, rgba(10,10,11,0.78) 100%);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 10px 12px; color: #fff;
+    opacity: 0; transition: opacity .18s ease;
+    font-size: 11.5px;
+  }
+  .hover-reveal .open {
+    background: rgba(255,255,255,.18); backdrop-filter: blur(6px);
+    padding: 4px 8px; border-radius: 6px; font-size: 11px;
+  }
+
+  /* FOOTER STRIP */
+  .footer-strip {
+    border-top: 1px solid var(--line);
+    padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px;
+  }
+  .footer-strip .fline { color: var(--muted); }
+  .footer-strip .fline b { color: var(--ink); font-weight: 600; }
+  .footer-actions { display: flex; align-items: center; gap: 10px; }
+  .ghost {
+    font-size: 13px; color: var(--ink); text-decoration: none;
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+  }
+
+  /* ============ THUMBNAIL STYLES ============ */
+
+  /* Common little UI atoms used inside thumbs */
+  .t { position: absolute; inset: 0; font-size: 9px; }
+  .bar { height: 6px; border-radius: 2px; background: rgba(0,0,0,.1); }
+  .line { height: 4px; border-radius: 2px; background: rgba(0,0,0,.12); }
+
+  /* 1. Serif Coffee checkout (warm cream / brown) */
+  .thumb-coffee { background: #f5ede0; }
+  .thumb-coffee .top { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; justify-content: space-between; font-family: "Georgia", serif; font-size: 10px; color: #3a2a1a; }
+  .thumb-coffee .hero { position: absolute; top: 34px; left: 12px; right: 12px; font-family: "Georgia", serif; color: #2c1d10; font-size: 15px; line-height: 1.15; letter-spacing: -0.01em; }
+  .thumb-coffee .order { position: absolute; bottom: 10px; left: 12px; right: 12px; background: #fff; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .thumb-coffee .row { display: flex; justify-content: space-between; font-size: 8px; color: #3a2a1a; }
+  .thumb-coffee .row b { font-weight: 600; }
+  .thumb-coffee .btn { margin-top: 3px; background: #2c1d10; color: #f5ede0; text-align: center; font-size: 8px; padding: 4px; border-radius: 4px; }
+
+  /* 2. Ridge marketing dark */
+  .thumb-ridge { background: #0b0d12; color: #e8e9ed; }
+  .thumb-ridge .nav { position: absolute; top: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-size: 8px; color: #9ca3b0; padding: 0; border: none; }
+  .thumb-ridge .nav b { color: #fff; letter-spacing: .02em; }
+  .thumb-ridge .hero { position: absolute; top: 30px; left: 12px; right: 12px; }
+  .thumb-ridge .hero h { display: block; font-size: 17px; line-height: 1; font-weight: 700; letter-spacing: -0.02em; background: linear-gradient(90deg,#fff,#8b5cf6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .thumb-ridge .hero p { display: block; font-size: 8.5px; color: #9ca3b0; margin-top: 8px; line-height: 1.4; }
+  .thumb-ridge .cta2 { position: absolute; bottom: 12px; left: 12px; display: flex; gap: 6px; }
+  .thumb-ridge .btn1 { background: #fff; color: #0b0d12; font-size: 8px; padding: 4px 8px; border-radius: 4px; }
+  .thumb-ridge .btn2 { border: 1px solid #2d3140; color: #e8e9ed; font-size: 8px; padding: 4px 8px; border-radius: 4px; }
+  .thumb-ridge .glow { position: absolute; right: -20px; bottom: -20px; width: 100px; height: 100px; background: radial-gradient(circle, #7c3aed66, transparent 70%); }
+
+  /* 3. Editorial serif magazine */
+  .thumb-editorial { background: #fafaf7; }
+  .thumb-editorial .kicker { position: absolute; top: 10px; left: 12px; font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.14em; color: #c2410c; font-weight: 600; }
+  .thumb-editorial .title { position: absolute; top: 22px; left: 12px; right: 12px; font-family: "Playfair Display", "Didot", serif; font-size: 19px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; color: #1a1a1a; }
+  .thumb-editorial .lede { position: absolute; top: 86px; left: 12px; right: 12px; font-family: "Georgia", serif; font-size: 9px; font-style: italic; color: #4a4a4a; line-height: 1.45; }
+  .thumb-editorial .byline { position: absolute; bottom: 10px; left: 12px; font-size: 8px; color: #7a7a7a; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* 4. Pricing table */
+  .thumb-pricing { background: #f7f7fb; }
+  .thumb-pricing .tiers { position: absolute; inset: 14px 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .thumb-pricing .tier { background: #fff; border: 1px solid #e5e7eb; border-radius: 5px; padding: 7px 6px; display: flex; flex-direction: column; gap: 4px; }
+  .thumb-pricing .tier.mid { background: #0a0a0b; color: #fff; border-color: #0a0a0b; transform: translateY(-4px); }
+  .thumb-pricing .tier h { font-size: 8px; font-weight: 600; }
+  .thumb-pricing .tier .price { font-size: 14px; font-weight: 700; letter-spacing: -0.02em; }
+  .thumb-pricing .tier .price small { font-size: 7px; font-weight: 400; opacity: .6; }
+  .thumb-pricing .tier .feat { font-size: 6.5px; opacity: .7; line-height: 1.5; }
+  .thumb-pricing .tier .btn { margin-top: auto; text-align: center; font-size: 7px; padding: 3px; border-radius: 3px; background: #e5e7eb; color: #0a0a0b; }
+  .thumb-pricing .tier.mid .btn { background: #fff; color: #0a0a0b; }
+
+  /* 5. Dashboard */
+  .thumb-dash { background: #0f1115; color: #cbd0d9; }
+  .thumb-dash .side { position: absolute; top: 0; bottom: 0; left: 0; width: 28px; background: #0a0c10; border-right: 1px solid #1a1d25; display: flex; flex-direction: column; gap: 6px; padding: 10px 0; align-items: center; }
+  .thumb-dash .side i { width: 12px; height: 12px; border-radius: 3px; background: #1f2330; }
+  .thumb-dash .side i:first-child { background: #8b5cf6; }
+  .thumb-dash .main { position: absolute; top: 10px; left: 34px; right: 10px; bottom: 10px; }
+  .thumb-dash .kpis { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+  .thumb-dash .kpi { background: #171a21; border-radius: 4px; padding: 5px 6px; }
+  .thumb-dash .kpi small { font-size: 6px; color: #6b7080; text-transform: uppercase; letter-spacing: .1em; }
+  .thumb-dash .kpi b { display: block; font-size: 12px; color: #fff; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .thumb-dash .kpi em { font-size: 6.5px; font-style: normal; color: #10b981; }
+  .thumb-dash .chart { margin-top: 6px; height: 58%; background: #171a21; border-radius: 4px; position: relative; overflow: hidden; padding: 6px; }
+  .thumb-dash .chart svg { width: 100%; height: 100%; }
+
+  /* 6. Mobile onboarding */
+  .thumb-mobile { background: #eef2ff; display: flex; align-items: center; justify-content: center; }
+  .thumb-mobile .phone {
+    width: 92px; height: 170px; background: #fff; border-radius: 16px;
+    border: 3px solid #1a1d25; position: relative; padding: 10px 8px;
+    box-shadow: 0 10px 20px -10px rgba(0,0,0,.25);
+  }
+  .thumb-mobile .notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 24px; height: 3px; background: #1a1d25; border-radius: 2px; }
+  .thumb-mobile .step { font-size: 7px; color: #6366f1; margin-top: 8px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .thumb-mobile h { display: block; font-size: 11px; font-weight: 600; color: #0a0a0b; margin-top: 4px; line-height: 1.15; letter-spacing: -0.01em; }
+  .thumb-mobile .illus { margin-top: 8px; height: 60px; background: linear-gradient(135deg,#c7d2fe,#a78bfa); border-radius: 8px; position: relative; }
+  .thumb-mobile .illus::after { content: ""; position: absolute; inset: 30% 25%; background: #fff; border-radius: 4px; }
+  .thumb-mobile .prog { margin-top: 6px; display: flex; gap: 3px; }
+  .thumb-mobile .prog i { flex: 1; height: 3px; border-radius: 2px; background: #e0e7ff; }
+  .thumb-mobile .prog i.on { background: #6366f1; }
+  .thumb-mobile .btn { margin-top: 6px; background: #6366f1; color: #fff; text-align: center; font-size: 8px; padding: 5px; border-radius: 6px; }
+
+  /* 7. E-commerce product, dark elegant */
+  .thumb-ecom { background: #111; color: #fff; }
+  .thumb-ecom .img { position: absolute; top: 10px; left: 12px; width: 60%; height: 64%; background: linear-gradient(160deg,#2a2520,#0a0806); border-radius: 4px; position: absolute; overflow: hidden; }
+  .thumb-ecom .img::after { content: ""; position: absolute; inset: 25% 30%; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #c9a878, #5a3d1f 60%, #1a0f06); }
+  .thumb-ecom .info { position: absolute; top: 10px; right: 12px; width: 30%; }
+  .thumb-ecom .info .sku { font-size: 7px; letter-spacing: .2em; color: #888; text-transform: uppercase; }
+  .thumb-ecom .info h { display: block; font-family: "Georgia", serif; font-size: 11px; margin-top: 4px; line-height: 1.15; }
+  .thumb-ecom .info .price { margin-top: 6px; font-size: 10px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .thumb-ecom .info .swatch { display: flex; gap: 3px; margin-top: 4px; }
+  .thumb-ecom .info .swatch i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #333; }
+  .thumb-ecom .add { position: absolute; bottom: 10px; right: 12px; width: 30%; background: #fff; color: #111; font-size: 7px; text-align: center; padding: 4px; border-radius: 3px; }
+  .thumb-ecom .cart { position: absolute; bottom: 10px; left: 12px; font-size: 7px; color: #888; }
+
+  /* 8. Booking / calendar */
+  .thumb-booking { background: #fff5f7; }
+  .thumb-booking .head { position: absolute; top: 10px; left: 12px; font-size: 10px; font-weight: 600; color: #9f1239; letter-spacing: -0.01em; }
+  .thumb-booking .sub { position: absolute; top: 24px; left: 12px; font-size: 8px; color: #be6578; }
+  .thumb-booking .cal { position: absolute; top: 40px; left: 12px; right: 12px; bottom: 10px; background: #fff; border-radius: 6px; padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .thumb-booking .dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; font-size: 6px; color: #9f1239; text-align: center; padding-bottom: 2px; border-bottom: 1px solid #fde2e7; }
+  .thumb-booking .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; flex: 1; }
+  .thumb-booking .d { font-size: 7px; text-align: center; padding: 2px; border-radius: 3px; color: #333; }
+  .thumb-booking .d.sel { background: #e11d48; color: #fff; font-weight: 600; }
+  .thumb-booking .d.avail { background: #fde2e7; color: #9f1239; }
+  .thumb-booking .d.dim { color: #ccc; }
+
+  /* 9. Docs / spec */
+  .thumb-docs { background: #fefefe; }
+  .thumb-docs .sidebar { position: absolute; top: 0; bottom: 0; left: 0; width: 70px; background: #f8f8f6; border-right: 1px solid #ececec; padding: 10px 8px; display: flex; flex-direction: column; gap: 4px; }
+  .thumb-docs .sidebar small { font-size: 6px; color: #999; text-transform: uppercase; letter-spacing: .1em; margin-top: 4px; }
+  .thumb-docs .sidebar i { font-size: 8px; color: #555; font-style: normal; }
+  .thumb-docs .sidebar i.on { color: #9333ea; font-weight: 600; }
+  .thumb-docs .body { position: absolute; top: 10px; left: 78px; right: 10px; bottom: 10px; }
+  .thumb-docs .crumb { font-size: 7px; color: #9333ea; }
+  .thumb-docs h { display: block; font-size: 13px; font-weight: 600; color: #1a1a1a; margin-top: 4px; letter-spacing: -0.01em; }
+  .thumb-docs p { display: block; font-size: 7.5px; color: #666; line-height: 1.45; margin-top: 6px; }
+  .thumb-docs .code { margin-top: 6px; background: #0a0a0b; color: #c084fc; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 6.5px; padding: 6px 7px; border-radius: 4px; line-height: 1.5; }
+
+  /* 10. Auth — minimalist */
+  .thumb-auth { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+  .thumb-auth .card2 {
+    position: absolute; inset: 18px 20px; background: #fff; border-radius: 8px;
+    padding: 14px; box-shadow: 0 8px 20px -12px rgba(0,0,0,.18);
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .thumb-auth h { display: block; font-size: 12px; font-weight: 600; color: #0a0a0b; letter-spacing: -0.01em; }
+  .thumb-auth small { font-size: 7px; color: #92400e; }
+  .thumb-auth .fld { height: 16px; background: #fafaf7; border: 1px solid #e7e5e0; border-radius: 4px; }
+  .thumb-auth .btn { background: #0a0a0b; color: #fff; font-size: 8px; text-align: center; padding: 5px; border-radius: 4px; margin-top: 2px; }
+  .thumb-auth .or { text-align: center; font-size: 6px; color: #999; }
+  .thumb-auth .sso { display: flex; gap: 4px; }
+  .thumb-auth .sso i { flex: 1; height: 14px; border: 1px solid #e7e5e0; border-radius: 4px; font-size: 6px; display: flex; align-items: center; justify-content: center; color: #555; font-style: normal; }
+
+  /* 11. Blog index — minimal list */
+  .thumb-blog { background: #fff; }
+  .thumb-blog .title { position: absolute; top: 10px; left: 12px; font-size: 10px; font-weight: 600; letter-spacing: -0.01em; }
+  .thumb-blog ul { position: absolute; top: 30px; left: 12px; right: 12px; bottom: 10px; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .thumb-blog ul li { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; border-bottom: 1px dashed #eee; padding-bottom: 5px; }
+  .thumb-blog ul li .t1 { font-size: 8px; color: #0a0a0b; line-height: 1.25; flex: 1; }
+  .thumb-blog ul li .d1 { font-size: 6.5px; color: #aaa; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  /* 12. Map / travel */
+  .thumb-map { background: linear-gradient(160deg, #d8f3dc, #a7d4b4); overflow: hidden; }
+  .thumb-map .overlay { position: absolute; top: 10px; left: 10px; background: #fff; border-radius: 6px; padding: 6px 8px; font-size: 8px; }
+  .thumb-map .overlay b { display: block; font-size: 9px; font-weight: 600; }
+  .thumb-map .overlay small { color: #15803d; font-size: 6.5px; }
+  .thumb-map .pin { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #15803d; border: 2px solid #fff; box-shadow: 0 0 0 3px rgba(21,128,61,.25); }
+  .thumb-map .pin.p1 { top: 40%; left: 55%; }
+  .thumb-map .pin.p2 { top: 60%; left: 35%; background: #eab308; }
+  .thumb-map .pin.p3 { top: 30%; left: 75%; background: #dc2626; }
+  .thumb-map .route { position: absolute; top: 32%; left: 35%; width: 45%; height: 30%; }
+  .thumb-map svg { width: 100%; height: 100%; }
+
+  /* 13. Newsletter / email */
+  .thumb-newsletter { background: #f9f6f1; }
+  .thumb-newsletter .box {
+    position: absolute; inset: 20px 18px;
+    background: #fff; border: 1px solid #eee4d5; border-radius: 4px;
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .thumb-newsletter .masthead { font-family: "Georgia", serif; font-size: 13px; font-weight: 700; letter-spacing: -0.02em; color: #7c2d12; }
+  .thumb-newsletter .date { font-size: 7px; color: #a8846d; letter-spacing: .1em; text-transform: uppercase; }
+  .thumb-newsletter .hr { height: 1px; background: #eee4d5; margin: 2px 0; }
+  .thumb-newsletter p { font-family: "Georgia", serif; font-size: 8px; color: #3a2a1a; line-height: 1.5; }
+  .thumb-newsletter p:first-letter { font-size: 16px; font-weight: 700; float: left; line-height: 1; margin-right: 3px; color: #7c2d12; }
+  .thumb-newsletter .sig { margin-top: auto; font-size: 7px; font-style: italic; color: #a8846d; }
+
+  /* 14. Game / playful */
+  .thumb-game { background: #111827; overflow: hidden; }
+  .thumb-game .bg { position: absolute; inset: 0; background: radial-gradient(circle at 30% 40%, #3b82f680, transparent 50%), radial-gradient(circle at 70% 70%, #ec489980, transparent 50%); }
+  .thumb-game h { position: absolute; top: 16px; left: 14px; right: 14px; font-family: "Impact", "Oswald", sans-serif; font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: #fff; line-height: 0.95; text-transform: uppercase; }
+  .thumb-game h em { font-style: normal; color: #fbbf24; }
+  .thumb-game .chip { position: absolute; bottom: 14px; left: 14px; font-size: 8px; color: #cbd5e1; background: rgba(255,255,255,.08); padding: 3px 8px; border-radius: 99px; border: 1px solid rgba(255,255,255,.1); }
+  .thumb-game .play { position: absolute; bottom: 12px; right: 14px; width: 26px; height: 26px; border-radius: 50%; background: #fbbf24; display: flex; align-items: center; justify-content: center; color: #111827; }
+  .thumb-game .play::after { content: "▶"; font-size: 10px; margin-left: 2px; }
+
+  /* 15. Invoice */
+  .thumb-invoice { background: #fcfcfc; }
+  .thumb-invoice .paper {
+    position: absolute; inset: 14px 14px;
+    background: #fff; border: 1px solid #eee; border-radius: 3px;
+    padding: 10px; display: flex; flex-direction: column; gap: 5px;
+    font-family: "Inter", sans-serif;
+  }
+  .thumb-invoice .top2 { display: flex; justify-content: space-between; align-items: flex-start; }
+  .thumb-invoice .top2 h { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
+  .thumb-invoice .top2 .num { font-size: 7px; color: #888; text-align: right; font-variant-numeric: tabular-nums; }
+  .thumb-invoice .to { font-size: 7px; color: #333; line-height: 1.4; }
+  .thumb-invoice table { font-size: 7px; border-collapse: collapse; width: 100%; margin-top: 2px; }
+  .thumb-invoice td { padding: 2px 0; border-bottom: 1px solid #f0f0f0; font-variant-numeric: tabular-nums; }
+  .thumb-invoice td:last-child { text-align: right; }
+  .thumb-invoice .total { display: flex; justify-content: space-between; font-size: 9px; font-weight: 600; margin-top: auto; border-top: 1px solid #0a0a0b; padding-top: 4px; }
+
+  /* 16. Agency splash / playful type */
+  .thumb-agency { background: #ecfccb; }
+  .thumb-agency .big { position: absolute; inset: 10px 12px; display: flex; flex-direction: column; justify-content: space-between; }
+  .thumb-agency .big .hd { font-size: 8px; color: #365314; display: flex; justify-content: space-between; font-weight: 600; letter-spacing: -0.01em; }
+  .thumb-agency .big .type {
+    font-family: "Helvetica Neue", sans-serif;
+    font-size: 34px; font-weight: 900;
+    line-height: 0.9; letter-spacing: -0.04em;
+    color: #365314;
+  }
+  .thumb-agency .big .type em { font-style: italic; font-weight: 400; font-family: "Georgia", serif; color: #4d7c0f; }
+  .thumb-agency .big .ft { font-size: 7px; color: #4d7c0f; display: flex; justify-content: space-between; letter-spacing: .08em; text-transform: uppercase; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <span class="brand-name">Design Graph</span>
+    <span class="brand-tag">— where teams think in <em>variants</em>.</span>
+  </div>
+  <div class="nav-right">
+    <a class="nav-link" href="#">Gallery</a>
+    <a class="nav-link" href="#">Teams</a>
+    <a class="nav-link" href="#">Docs</a>
+    <a class="cta" href="#"><span class="dot"></span>Start a canvas</a>
+  </div>
+</nav>
+
+<!-- FILTER BAR -->
+<div class="filterbar">
+  <div class="tabs">
+    <div class="tab active">Featured</div>
+    <div class="tab">Trending <span class="count">128</span></div>
+    <div class="tab">Recent</div>
+    <div class="tab">By team</div>
+    <div class="tab">Following</div>
+  </div>
+  <div class="meta">
+    <span class="live">412 canvases open right now</span>
+    <span class="sep"></span>
+    <span class="sort">Sort: Most remixed ▾</span>
+  </div>
+</div>
+
+<!-- GRID -->
+<main class="grid">
+
+  <!-- 1 Serif Coffee -->
+  <article class="card">
+    <div class="thumb thumb-coffee">
+      <div class="top"><span><i>Serif</i> Coffee</span><span>Cart · 2</span></div>
+      <div class="hero">A slower<br/>checkout.</div>
+      <div class="order">
+        <div class="row"><span>Ethiopia Guji — 250g</span><b>$24.00</b></div>
+        <div class="row"><span>House Blend — 1kg</span><b>$56.00</b></div>
+        <div class="row" style="border-top:1px dashed #d6c3a6; padding-top:3px;"><span>Total</span><b>$80.00</b></div>
+        <div class="btn">Continue to payment</div>
+      </div>
+      <div class="hover-reveal"><span>Serif Coffee</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Checkout flow for Serif Coffee</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar"></span>maya.ro</span>
+        <span class="pill">12 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 2 Ridge Marketing -->
+  <article class="card">
+    <div class="thumb thumb-ridge">
+      <div class="glow"></div>
+      <div class="nav"><b>RIDGE</b><span>Product  Pricing  Log in</span></div>
+      <div class="hero">
+        <h>Infrastructure<br/>that compounds.</h>
+        <p>Ridge turns every deploy into a reusable graph of state. Teams ship 3× faster without rewriting their stack.</p>
+      </div>
+      <div class="cta2">
+        <span class="btn1">Start free</span>
+        <span class="btn2">See a demo</span>
+      </div>
+      <div class="hover-reveal"><span>Ridge · marketing</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Marketing site for Ridge</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#f472b6,#8b5cf6)"></span>ridge-team</span>
+        <span class="pill">24 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 3 Editorial -->
+  <article class="card">
+    <div class="thumb thumb-editorial">
+      <div class="kicker">Issue 014 · Field Notes</div>
+      <div class="title">The last<br/>good brief.</div>
+      <div class="lede">"A designer's real job isn't making — it's narrowing. Every unchosen path is a gift you give the next person."</div>
+      <div class="byline">By Lena Okafor · 8 min read</div>
+      <div class="hover-reveal"><span>Field Notes 014</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Editorial template — Field Notes</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#fb923c,#dc2626)"></span>lena.o</span>
+        <span class="pill">8 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 4 Pricing -->
+  <article class="card">
+    <div class="thumb thumb-pricing">
+      <div class="tiers">
+        <div class="tier">
+          <h>Solo</h>
+          <div class="price">$12<small>/mo</small></div>
+          <div class="feat">3 canvases<br/>Personal use<br/>Community</div>
+          <div class="btn">Choose</div>
+        </div>
+        <div class="tier mid">
+          <h>Team</h>
+          <div class="price">$39<small>/mo</small></div>
+          <div class="feat">Unlimited<br/>Shared canvas<br/>Version history</div>
+          <div class="btn">Choose</div>
+        </div>
+        <div class="tier">
+          <h>Studio</h>
+          <div class="price">$120<small>/mo</small></div>
+          <div class="feat">SSO + audit<br/>Private cloud<br/>Priority</div>
+          <div class="btn">Contact</div>
+        </div>
+      </div>
+      <div class="hover-reveal"><span>Pricing · 3 tiers</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Pricing exploration for Proof</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#22d3ee,#0ea5e9)"></span>proof.studio</span>
+        <span class="pill">16 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 5 Dashboard -->
+  <article class="card">
+    <div class="thumb thumb-dash">
+      <div class="side"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="main">
+        <div class="kpis">
+          <div class="kpi"><small>MRR</small><b>$84.2k</b><em>↑ 12.4%</em></div>
+          <div class="kpi"><small>Churn</small><b>1.8%</b><em style="color:#f87171">↑ 0.3</em></div>
+          <div class="kpi"><small>NPS</small><b>64</b><em>↑ 3</em></div>
+        </div>
+        <div class="chart">
+          <svg viewBox="0 0 200 80" preserveAspectRatio="none">
+            <path d="M0 60 L20 52 L40 58 L60 40 L80 45 L100 30 L120 35 L140 20 L160 25 L180 12 L200 18" fill="none" stroke="#8b5cf6" stroke-width="1.5"/>
+            <path d="M0 60 L20 52 L40 58 L60 40 L80 45 L100 30 L120 35 L140 20 L160 25 L180 12 L200 18 L200 80 L0 80 Z" fill="#8b5cf633"/>
+          </svg>
+        </div>
+      </div>
+      <div class="hover-reveal"><span>Finance ops · Helix</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Finance dashboard for Helix</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#a78bfa,#3b82f6)"></span>helix.ops</span>
+        <span class="pill">21 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 6 Mobile -->
+  <article class="card">
+    <div class="thumb thumb-mobile">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="step">Step 2 of 4</div>
+        <h>What should we call your workspace?</h>
+        <div class="illus"></div>
+        <div class="prog"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+        <div class="btn">Continue</div>
+      </div>
+      <div class="hover-reveal"><span>Onboarding · Parcel</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Onboarding screens for Parcel</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#818cf8,#6366f1)"></span>parcel.app</span>
+        <span class="pill">9 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 7 E-commerce dark -->
+  <article class="card">
+    <div class="thumb thumb-ecom">
+      <div class="img"></div>
+      <div class="info">
+        <div class="sku">No. 07</div>
+        <h>Amber<br/>Oud.</h>
+        <div class="price">€148</div>
+        <div class="swatch"><i style="background:#5a3d1f"></i><i style="background:#8b5a2b"></i><i style="background:#2a1810"></i></div>
+      </div>
+      <div class="cart">Free shipping · 2 left</div>
+      <div class="add">Add to bag</div>
+      <div class="hover-reveal"><span>Maison Flor PDP</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Product page for Maison Flor</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#fbbf24,#a16207)"></span>flor.design</span>
+        <span class="pill">14 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 8 Booking -->
+  <article class="card">
+    <div class="thumb thumb-booking">
+      <div class="head">Book a table</div>
+      <div class="sub">Nolita · party of 4</div>
+      <div class="cal">
+        <div class="dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="days">
+          <div class="d dim">27</div><div class="d dim">28</div><div class="d dim">29</div><div class="d">1</div><div class="d">2</div><div class="d avail">3</div><div class="d avail">4</div>
+          <div class="d">5</div><div class="d avail">6</div><div class="d avail">7</div><div class="d">8</div><div class="d">9</div><div class="d avail">10</div><div class="d sel">11</div>
+          <div class="d">12</div><div class="d">13</div><div class="d avail">14</div><div class="d avail">15</div><div class="d">16</div><div class="d avail">17</div><div class="d avail">18</div>
+          <div class="d">19</div><div class="d avail">20</div><div class="d">21</div><div class="d">22</div><div class="d avail">23</div><div class="d avail">24</div><div class="d">25</div>
+        </div>
+      </div>
+      <div class="hover-reveal"><span>Reserve · Cafe Lune</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Reservations UI for Cafe Lune</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#fda4af,#e11d48)"></span>lune.nyc</span>
+        <span class="pill">7 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 9 Docs -->
+  <article class="card">
+    <div class="thumb thumb-docs">
+      <div class="sidebar">
+        <small>Getting started</small>
+        <i>Install</i>
+        <i class="on">Your first canvas</i>
+        <i>Sharing</i>
+        <small>Concepts</small>
+        <i>Nodes</i>
+        <i>Variants</i>
+      </div>
+      <div class="body">
+        <div class="crumb">Docs › Getting started</div>
+        <h>Your first canvas</h>
+        <p>A canvas holds many variants of the same idea. Spawn them in parallel — the viewer arranges them for you.</p>
+        <div class="code">$ dg init my-checkout<br/>&nbsp; ✓ created canvas at <span style="color:#fbbf24">./my-checkout</span><br/>$ dg spawn --n 8 hero</div>
+      </div>
+      <div class="hover-reveal"><span>Design Graph docs</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Docs redesign for Design Graph</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar"></span>dg-internal</span>
+        <span class="pill">11 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 10 Auth -->
+  <article class="card">
+    <div class="thumb thumb-auth">
+      <div class="card2">
+        <h>Welcome back</h>
+        <small>Sign in to Summit</small>
+        <div class="fld"></div>
+        <div class="fld"></div>
+        <div class="btn">Continue</div>
+        <div class="or">— or —</div>
+        <div class="sso"><i>Google</i><i>GitHub</i><i>SSO</i></div>
+      </div>
+      <div class="hover-reveal"><span>Summit · auth</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Sign-in screens for Summit</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#fde68a,#f59e0b)"></span>summit.io</span>
+        <span class="pill">10 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 11 Blog index -->
+  <article class="card">
+    <div class="thumb thumb-blog">
+      <div class="title">Essays by Arran</div>
+      <ul>
+        <li><span class="t1">The quiet revolution of parallel design</span><span class="d1">Mar 12</span></li>
+        <li><span class="t1">Why figma is a single-player game</span><span class="d1">Feb 28</span></li>
+        <li><span class="t1">Variants as a form of respect</span><span class="d1">Feb 01</span></li>
+        <li><span class="t1">Notes on taste (and why it's trainable)</span><span class="d1">Jan 14</span></li>
+        <li><span class="t1">Six months of thinking sideways</span><span class="d1">Dec 22</span></li>
+      </ul>
+      <div class="hover-reveal"><span>Arran's essays</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Personal blog for Arran Keith</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#94a3b8,#334155)"></span>arran.k</span>
+        <span class="pill">6 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 12 Map / travel -->
+  <article class="card">
+    <div class="thumb thumb-map">
+      <div class="overlay">
+        <b>Route 66 · Day 3</b>
+        <small>Flagstaff → Winslow</small>
+      </div>
+      <div class="route">
+        <svg viewBox="0 0 100 60" preserveAspectRatio="none">
+          <path d="M5 50 Q 30 10, 55 30 T 95 15" stroke="#15803d" stroke-width="1.2" fill="none" stroke-dasharray="3 2"/>
+        </svg>
+      </div>
+      <div class="pin p1"></div>
+      <div class="pin p2"></div>
+      <div class="pin p3"></div>
+      <div class="hover-reveal"><span>Wayfarer itineraries</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Itinerary planner for Wayfarer</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#4ade80,#16a34a)"></span>wayfarer</span>
+        <span class="pill">13 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 13 Newsletter -->
+  <article class="card">
+    <div class="thumb thumb-newsletter">
+      <div class="box">
+        <div class="masthead">Dispatch</div>
+        <div class="date">Volume II · April 2026</div>
+        <div class="hr"></div>
+        <p>Spring sharpens the eye. This month we write on Berlin studios, a printer in Kyoto, and a quiet revolution inside type foundries.</p>
+        <div class="sig">— from the editors</div>
+      </div>
+      <div class="hover-reveal"><span>Dispatch newsletter</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Dispatch email template</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#fed7aa,#c2410c)"></span>dispatch</span>
+        <span class="pill">5 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 14 Game / playful -->
+  <article class="card">
+    <div class="thumb thumb-game">
+      <div class="bg"></div>
+      <h>Play<br/>for <em>keeps.</em></h>
+      <div class="chip">Season 04 · Live now</div>
+      <div class="play"></div>
+      <div class="hover-reveal"><span>Tourna splash</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Esports landing for Tourna</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#f472b6,#3b82f6)"></span>tourna.gg</span>
+        <span class="pill">18 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 15 Invoice -->
+  <article class="card">
+    <div class="thumb thumb-invoice">
+      <div class="paper">
+        <div class="top2">
+          <h>Invoice</h>
+          <div class="num">#2026-044<br/>Apr 18, 2026</div>
+        </div>
+        <div class="to">To: Lumen Studio<br/>14 Rue des Archives, Paris</div>
+        <table>
+          <tr><td>Brand identity (Phase 1)</td><td>$4,800</td></tr>
+          <tr><td>Web system · 12 pages</td><td>$7,200</td></tr>
+          <tr><td>Motion package</td><td>$1,400</td></tr>
+        </table>
+        <div class="total"><span>Total due</span><span>$13,400</span></div>
+      </div>
+      <div class="hover-reveal"><span>Lumen invoice</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Invoice template for Lumen Studio</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#d4d4d8,#52525b)"></span>lumen</span>
+        <span class="pill">4 variants</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- 16 Agency -->
+  <article class="card">
+    <div class="thumb thumb-agency">
+      <div class="big">
+        <div class="hd"><span>FERN &amp; CO.</span><span>Est. 2019</span></div>
+        <div class="type">We make<br/>things<br/><em>feel</em> right.</div>
+        <div class="ft"><span>Strategy · Brand · Web</span><span>→ Book us</span></div>
+      </div>
+      <div class="hover-reveal"><span>Fern &amp; Co. splash</span><span class="open">Open canvas →</span></div>
+    </div>
+    <div class="caption">
+      <div class="cap-title">Agency splash for Fern &amp; Co.</div>
+      <div class="cap-row">
+        <span class="author"><span class="avatar" style="background:linear-gradient(135deg,#bef264,#4d7c0f)"></span>fern.co</span>
+        <span class="pill">9 variants</span>
+      </div>
+    </div>
+  </article>
+
+</main>
+
+<!-- FOOTER STRIP -->
+<div class="footer-strip">
+  <div class="fline">Join <b>3,214 designers</b> thinking in parallel. New canvases spawn every 40 seconds.</div>
+  <div class="footer-actions">
+    <a class="ghost" href="#">Browse all</a>
+    <a class="cta" href="#"><span class="dot"></span>Start a canvas — it's free</a>
+  </div>
+</div>
+
+</body>
+</html>

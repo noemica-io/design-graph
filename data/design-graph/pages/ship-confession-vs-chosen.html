@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — what you shipped.</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0e;
+    --bg-soft: #111116;
+    --ink: #efece7;
+    --ink-dim: #8c8a86;
+    --ink-mute: #5a5860;
+    --ink-faint: #3a3944;
+    --ink-warm: #a79d8d;
+    --hair: #22212a;
+    --hair-soft: #1a1922;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --amber: #fbbf24;
+    --amber-soft: #fcd34d;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.008em;
+  }
+
+  /* grain + vignette — inherited */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.035) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 115%, rgba(0,0,0,0.55) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+    z-index: 1;
+  }
+
+  /* ───────── top hairline + kicker ───────── */
+  .topline {
+    position: absolute;
+    top: 46px; left: 56px; right: 56px;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--hair) 8%,
+      var(--hair) 92%,
+      transparent 100%);
+    z-index: 2;
+  }
+  .kicker {
+    position: absolute;
+    top: 26px; left: 56px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    color: var(--ink-dim);
+    letter-spacing: 0.01em;
+    z-index: 4;
+  }
+  .kicker .roman {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.16em;
+    margin-right: 10px;
+    text-transform: uppercase;
+  }
+  .kicker .dot {
+    color: var(--ink-faint);
+    margin: 0 8px;
+    font-style: normal;
+  }
+
+  /* nav brand — right side */
+  .brand {
+    position: absolute;
+    top: 22px; right: 56px;
+    display: flex; align-items: center; gap: 9px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500; font-size: 12px;
+    color: var(--ink-mute);
+    z-index: 4;
+  }
+  .brand .dot-mark {
+    width: 10px; height: 10px; border-radius: 3px;
+    background: linear-gradient(135deg, #2a2830 0 50%, var(--accent) 50% 100%);
+  }
+  .brand b { font-weight: 500; color: var(--ink-dim); }
+  .brand .step {
+    margin-left: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* ───────── main two columns + vertical seam ───────── */
+  .main {
+    position: absolute;
+    top: 78px; left: 56px; right: 56px;
+    height: 598px;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    z-index: 3;
+  }
+  .seam {
+    position: absolute;
+    left: 436px;             /* 56 + 380 */
+    top: 88px;
+    width: 1px;
+    height: 580px;
+    background: linear-gradient(180deg,
+      transparent 0%,
+      rgba(139,92,246,0.35) 12%,
+      rgba(139,92,246,0.5) 50%,
+      rgba(139,92,246,0.2) 88%,
+      transparent 100%);
+    z-index: 4;
+  }
+  .seam::after {
+    content: "—";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg);
+    color: rgba(167,139,250,0.7);
+    padding: 6px 0;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 1;
+  }
+
+  /* ───────── LEFT: confession ───────── */
+  .left {
+    padding: 12px 36px 12px 0;
+    display: flex; flex-direction: column;
+  }
+  .left .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 28px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .left .label .pip {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.14);
+  }
+  .left .quote {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 22px;
+    line-height: 1.42;
+    color: var(--ink-warm);
+    letter-spacing: -0.005em;
+    margin: 0 0 22px 0;
+    position: relative;
+  }
+  .left .quote::before {
+    content: "“";
+    font-style: normal;
+    color: var(--accent-soft);
+    position: absolute;
+    left: -18px;
+    top: -4px;
+    font-size: 28px;
+    font-weight: 400;
+  }
+  .left .quote::after {
+    content: "”";
+    font-style: normal;
+    color: var(--accent-soft);
+    font-size: 22px;
+    margin-left: 2px;
+  }
+  .left .cite {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12.5px;
+    color: var(--ink-mute);
+    margin-bottom: 30px;
+    letter-spacing: 0;
+  }
+  .left .cite::before {
+    content: "— ";
+    color: var(--ink-faint);
+  }
+  .left .spec {
+    border-top: 1px solid var(--hair-soft);
+    padding-top: 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.03em;
+    line-height: 1.7;
+  }
+  .left .spec .k {
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 9px;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .left .spec .row {
+    display: flex; gap: 8px;
+    color: var(--ink-faint);
+  }
+  .left .spec .row .sep { color: var(--ink-faint); opacity: 0.5; }
+
+  .left .afterthought {
+    margin-top: auto;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink-faint);
+    max-width: 300px;
+  }
+
+  /* ───────── RIGHT: what you shipped ───────── */
+  .right {
+    padding: 12px 0 12px 40px;
+    display: flex; flex-direction: column;
+  }
+  .right .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .right .eyebrow .pip {
+    width: 5px; height: 5px;
+    background: var(--amber);
+    transform: rotate(45deg);
+    box-shadow: 0 0 0 3px rgba(251,191,36,0.12);
+  }
+  .right .eyebrow b {
+    color: var(--amber-soft);
+    font-weight: 500;
+  }
+  .right h1 {
+    margin: 0 0 22px 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-size: 32px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    max-width: 640px;
+  }
+  .right h1 .num {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 300;
+  }
+  .right h1 em {
+    font-style: italic;
+    color: var(--ink-dim);
+    font-weight: 300;
+  }
+
+  /* the rendered chosen variant */
+  .render-frame {
+    position: relative;
+    width: 560px;
+    height: 380px;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #000;
+    box-shadow:
+      0 0 0 1px rgba(251,191,36,0.08),
+      0 30px 60px -28px rgba(0,0,0,0.8);
+    margin-bottom: 16px;
+  }
+  .render-frame .chrome {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 20px;
+    background: linear-gradient(180deg, rgba(10,10,10,0.9) 0%, transparent 100%);
+    z-index: 4;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    color: rgba(251,191,36,0.45);
+    pointer-events: none;
+  }
+  .render-frame .chrome .url {
+    margin-left: auto;
+    color: rgba(255,255,255,0.25);
+  }
+  .render-frame .chosen-pill {
+    position: absolute;
+    top: 8px; right: 10px;
+    z-index: 5;
+    background: var(--amber);
+    color: #111;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(251,191,36,0.3);
+  }
+
+  /* === DRAFT 07 rendered — THE BOLD/PLAYFUL one (visually opposite of minimalist) === */
+  .d07 {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 80% -10%, rgba(251,191,36,0.22) 0%, transparent 55%),
+      radial-gradient(ellipse at 0% 100%, rgba(236,72,153,0.18) 0%, transparent 55%),
+      #1a0f22;
+    color: #fff;
+    padding: 34px 32px 22px 32px;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    overflow: hidden;
+  }
+  .d07::before {
+    content: "";
+    position: absolute;
+    left: -40px; top: 40%;
+    width: 120px; height: 120px;
+    background: var(--amber);
+    border-radius: 50%;
+    filter: blur(0);
+    opacity: 0.9;
+    transform: translate(0, 0);
+  }
+  .d07::after {
+    content: "NEW";
+    position: absolute;
+    right: 24px; bottom: 78px;
+    background: #ec4899;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    padding: 4px 8px;
+    transform: rotate(8deg);
+    border-radius: 2px;
+    box-shadow: 0 4px 14px rgba(236,72,153,0.45);
+    z-index: 3;
+  }
+
+  .d07 .nav {
+    position: relative;
+    z-index: 3;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 18px;
+  }
+  .d07 .nav .brand-7 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.03em;
+    color: #fff;
+    text-transform: none;
+  }
+  .d07 .nav .brand-7 span { color: var(--amber); }
+  .d07 .nav .items { display: flex; gap: 16px; }
+  .d07 .nav .cta {
+    background: #fff;
+    color: #1a0f22;
+    padding: 4px 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    border-radius: 100px;
+  }
+
+  .d07 .hero {
+    position: relative;
+    z-index: 3;
+    max-width: 370px;
+  }
+  .d07 .hero h2 {
+    margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 44px;
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: #fff;
+  }
+  .d07 .hero h2 .tilt {
+    display: inline-block;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--amber);
+    transform: rotate(-3deg);
+    font-size: 38px;
+    padding: 0 4px;
+  }
+  .d07 .hero h2 .squiggle {
+    display: inline-block;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    color: #ec4899;
+    font-size: 34px;
+    margin-left: 2px;
+  }
+  .d07 .hero p {
+    margin: 10px 0 0 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.7);
+    max-width: 280px;
+    font-weight: 500;
+  }
+
+  .d07 .tiers {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .d07 .tier {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 10px 11px;
+    position: relative;
+    overflow: hidden;
+  }
+  .d07 .tier.hot {
+    background: var(--amber);
+    color: #1a0f22;
+    border-color: var(--amber);
+    transform: rotate(-1.2deg);
+    box-shadow: 0 10px 28px -10px rgba(251,191,36,0.55);
+  }
+  .d07 .tier .tn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    margin-bottom: 4px;
+  }
+  .d07 .tier.hot .tn { color: rgba(26,15,34,0.65); }
+  .d07 .tier .tp {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: #fff;
+  }
+  .d07 .tier.hot .tp { color: #1a0f22; }
+  .d07 .tier .tp sup {
+    font-size: 12px;
+    font-weight: 500;
+    vertical-align: top;
+    margin-right: 1px;
+    top: 4px;
+    position: relative;
+  }
+  .d07 .tier .tp small {
+    font-size: 8px;
+    font-weight: 500;
+    margin-left: 2px;
+    color: rgba(255,255,255,0.45);
+  }
+  .d07 .tier.hot .tp small { color: rgba(26,15,34,0.5); }
+  .d07 .tier .tl {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 10.5px;
+    line-height: 1.3;
+    color: rgba(255,255,255,0.55);
+    margin-top: 4px;
+  }
+  .d07 .tier.hot .tl { color: rgba(26,15,34,0.72); }
+  .d07 .tier .tb {
+    margin-top: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: #fff;
+    color: #1a0f22;
+    padding: 4px 0;
+    text-align: center;
+    border-radius: 100px;
+  }
+  .d07 .tier.hot .tb {
+    background: #1a0f22;
+    color: var(--amber);
+  }
+
+  /* the annotation under the render */
+  .annotation {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--ink-dim);
+    letter-spacing: -0.002em;
+    max-width: 560px;
+    margin-bottom: 18px;
+  }
+  .annotation em {
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  /* action row */
+  .actions {
+    display: flex; align-items: center; gap: 18px;
+    max-width: 560px;
+  }
+  .actions .primary {
+    background: var(--amber);
+    color: #1a0f22;
+    border: 0;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-variant: small-caps;
+    cursor: pointer;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.15) inset,
+      0 10px 24px -8px rgba(251,191,36,0.45);
+  }
+  .actions .primary:hover { background: var(--amber-soft); }
+  .actions .secondary {
+    background: transparent;
+    color: var(--ink-dim);
+    border: 0;
+    padding: 10px 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-variant: small-caps;
+    cursor: pointer;
+    border-bottom: 1px solid var(--hair);
+  }
+  .actions .secondary:hover { color: var(--ink); border-bottom-color: var(--ink-mute); }
+  .actions .sep {
+    color: var(--ink-faint);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 13px;
+  }
+
+  /* ───────── bottom filmstrip ───────── */
+  .film-region {
+    position: absolute;
+    left: 56px; right: 56px;
+    bottom: 54px;
+    z-index: 3;
+  }
+  .film-hair {
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--hair) 6%,
+      var(--hair) 94%,
+      transparent 100%);
+    margin-bottom: 14px;
+  }
+  .filmstrip {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    height: 44px;
+  }
+  .thumb {
+    position: relative;
+    height: 44px;
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    overflow: hidden;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .thumb:hover { opacity: 0.85; }
+  .thumb.confessed {
+    opacity: 0.82;
+    border-color: rgba(139,92,246,0.45);
+  }
+  .thumb.chosen {
+    opacity: 1;
+    border-color: var(--amber);
+    box-shadow:
+      0 0 0 1px rgba(251,191,36,0.35),
+      0 6px 18px -4px rgba(251,191,36,0.35);
+  }
+  .thumb .n {
+    position: absolute;
+    top: 2px; left: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: rgba(255,255,255,0.6);
+    mix-blend-mode: difference;
+    z-index: 2;
+    font-weight: 500;
+  }
+  .thumb.chosen .n { color: var(--amber); mix-blend-mode: normal; text-shadow: 0 0 4px #000; }
+  .thumb .diamond {
+    position: absolute;
+    top: 3px; right: 4px;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    transform: rotate(45deg);
+    box-shadow: 0 0 6px rgba(139,92,246,0.6);
+    z-index: 2;
+  }
+
+  /* mini thumbnail painting — echoes reveal-ten */
+  .mini { position: absolute; inset: 0; }
+  .mini.m1 { background: #f6f2ea; }
+  .mini.m1::before {
+    content: ""; position: absolute;
+    left: 16%; top: 30%; width: 30%; height: 22%;
+    background: #1b1a1f;
+  }
+  .mini.m1::after {
+    content: ""; position: absolute;
+    left: 58%; top: 42%; width: 16%; height: 4%;
+    background: #8b5cf6;
+  }
+  .mini.m2 { background: #fafaf9; }
+  .mini.m2::before {
+    content: "";
+    position: absolute; inset: 20% 10%;
+    background:
+      repeating-linear-gradient(0deg, #d8d4cc 0 1px, transparent 1px 4px);
+  }
+  .mini.m3 { background: #000; }
+  .mini.m3::before {
+    content: ""; position: absolute;
+    left: 10%; top: 24%; width: 42%; height: 28%;
+    background: #eaff00;
+  }
+  .mini.m3::after {
+    content: ""; position: absolute;
+    left: 10%; bottom: 18%; width: 30%; height: 12%;
+    background: #fff;
+  }
+  .mini.m4 {
+    background: radial-gradient(ellipse at 30% 30%, #1a0d2e 0%, #05010a 80%);
+  }
+  .mini.m4::before {
+    content: "";
+    position: absolute;
+    left: 14%; top: 30%; width: 50%; height: 8%;
+    background: #00ffd1;
+    box-shadow: 0 0 6px #00ffd1;
+  }
+  .mini.m4::after {
+    content: "";
+    position: absolute;
+    left: 14%; bottom: 20%; width: 72%; height: 1px;
+    background: #ff2d6d;
+  }
+  .mini.m5 { background: #ede9e0; }
+  .mini.m5::before {
+    content: "29";
+    position: absolute;
+    left: 10%; top: 18%;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 22px;
+    color: #16161a;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+  .mini.m6 { background: #fafafa; }
+  .mini.m6::before {
+    content: "";
+    position: absolute;
+    inset: 15% 10%;
+    background:
+      repeating-linear-gradient(0deg, #e5e5e5 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(90deg, #e5e5e5 0 1px, transparent 1px 14px);
+  }
+  .mini.m6::after {
+    content: "";
+    position: absolute;
+    left: 10%; top: 22%; width: 80%; height: 4px;
+    background: #fef3c7;
+  }
+  /* m7 — the chosen. Bold/playful — amber + pink + deep violet */
+  .mini.m7 {
+    background:
+      radial-gradient(ellipse at 80% 10%, rgba(251,191,36,0.55) 0%, transparent 60%),
+      radial-gradient(ellipse at 10% 90%, rgba(236,72,153,0.4) 0%, transparent 60%),
+      #1a0f22;
+  }
+  .mini.m7::before {
+    content: "";
+    position: absolute;
+    left: 6%; top: 22%; width: 46%; height: 22%;
+    background: var(--amber);
+    border-radius: 2px;
+    transform: rotate(-4deg);
+  }
+  .mini.m7::after {
+    content: "";
+    position: absolute;
+    left: 54%; top: 38%; width: 30%; height: 26%;
+    background: #fff;
+    border-radius: 2px;
+  }
+  .mini.m8 {
+    background: linear-gradient(135deg, #ffe7f1 0%, #e4f9ee 100%);
+  }
+  .mini.m8::before {
+    content: "";
+    position: absolute;
+    top: -8%; right: -8%;
+    width: 40%; height: 60%;
+    background: rgba(255,170,200,0.6);
+    border-radius: 50%;
+  }
+  .mini.m8::after {
+    content: "";
+    position: absolute;
+    left: 14%; top: 44%;
+    width: 60%; height: 24%;
+    background: #fff;
+    border-radius: 3px;
+  }
+  .mini.m9 {
+    background: #1a1a20;
+  }
+  .mini.m9::before {
+    content: "";
+    position: absolute;
+    left: 40%; top: 8%;
+    width: 20%; height: 84%;
+    background: #fff;
+    border: 1px solid #000;
+    border-radius: 2px;
+  }
+  .mini.m10 { background: #fff; }
+  .mini.m10::before {
+    content: "";
+    position: absolute;
+    left: 14%; top: 40%; width: 72%; height: 8%;
+    background: #0a0a0a;
+  }
+  .mini.m10::after {
+    content: "";
+    position: absolute;
+    left: 14%; bottom: 12%; width: 72%; height: 1px;
+    background: #e5e5e5;
+  }
+
+  .film-caption {
+    margin-top: 12px;
+    text-align: center;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0;
+  }
+  .film-caption .spacer { color: var(--ink-faint); margin: 0 10px; }
+
+  /* ───────── footer ───────── */
+  .foot-hair {
+    position: absolute;
+    left: 56px; right: 56px;
+    bottom: 34px;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--hair-soft) 10%,
+      var(--hair-soft) 90%,
+      transparent 100%);
+    z-index: 3;
+  }
+  .footer {
+    position: absolute;
+    left: 56px; right: 56px;
+    bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+    z-index: 3;
+  }
+  .footer em {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-mute);
+    font-size: 11.5px;
+    letter-spacing: 0;
+  }
+  .footer .r { color: var(--ink-mute); }
+</style>
+</head>
+<body>
+
+<div class="kicker">
+  <span class="roman">V</span>
+  <span>What you shipped</span>
+  <span class="dot">·</span>
+  <span>an admission</span>
+</div>
+
+<div class="brand">
+  <span class="dot-mark"></span>
+  <span><b>Design Graph</b></span>
+  <span class="step">step 05 / ship</span>
+</div>
+
+<div class="topline"></div>
+
+<!-- ───── main two-column resolution of the split ───── -->
+<main class="main">
+
+  <!-- LEFT: the confession, verbatim -->
+  <section class="left">
+    <div class="label"><span class="pip"></span>Your confession</div>
+
+    <p class="quote">A minimalist pricing page with a single annual plan, $29/mo, no feature comparison table.</p>
+    <div class="cite">you, 8 minutes ago</div>
+
+    <div class="spec">
+      <span class="k">the page you asked for</span>
+      <div class="row"><span>minimalist pricing</span><span class="sep">·</span></div>
+      <div class="row"><span>$29/mo · billed yearly</span></div>
+      <div class="row"><span>single plan · no tiers</span></div>
+      <div class="row"><span>no comparison table</span></div>
+      <div class="row"><span>cream, serif, one purple accent</span></div>
+    </div>
+
+    <div class="afterthought">
+      You meant it. We kept it — variant 01, still intact on the canvas.
+    </div>
+  </section>
+
+  <!-- vertical seam (the 50/50 split, finally resolved) -->
+  <div class="seam"></div>
+
+  <!-- RIGHT: what was shipped -->
+  <section class="right">
+    <div class="eyebrow">
+      <span class="pip"></span>
+      <span>Shipped <b>just now</b></span>
+      <span style="color:var(--ink-faint)">·</span>
+      <span>draft 07 of 10</span>
+    </div>
+
+    <h1>
+      <span class="num">Draft&nbsp;07</span> · The one <em>you hadn't asked for.</em>
+    </h1>
+
+    <!-- rendered variant 07 — bold, playful, opposite of minimalist -->
+    <div class="render-frame">
+      <div class="chrome">
+        <span>● ● ●</span>
+        <span class="url">acme.com / pricing — draft-07.html</span>
+      </div>
+      <div class="chosen-pill">◆ Shipped</div>
+
+      <div class="d07">
+        <div class="nav">
+          <div class="brand-7">acme<span>*</span></div>
+          <div class="items"><span>Product</span><span>Customers</span><span>Docs</span></div>
+          <div class="cta">Buy →</div>
+        </div>
+
+        <div class="hero">
+          <h2>
+            Pricing <span class="tilt">that</span><br/>
+            doesn't <span class="squiggle">whisper.</span>
+          </h2>
+          <p>Three plans. One obvious winner. Cancel with a single click, we don't even make you click twice.</p>
+        </div>
+
+        <div class="tiers">
+          <div class="tier">
+            <div class="tn">Solo</div>
+            <div class="tp"><sup>$</sup>9<small>/mo</small></div>
+            <div class="tl">For the stubborn operator.</div>
+            <div class="tb">Start →</div>
+          </div>
+          <div class="tier hot">
+            <div class="tn">★ Pro</div>
+            <div class="tp"><sup>$</sup>29<small>/mo</small></div>
+            <div class="tl">Every seat, every feature.</div>
+            <div class="tb">Pick this →</div>
+          </div>
+          <div class="tier">
+            <div class="tn">Team</div>
+            <div class="tp"><sup>$</sup>99<small>/mo</small></div>
+            <div class="tl">SSO, SLA, the spreadsheet.</div>
+            <div class="tb">Start →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="annotation">
+      You told us you wanted <em>minimal</em>. You shipped <em>bold</em>. We kept both in the canvas.
+    </p>
+
+    <div class="actions">
+      <button class="primary" type="button">Export</button>
+      <span class="sep">·</span>
+      <button class="secondary" type="button">Share</button>
+      <span class="sep">·</span>
+      <button class="secondary" type="button">Keep all 10</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- ───── filmstrip: the ten, preserved ───── -->
+<div class="film-region">
+  <div class="film-hair"></div>
+  <div class="filmstrip">
+    <div class="thumb confessed" title="variant-01 · the confessed">
+      <div class="mini m1"></div>
+      <span class="n">01</span>
+      <span class="diamond" title="your confession"></span>
+    </div>
+    <div class="thumb" title="variant-02 · the matrix">
+      <div class="mini m2"></div><span class="n">02</span>
+    </div>
+    <div class="thumb" title="variant-03 · the loud one">
+      <div class="mini m3"></div><span class="n">03</span>
+    </div>
+    <div class="thumb" title="variant-04 · counsel, no">
+      <div class="mini m4"></div><span class="n">04</span>
+    </div>
+    <div class="thumb" title="variant-05 · editorial">
+      <div class="mini m5"></div><span class="n">05</span>
+    </div>
+    <div class="thumb" title="variant-06 · the sheet">
+      <div class="mini m6"></div><span class="n">06</span>
+    </div>
+    <div class="thumb chosen" title="variant-07 · the one you shipped">
+      <div class="mini m7"></div><span class="n">07</span>
+    </div>
+    <div class="thumb" title="variant-08 · pastel">
+      <div class="mini m8"></div><span class="n">08</span>
+    </div>
+    <div class="thumb" title="variant-09 · thumb-zone">
+      <div class="mini m9"></div><span class="n">09</span>
+    </div>
+    <div class="thumb" title="variant-10 · the dare">
+      <div class="mini m10"></div><span class="n">10</span>
+    </div>
+  </div>
+  <div class="film-caption">
+    Ten drafts preserved. <span class="spacer">·</span> The canvas is yours.
+  </div>
+</div>
+
+<div class="foot-hair"></div>
+<div class="footer">
+  <div>Design Graph · 2026 · <em>an admission</em></div>
+  <div class="r">◆ confessed · <span style="color:var(--amber)">◆</span> shipped</div>
+</div>
+
+</body>
+</html>

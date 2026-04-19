@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — walkthrough · draft 03 of 10</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0e;
+    --bg-soft: #111116;
+    --ink: #efece7;
+    --ink-dim: #8c8a86;
+    --ink-mute: #5a5860;
+    --ink-faint: #3a3944;
+    --hair: #22212a;
+    --hair-soft: #1a1922;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --accent-deep: #6d28d9;
+    /* draft 03's own palette — chartreuse + black, walled off from chrome */
+    --hot: #eaff00;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.008em;
+  }
+
+  /* film grain + vignette — inherited */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.04) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 115%, rgba(0,0,0,0.55) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+    z-index: 1;
+  }
+
+  /* ───────── nav ───────── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 46px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 500; font-size: 13px;
+    color: var(--ink-dim);
+  }
+  nav .brand .dot {
+    width: 12px; height: 12px; border-radius: 3px;
+    background: linear-gradient(135deg, #2a2830 0 50%, var(--accent) 50% 100%);
+  }
+  nav .brand b { font-weight: 500; color: var(--ink); }
+  nav .step {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+  nav .step b { color: var(--accent-soft); font-weight: 500; }
+
+  /* ───────── top: confession pinned + delta ───────── */
+  .topbar {
+    position: absolute;
+    top: 54px; left: 28px; right: 28px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: center;
+    z-index: 4;
+  }
+  .confession-pin {
+    padding: 9px 14px 9px 14px;
+    border-left: 1px solid rgba(139,92,246,0.35);
+    background: linear-gradient(90deg, rgba(139,92,246,0.05) 0%, transparent 100%);
+    max-width: 520px;
+  }
+  .confession-pin .tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .confession-pin .tag .pip {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.14);
+  }
+  .confession-pin blockquote {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--ink-dim);
+  }
+  .confession-pin blockquote::before {
+    content: "“";
+    color: var(--accent-soft);
+    font-style: normal;
+    margin-right: 1px;
+  }
+  .confession-pin blockquote::after {
+    content: "”";
+    color: var(--accent-soft);
+    font-style: normal;
+  }
+
+  .vs {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13px;
+    color: var(--ink-mute);
+    letter-spacing: 0;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0 8px;
+  }
+  .vs b {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 9.5px;
+    color: var(--ink-faint);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .compare-label {
+    padding: 9px 14px 9px 14px;
+    border-left: 1px solid rgba(234,255,0,0.38);
+    background: linear-gradient(90deg, rgba(234,255,0,0.04) 0%, transparent 100%);
+    max-width: 520px;
+  }
+  .compare-label .tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--hot);
+    margin-bottom: 4px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .compare-label .tag .pip {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--hot);
+    box-shadow: 0 0 0 3px rgba(234,255,0,0.14);
+  }
+  .compare-label .title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 13.5px;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .compare-label .title em {
+    font-style: italic;
+    color: var(--ink-dim);
+    font-weight: 300;
+  }
+
+  /* ───────── progress ticks ───────── */
+  .progress {
+    position: absolute;
+    top: 134px; left: 28px; right: 28px;
+    display: flex; align-items: center; gap: 14px;
+    z-index: 4;
+  }
+  .progress .count {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .progress .count b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .progress .ticks {
+    display: flex; gap: 5px;
+    flex: 1;
+  }
+  .progress .tick {
+    flex: 1;
+    height: 1px;
+    background: var(--hair);
+    transition: background 0.2s;
+  }
+  .progress .tick.past {
+    background: var(--accent);
+  }
+  .progress .tick.current {
+    height: 2px;
+    margin-top: -0.5px;
+    background: var(--accent-soft);
+    box-shadow: 0 0 8px rgba(167,139,250,0.6);
+  }
+  .progress .label {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-mute);
+    white-space: nowrap;
+  }
+
+  /* ───────── main 3-column stage ───────── */
+  .main {
+    position: absolute;
+    top: 162px; left: 28px; right: 28px;
+    height: 560px;
+    display: grid;
+    grid-template-columns: 200px 1fr 132px;
+    gap: 28px;
+    z-index: 3;
+  }
+
+  /* ── left: agent's note ── */
+  .note {
+    padding-top: 10px;
+    border-top: 1px solid var(--hair);
+    display: flex; flex-direction: column;
+  }
+  .note .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .note .label .dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.14);
+  }
+  .note .body {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-dim);
+    letter-spacing: -0.003em;
+  }
+  .note .body p { margin: 0 0 10px 0; }
+  .note .body p:last-child { margin-bottom: 0; }
+  .note .body em {
+    color: var(--ink);
+    font-style: italic;
+  }
+  .note .sig {
+    margin-top: auto;
+    padding-top: 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    color: var(--ink-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .note .sig b {
+    color: var(--ink-mute);
+    font-weight: 400;
+  }
+
+  /* ── center: main stage (draft 03) ── */
+  .stage-frame {
+    position: relative;
+    border: 1px solid var(--hair);
+    border-radius: 6px;
+    background: #000;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(234,255,0,0.04),
+      0 30px 60px -30px rgba(0,0,0,0.8);
+  }
+  .stage-frame .chrome-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 22px;
+    background: linear-gradient(180deg, #0a0a0a 0%, transparent 100%);
+    z-index: 3;
+    display: flex; align-items: center;
+    padding: 0 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    color: rgba(234,255,0,0.4);
+    letter-spacing: 0.12em;
+    pointer-events: none;
+  }
+  .stage-frame .chrome-top .url {
+    margin-left: auto;
+    color: rgba(255,255,255,0.25);
+  }
+
+  /* === DRAFT 03 — the loud one, at full fidelity === */
+  .draft {
+    position: absolute; inset: 0;
+    background: #000;
+    color: #fff;
+    padding: 54px 56px 44px 56px;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    overflow: hidden;
+  }
+  .draft::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 220px; height: 220px;
+    background: radial-gradient(circle, rgba(234,255,0,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .draft::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--hot), transparent);
+    opacity: 0.3;
+  }
+
+  .draft-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 38px;
+  }
+  .draft-bar .brand {
+    color: var(--hot);
+    font-weight: 700;
+  }
+  .draft-bar .nav-items {
+    display: flex; gap: 24px;
+  }
+  .draft-bar .cta-small {
+    background: var(--hot);
+    color: #000;
+    padding: 6px 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+  }
+
+  .draft-headline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 96px;
+    line-height: 0.86;
+    letter-spacing: -0.055em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+    color: #fff;
+  }
+  .draft-headline .y {
+    color: var(--hot);
+    display: block;
+  }
+  .draft-headline .tilt {
+    display: inline-block;
+    transform: rotate(-2deg) translateY(-2px);
+    font-style: italic;
+    font-weight: 500;
+    font-family: 'Fraunces', serif;
+    font-size: 74px;
+    letter-spacing: -0.03em;
+    color: var(--hot);
+  }
+
+  .draft-kicker {
+    max-width: 380px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 26px;
+    font-weight: 500;
+  }
+  .draft-kicker b {
+    color: var(--hot);
+    font-weight: 700;
+  }
+
+  .draft-toggle {
+    display: inline-flex;
+    border: 1.5px solid var(--hot);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    margin-bottom: 22px;
+    text-transform: uppercase;
+  }
+  .draft-toggle span {
+    padding: 6px 14px;
+  }
+  .draft-toggle .on {
+    background: var(--hot);
+    color: #000;
+  }
+  .draft-toggle .off {
+    color: var(--hot);
+  }
+
+  .draft-tiers {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .draft-tier {
+    border: 1.5px solid #1f1f1f;
+    padding: 18px 16px 16px 16px;
+    position: relative;
+  }
+  .draft-tier.hot {
+    background: var(--hot);
+    border-color: var(--hot);
+    color: #000;
+  }
+  .draft-tier .t-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .draft-tier.hot .t-name {
+    color: rgba(0,0,0,0.55);
+    font-weight: 700;
+  }
+  .draft-tier .t-price {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 52px;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    color: #fff;
+  }
+  .draft-tier.hot .t-price {
+    color: #000;
+  }
+  .draft-tier .t-price sup {
+    font-size: 18px;
+    font-weight: 500;
+    vertical-align: top;
+    margin-right: 2px;
+    top: 8px;
+    position: relative;
+  }
+  .draft-tier .t-price small {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    margin-left: 4px;
+  }
+  .draft-tier.hot .t-price small {
+    color: rgba(0,0,0,0.55);
+  }
+  .draft-tier .t-line {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.55);
+    margin-top: 8px;
+    line-height: 1.35;
+  }
+  .draft-tier.hot .t-line {
+    color: rgba(0,0,0,0.72);
+  }
+  .draft-tier .t-cta {
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    color: var(--hot);
+  }
+  .draft-tier.hot .t-cta {
+    border-top-color: rgba(0,0,0,0.2);
+    color: #000;
+  }
+  .draft-tier .sticker {
+    position: absolute;
+    top: -10px; right: 12px;
+    background: #000;
+    color: var(--hot);
+    border: 1.5px solid var(--hot);
+    padding: 3px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transform: rotate(3deg);
+  }
+
+  /* frame corner marker */
+  .stage-frame .corner {
+    position: absolute;
+    bottom: 10px; right: 12px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    color: rgba(234,255,0,0.35);
+    letter-spacing: 0.12em;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  /* ── right: action column ── */
+  .actions {
+    padding-top: 10px;
+    border-top: 1px solid var(--hair);
+    display: flex; flex-direction: column;
+  }
+  .actions .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 18px;
+  }
+  .actions button {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--hair);
+    padding: 9px 0;
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    font-variant: small-caps;
+  }
+  .actions button:hover {
+    border-color: rgba(139,92,246,0.5);
+    color: var(--accent-soft);
+  }
+  .actions button.keep {
+    border-color: rgba(139,92,246,0.35);
+  }
+  .actions button.pass:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: var(--ink-dim);
+  }
+  .actions a.annotate {
+    display: block;
+    text-align: center;
+    margin: 6px 0 16px 0;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-mute);
+    text-decoration: none;
+    border-bottom: 1px solid var(--hair);
+    padding-bottom: 4px;
+  }
+  .actions a.annotate:hover {
+    color: var(--accent-soft);
+    border-bottom-color: var(--accent);
+  }
+  .actions .ship {
+    margin-top: auto;
+  }
+  .actions button.ship-it {
+    background: var(--accent);
+    border: 0;
+    color: #fff;
+    padding: 11px 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: none;
+    font-variant: normal;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.08) inset,
+      0 10px 26px -8px rgba(139,92,246,0.55);
+    margin-bottom: 8px;
+  }
+  .actions button.ship-it:hover {
+    background: #7c3aed;
+    color: #fff;
+    border: 0;
+  }
+  .actions .ship .caption {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink-mute);
+    text-align: center;
+    line-height: 1.35;
+    padding: 0 4px;
+  }
+
+  /* ───────── horizontal seam (the resolution) ───────── */
+  .seam {
+    position: absolute;
+    left: 28px; right: 28px;
+    top: 742px;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(139,92,246,0.45) 20%,
+      rgba(139,92,246,0.45) 80%,
+      transparent 100%);
+    z-index: 2;
+  }
+
+  /* ───────── bottom filmstrip ───────── */
+  .filmstrip {
+    position: absolute;
+    left: 28px; right: 28px;
+    bottom: 14px;
+    height: 50px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 4;
+  }
+  .filmstrip .arrow {
+    width: 26px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-mute);
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    background: rgba(255,255,255,0.01);
+    cursor: pointer;
+    font-size: 13px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .filmstrip .arrow:hover {
+    color: var(--accent-soft);
+    border-color: rgba(139,92,246,0.4);
+  }
+  .filmstrip .thumbs {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 7px;
+  }
+  .filmstrip .thumb {
+    position: relative;
+    height: 34px;
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    overflow: hidden;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .filmstrip .thumb:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  .filmstrip .thumb.current {
+    opacity: 1;
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px rgba(139,92,246,0.3),
+      0 4px 12px -4px rgba(139,92,246,0.4);
+  }
+  .filmstrip .thumb.dim {
+    opacity: 0.35;
+  }
+  .filmstrip .thumb .n {
+    position: absolute;
+    top: 2px; left: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7px;
+    color: rgba(255,255,255,0.5);
+    z-index: 2;
+    mix-blend-mode: difference;
+    font-weight: 500;
+  }
+  .filmstrip .thumb.current .n { color: var(--hot); mix-blend-mode: normal; text-shadow: 0 0 3px #000; }
+  .filmstrip .thumb .diamond {
+    position: absolute;
+    top: 2px; right: 3px;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    transform: rotate(45deg);
+    z-index: 2;
+    box-shadow: 0 0 6px rgba(139,92,246,0.7);
+  }
+
+  /* mini thumbnail fills — echo reveal-ten */
+  .mini { position: absolute; inset: 0; }
+  .mini.m1 { background: #f6f2ea; }
+  .mini.m1::before {
+    content: ""; position: absolute;
+    left: 16%; top: 30%; width: 30%; height: 30%;
+    background: #1b1a1f;
+  }
+  .mini.m1::after {
+    content: ""; position: absolute;
+    left: 58%; top: 42%; width: 16%; height: 4%;
+    background: #8b5cf6;
+  }
+  .mini.m2 { background: #fafaf9; }
+  .mini.m2::before {
+    content: "";
+    position: absolute; inset: 20% 10%;
+    background:
+      repeating-linear-gradient(0deg, #d8d4cc 0 1px, transparent 1px 4px);
+  }
+  .mini.m3 { background: #000; }
+  .mini.m3::before {
+    content: ""; position: absolute;
+    left: 10%; top: 24%; width: 42%; height: 28%;
+    background: var(--hot);
+  }
+  .mini.m3::after {
+    content: ""; position: absolute;
+    left: 10%; bottom: 18%; width: 30%; height: 18%;
+    background: #fff;
+  }
+  .mini.m4 {
+    background: radial-gradient(ellipse at 30% 30%, #1a0d2e 0%, #05010a 80%);
+  }
+  .mini.m4::before {
+    content: "";
+    position: absolute;
+    left: 14%; top: 30%; width: 50%; height: 10%;
+    background: #00ffd1;
+    box-shadow: 0 0 6px #00ffd1;
+  }
+  .mini.m4::after {
+    content: "";
+    position: absolute;
+    left: 14%; bottom: 20%; width: 72%; height: 1px;
+    background: #ff2d6d;
+  }
+  .mini.m5 { background: #ede9e0; }
+  .mini.m5::before {
+    content: "29";
+    position: absolute;
+    left: 10%; top: 18%;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 22px;
+    color: #16161a;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+  .mini.m6 { background: #fafafa; }
+  .mini.m6::before {
+    content: "";
+    position: absolute;
+    inset: 15% 10%;
+    background:
+      repeating-linear-gradient(0deg, #e5e5e5 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(90deg, #e5e5e5 0 1px, transparent 1px 14px);
+  }
+  .mini.m6::after {
+    content: "";
+    position: absolute;
+    left: 10%; top: 22%; width: 80%; height: 4px;
+    background: #fef3c7;
+  }
+  .mini.m7 { background: #fff; }
+  .mini.m7::before {
+    content: "";
+    position: absolute;
+    left: 35%; top: 22%; width: 30%; height: 56%;
+    background: #eff6ff;
+    border: 1px solid #2563eb;
+  }
+  .mini.m7::after {
+    content: "";
+    position: absolute;
+    left: 10%; top: 30%; width: 18%; height: 40%;
+    background: #f1f5f9;
+  }
+  .mini.m8 {
+    background: linear-gradient(135deg, #ffe7f1 0%, #e4f9ee 100%);
+  }
+  .mini.m8::before {
+    content: "";
+    position: absolute;
+    top: -8%; right: -8%;
+    width: 40%; height: 60%;
+    background: rgba(255,170,200,0.6);
+    border-radius: 50%;
+  }
+  .mini.m8::after {
+    content: "";
+    position: absolute;
+    left: 14%; top: 44%;
+    width: 60%; height: 24%;
+    background: #fff;
+    border-radius: 3px;
+  }
+  .mini.m9 {
+    background: #1a1a20;
+  }
+  .mini.m9::before {
+    content: "";
+    position: absolute;
+    left: 40%; top: 8%;
+    width: 20%; height: 84%;
+    background: #fff;
+    border: 1px solid #000;
+    border-radius: 2px;
+  }
+  .mini.m10 { background: #fff; }
+  .mini.m10::before {
+    content: "";
+    position: absolute;
+    left: 14%; top: 40%; width: 72%; height: 8%;
+    background: #0a0a0a;
+  }
+  .mini.m10::after {
+    content: "";
+    position: absolute;
+    left: 14%; bottom: 12%; width: 72%; height: 1px;
+    background: #e5e5e5;
+  }
+
+  .filmstrip .meta {
+    display: flex; flex-direction: column; gap: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+    min-width: 150px;
+    text-align: right;
+  }
+  .filmstrip .meta .k-line {
+    color: var(--ink-dim);
+  }
+  .filmstrip .meta .k-line .kbd {
+    border: 1px solid var(--hair);
+    border-radius: 2px;
+    padding: 1px 4px;
+    font-size: 9px;
+    color: var(--ink-dim);
+    margin: 0 1px;
+  }
+  .filmstrip .meta .k-line .kbd b {
+    color: var(--ink); font-weight: 500;
+  }
+  .filmstrip .meta em {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-faint);
+    font-size: 10.5px;
+    letter-spacing: 0;
+  }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span><b>Design Graph</b></span>
+  </div>
+  <div class="step">step <b>04</b> / walkthrough · <span style="color:var(--ink-dim)">one at a time</span></div>
+</nav>
+
+<!-- ── top: confession pinned vs. this draft ── -->
+<div class="topbar">
+  <aside class="confession-pin">
+    <div class="tag">
+      <span class="pip"></span>
+      <span>Your confession</span>
+    </div>
+    <blockquote>A minimalist pricing page with a single annual plan, $29/mo, no feature comparison table.</blockquote>
+  </aside>
+
+  <div class="vs">
+    <b>vs.</b>
+    <span>the one that <em>didn't</em> listen</span>
+  </div>
+
+  <aside class="compare-label">
+    <div class="tag">
+      <span class="pip"></span>
+      <span>Draft 03 · variant-03</span>
+    </div>
+    <div class="title">The loud one <em>— the one that would have alarmed legal.</em></div>
+  </aside>
+</div>
+
+<!-- ── thin progress indicator ── -->
+<div class="progress">
+  <div class="count"><b>03</b> / 10</div>
+  <div class="ticks">
+    <div class="tick past"></div>
+    <div class="tick past"></div>
+    <div class="tick current"></div>
+    <div class="tick"></div>
+    <div class="tick"></div>
+    <div class="tick"></div>
+    <div class="tick"></div>
+    <div class="tick"></div>
+    <div class="tick"></div>
+    <div class="tick"></div>
+  </div>
+  <div class="label">slow time back down.</div>
+</div>
+
+<!-- ── main stage row ── -->
+<main class="main">
+
+  <!-- LEFT: agent's note -->
+  <aside class="note">
+    <div class="label"><span class="dot"></span>agent's note</div>
+    <div class="body">
+      <p>I wanted to provoke something. Maybe the buyer. Maybe the lawyer. The point is to have a reaction that isn't polite interest.</p>
+      <p>Your confession asked for <em>quiet</em>. This one argues the opposite — that silence is sometimes how pricing pages fail.</p>
+    </div>
+    <div class="sig"><b>— agent-03</b> · on its own work</div>
+  </aside>
+
+  <!-- CENTER: Draft 03, rendered high-fidelity -->
+  <section class="stage-frame">
+    <div class="chrome-top">
+      <span>● ● ●</span>
+      <span class="url">acme.com / pricing — draft-03.html</span>
+    </div>
+
+    <div class="draft">
+      <div class="draft-bar">
+        <span class="brand">ACME//</span>
+        <span class="nav-items">
+          <span>Product</span>
+          <span>Customers</span>
+          <span>Docs</span>
+        </span>
+        <span class="cta-small">Buy →</span>
+      </div>
+
+      <h1 class="draft-headline">
+        PAY
+        <span class="y">LESS.</span>
+        <span class="tilt">sweat nothing.</span>
+      </h1>
+
+      <p class="draft-kicker">
+        Three plans. One obvious winner. <b>No maze of checkboxes</b>,
+        no "contact sales" for the answer to a yes-or-no question.
+      </p>
+
+      <div class="draft-toggle">
+        <span class="on">Yearly · save 40%</span>
+        <span class="off">Monthly</span>
+      </div>
+
+      <div class="draft-tiers">
+        <div class="draft-tier">
+          <div class="t-name">Solo</div>
+          <div class="t-price"><sup>$</sup>9<small>/mo</small></div>
+          <div class="t-line">For one stubborn operator who refuses to call it a startup.</div>
+          <div class="t-cta">Start →</div>
+        </div>
+        <div class="draft-tier hot">
+          <span class="sticker">Pick this</span>
+          <div class="t-name">Hot · Pro</div>
+          <div class="t-price"><sup>$</sup>29<small>/mo</small></div>
+          <div class="t-line">Everything. Every seat. Every feature. The obvious answer.</div>
+          <div class="t-cta">Start →</div>
+        </div>
+        <div class="draft-tier">
+          <div class="t-name">Team</div>
+          <div class="t-price"><sup>$</sup>99<small>/mo</small></div>
+          <div class="t-line">Up to 25 seats, SSO, the spreadsheet your CFO asked for.</div>
+          <div class="t-cta">Start →</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="corner">variant-03.html · 680 × 560</div>
+  </section>
+
+  <!-- RIGHT: action column -->
+  <aside class="actions">
+    <div class="label">Judgment</div>
+    <button class="keep" type="button">Keep</button>
+    <button class="pass" type="button">Pass</button>
+    <a class="annotate" href="#">Annotate</a>
+
+    <div class="ship">
+      <button class="ship-it" type="button">Ship it →</button>
+      <div class="caption">the ultimate action.<br/>skips the other seven.</div>
+    </div>
+  </aside>
+
+</main>
+
+<!-- ── the resolved seam ── -->
+<div class="seam"></div>
+
+<!-- ── filmstrip ── -->
+<div class="filmstrip">
+  <button class="arrow" type="button" aria-label="Previous">‹</button>
+
+  <div class="thumbs">
+    <div class="thumb" title="variant-01 · the confessed">
+      <div class="mini m1"></div>
+      <span class="n">01</span>
+      <span class="diamond" title="your confession"></span>
+    </div>
+    <div class="thumb" title="variant-02 · the matrix">
+      <div class="mini m2"></div>
+      <span class="n">02</span>
+    </div>
+    <div class="thumb current" title="variant-03 · the loud one">
+      <div class="mini m3"></div>
+      <span class="n">03</span>
+    </div>
+    <div class="thumb" title="variant-04 · counsel, no">
+      <div class="mini m4"></div>
+      <span class="n">04</span>
+    </div>
+    <div class="thumb dim" title="variant-05 · editorial">
+      <div class="mini m5"></div>
+      <span class="n">05</span>
+    </div>
+    <div class="thumb dim" title="variant-06 · the sheet">
+      <div class="mini m6"></div>
+      <span class="n">06</span>
+    </div>
+    <div class="thumb dim" title="variant-07 · proven">
+      <div class="mini m7"></div>
+      <span class="n">07</span>
+    </div>
+    <div class="thumb dim" title="variant-08 · pastel">
+      <div class="mini m8"></div>
+      <span class="n">08</span>
+    </div>
+    <div class="thumb dim" title="variant-09 · thumb-zone">
+      <div class="mini m9"></div>
+      <span class="n">09</span>
+    </div>
+    <div class="thumb dim" title="variant-10 · the dare">
+      <div class="mini m10"></div>
+      <span class="n">10</span>
+    </div>
+  </div>
+
+  <button class="arrow" type="button" aria-label="Next">›</button>
+
+  <div class="meta">
+    <div class="k-line">
+      <span class="kbd"><b>←</b></span>prev
+      <span class="kbd"><b>→</b></span>next
+      <span class="kbd"><b>k</b></span>keep
+      <span class="kbd"><b>p</b></span>pass
+    </div>
+    <em>◆ marks the one you confessed.</em>
+  </div>
+</div>
+
+</body>
+</html>

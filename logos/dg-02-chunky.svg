@@ -1,0 +1,13 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Design Graph">
+  <!-- v2 · chunky · larger nodes, heavier edges, bold negative shapes -->
+  <g stroke="#2563eb" stroke-width="4" fill="none" stroke-linecap="round">
+    <line x1="50" y1="38" x2="30" y2="66"/>
+    <line x1="50" y1="38" x2="70" y2="66"/>
+  </g>
+  <!-- top node · big dash -->
+  <path fill="#2563eb" fill-rule="evenodd" d="M36,12 h28 a8,8 0 0 1 8,8 v20 a8,8 0 0 1 -8,8 h-28 a8,8 0 0 1 -8,-8 v-20 a8,8 0 0 1 8,-8 z M37,27.5 h26 v5 h-26 z"/>
+  <!-- bottom-left node · big circle -->
+  <path fill="#2563eb" fill-rule="evenodd" d="M10,60 h28 a8,8 0 0 1 8,8 v20 a8,8 0 0 1 -8,8 h-28 a8,8 0 0 1 -8,-8 v-20 a8,8 0 0 1 8,-8 z M24,69 a9,9 0 1 0 0,18 a9,9 0 1 0 0,-18 z"/>
+  <!-- bottom-right node · big triangle -->
+  <path fill="#2563eb" fill-rule="evenodd" d="M62,60 h28 a8,8 0 0 1 8,8 v20 a8,8 0 0 1 -8,8 h-28 a8,8 0 0 1 -8,-8 v-20 a8,8 0 0 1 8,-8 z M76,68 l10,18 h-20 z"/>
+</svg>

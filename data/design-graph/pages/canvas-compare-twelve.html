@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Canvas · compare 12 — Design Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:          #fafaf7;
+    --canvas:      #f5f4ef;
+    --ink:         #111113;
+    --ink-2:       rgba(17,17,19,0.72);
+    --muted:       rgba(17,17,19,0.52);
+    --dim:         rgba(17,17,19,0.34);
+    --faint:       rgba(17,17,19,0.18);
+    --hairline:    rgba(17,17,19,0.10);
+    --hairline-s:  rgba(17,17,19,0.06);
+    --surface:     #ffffff;
+    --accent:      #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+    --accent-line: rgba(124,58,237,0.32);
+    --good:        #22c55e;
+    --good-soft:   rgba(34,197,94,0.12);
+    --bad:         #b94545;
+    --bad-soft:    rgba(185,69,69,0.10);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.006em;
+  }
+
+  /* ── Chrome ────────────────────────────────────────────────────────── */
+  .chrome {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 16px;
+    z-index: 30;
+    font-size: 12px;
+  }
+  .logo {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent);
+    position: relative;
+    margin-right: 10px;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -5px 0 0 #fff; }
+
+  .brand { font-weight: 600; letter-spacing: -0.012em; font-size: 13px; }
+  .brand .dim { color: var(--muted); font-weight: 450; margin-left: 6px; }
+  .chrome-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 14px; }
+  .breadcrumb {
+    font-size: 12px; color: var(--muted); font-weight: 450;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .breadcrumb strong { color: var(--ink); font-weight: 500; }
+  .breadcrumb .chev { color: var(--faint); font-size: 10px; }
+  .breadcrumb .tag {
+    margin-left: 8px;
+    font-size: 10px;
+    padding: 1.5px 6px;
+    border-radius: 3px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .chrome-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .chip {
+    height: 26px; padding: 0 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ink-2); background: var(--surface);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .chip.kbd { color: var(--muted); padding: 0 8px; font-family: 'ui-monospace','SF Mono',Menlo,monospace; font-size: 10.5px; }
+  .chip .k {
+    display: inline-block; padding: 1px 4px; border-radius: 2px;
+    background: #f5f4ef; border: 1px solid var(--hairline); margin: 0 2px; font-size: 9.5px;
+  }
+  .chip.count-pill {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .chip.count-pill b { color: var(--accent); font-weight: 700; }
+
+  /* ── Stage ─────────────────────────────────────────────────────────── */
+  .stage {
+    position: absolute; top: 44px; left: 0; right: 0; bottom: 0;
+    background: var(--canvas);
+    background-image: radial-gradient(circle at 1px 1px, rgba(17,17,19,0.06) 1px, transparent 0);
+    background-size: 22px 22px;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar (left) ────────────────────────────────────────────────── */
+  .sidebar {
+    position: absolute; top: 14px; left: 14px;
+    width: 178px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: 12px 10px 10px;
+    z-index: 12;
+    font-size: 11px;
+    height: calc(100% - 28px - 72px);
+  }
+  .sidebar h4 {
+    font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--dim);
+    padding: 0 4px 8px;
+  }
+  .group-h {
+    font-size: 8.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--dim);
+    padding: 6px 6px 4px;
+    display: flex; justify-content: space-between;
+  }
+  .group-h.fresh { color: var(--accent); }
+  .var-row {
+    display: flex; align-items: center; gap: 7px;
+    padding: 3.5px 6px; border-radius: 4px;
+    font-size: 10.5px; color: var(--ink-2);
+    position: relative;
+  }
+  .var-row.on { background: var(--accent-soft); color: var(--ink); font-weight: 500; }
+  .var-row.new { color: var(--ink); background: rgba(124,58,237,0.05); }
+  .var-row.new::before {
+    content: ''; position: absolute; left: 0; top: 5px; bottom: 5px;
+    width: 2px; background: var(--accent); border-radius: 0 2px 2px 0;
+  }
+  .var-dot { width: 6px; height: 6px; border-radius: 2px; background: var(--accent); flex-shrink: 0; }
+  .var-dot.p { background: #a855f7; }
+  .var-dot.i { background: #6366f1; }
+  .var-dot.g { background: #22c55e; }
+  .var-dot.a { background: #f59e0b; }
+  .var-dot.b { background: #3b82f6; }
+  .var-dot.t { background: #14b8a6; }
+  .var-dot.v { background: #8b5cf6; }
+  .var-dot.dark { background: var(--ink); }
+  .var-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-mini {
+    width: 9px; height: 9px; border-radius: 2px;
+    border: 1px solid var(--faint); background: #fff;
+    flex-shrink: 0; position: relative;
+  }
+  .ck-mini.on { background: var(--accent); border-color: var(--accent); }
+  .ck-mini.on::after {
+    content: ''; position: absolute; top: 1px; left: 2.5px;
+    width: 2px; height: 4.5px;
+    border-right: 1.2px solid #fff; border-bottom: 1.2px solid #fff;
+    transform: rotate(45deg);
+  }
+
+  /* ── Compare dock (top center) ─────────────────────────────────────── */
+  .dock {
+    position: absolute; top: 14px; left: 206px; right: 204px;
+    height: 322px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    z-index: 11;
+    padding: 10px 12px 10px;
+    display: flex; flex-direction: column;
+  }
+  .dock-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 8px; border-bottom: 1px solid var(--hairline-s);
+    margin-bottom: 8px;
+  }
+  .dock-title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: -0.005em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dock-title .h {
+    font-size: 9.5px; color: var(--dim); text-transform: uppercase;
+    letter-spacing: 0.1em; font-weight: 600;
+  }
+  .dock-title .diff-key {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 9.5px; color: var(--muted); font-weight: 450;
+    margin-left: 4px;
+  }
+  .diff-key .sw { width: 8px; height: 2px; border-radius: 1px; margin-right: 4px; vertical-align: middle; display: inline-block; }
+  .diff-key .sw.grey { background: var(--faint); }
+  .diff-key .sw.purp { background: var(--accent); }
+  .dock-actions { display: flex; gap: 6px; }
+  .dock-btn {
+    height: 22px; padding: 0 8px; border-radius: 4px;
+    font-size: 10.5px; font-weight: 500; color: var(--muted);
+    border: 1px solid var(--hairline); background: var(--surface);
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .dock-btn.primary { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); font-weight: 600; }
+
+  .dock-body {
+    display: grid; grid-template-columns: 1fr 18px 1fr;
+    gap: 0; flex: 1; min-height: 0;
+  }
+  .dock-col {
+    display: flex; flex-direction: column; gap: 8px;
+    min-height: 0;
+  }
+  .dock-sep {
+    align-self: stretch;
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--dim); font-size: 10px;
+    padding-top: 24px;
+  }
+  .dock-sep .vs {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 600;
+    color: var(--dim); letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .dock-sep .line { flex: 1; width: 1px; background: var(--hairline-s); margin: 4px 0; }
+
+  .dock-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 10.5px;
+  }
+  .dock-label .nm { font-weight: 600; letter-spacing: -0.005em; }
+  .dock-label .id { color: var(--dim); font-family: 'ui-monospace','SF Mono',Menlo,monospace; font-size: 9.5px; }
+  .dock-label .new-chip {
+    font-size: 8.5px; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 1px 5px; border-radius: 3px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    margin-left: 6px;
+  }
+
+  .preview {
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    overflow: hidden;
+    height: 176px;
+    position: relative;
+    background: #fff;
+  }
+
+  .attrs {
+    border-top: 1px solid var(--hairline-s);
+    padding-top: 6px;
+    display: grid; grid-template-columns: 74px 1fr;
+    row-gap: 2.5px; column-gap: 8px;
+    font-size: 9.5px;
+  }
+  .attrs .k { color: var(--muted); }
+  .attrs .v { color: var(--ink-2); font-weight: 450; letter-spacing: -0.003em; font-variant-numeric: tabular-nums; }
+  .attrs .v.diff { color: var(--accent); font-weight: 600; }
+
+  /* ── 4×3 grid of cards ─────────────────────────────────────────────── */
+  .grid {
+    position: absolute;
+    top: 346px; left: 206px; right: 204px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 8px;
+    z-index: 10;
+    bottom: 56px;
+  }
+  .gcard {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .gcard.sel {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  .gcard.new-g {
+    border-color: var(--accent-line);
+  }
+  .gc-head {
+    padding: 4px 6px 4px 6px;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 9.5px;
+    border-bottom: 1px solid var(--hairline-s);
+  }
+  .gc-head .nm { flex: 1; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gc-head .score {
+    font-size: 8.5px; font-weight: 600;
+    background: var(--good-soft); color: #16803a;
+    padding: 0.5px 4px; border-radius: 3px;
+    font-variant-numeric: tabular-nums; letter-spacing: 0;
+  }
+  .gc-head .score.lo { background: var(--bad-soft); color: var(--bad); }
+  .gc-head .score.mid { background: rgba(245,158,11,0.12); color: #a86810; }
+  .gc-head .new-flag {
+    font-size: 7.5px; font-weight: 700;
+    color: #fff; background: var(--accent);
+    padding: 0.5px 4px; border-radius: 2px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .gc-meta {
+    padding: 3px 6px 4px;
+    font-size: 8.5px; color: var(--muted);
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--hairline-s);
+    letter-spacing: -0.003em;
+  }
+  .gc-meta .swatch {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    vertical-align: middle; margin-right: 4px;
+  }
+  .gc-body {
+    flex: 1; min-height: 0; overflow: hidden;
+    position: relative;
+  }
+
+  /* miniature pricing-page renderings — tiny but legible inside the 180×120 body */
+
+  /* Shared mini primitives */
+  .pp {
+    position: absolute; inset: 0;
+    padding: 5px 6px;
+    font-size: 6px;
+    overflow: hidden;
+  }
+  .pp h1 {
+    font-size: 8px; font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-bottom: 3px; line-height: 1.1;
+  }
+  .pp .eye {
+    font-size: 5.5px; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted);
+    font-weight: 600; margin-bottom: 2px;
+  }
+  .pp .cols {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+  }
+  .pp .col {
+    background: #fafaf7;
+    border: 1px solid var(--hairline-s);
+    border-radius: 2px;
+    padding: 3px 3px 4px;
+  }
+  .pp .col.hl { border-color: var(--accent-line); background: var(--accent-soft); }
+  .pp .pl { font-size: 5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1px; }
+  .pp .pr { font-size: 8px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .pp .pr span { font-size: 5px; color: var(--muted); font-weight: 450; margin-left: 1px; }
+  .pp .ln { height: 1px; background: rgba(17,17,19,0.1); border-radius: 0.5px; margin-top: 2px; }
+  .pp .ln.s { width: 60%; }
+  .pp .ln.m { width: 85%; }
+  .pp .cta {
+    display: inline-block;
+    background: var(--ink); color: #fff;
+    font-size: 5px; padding: 1.5px 5px;
+    border-radius: 2px; font-weight: 500;
+    margin-top: 3px;
+  }
+
+  /* variant-specific tints */
+  .pp.mono { background: #fff; color: #111; }
+  .pp.tight { padding: 4px 5px; }
+  .pp.tight .cols { gap: 2px; }
+  .pp.tight .col { padding: 2px 2.5px 3px; border-radius: 1.5px; }
+
+  .pp.dark-p { background: #101014; color: #eee; }
+  .pp.dark-p .col { background: #1b1b22; border-color: rgba(255,255,255,0.08); color: #eee; }
+  .pp.dark-p .col.hl { background: rgba(200,182,138,0.15); border-color: rgba(200,182,138,0.5); }
+  .pp.dark-p .pl { color: rgba(255,255,255,0.5); }
+  .pp.dark-p .eye { color: rgba(200,182,138,0.85); }
+  .pp.dark-p .ln { background: rgba(255,255,255,0.14); }
+  .pp.dark-p .cta { background: #c8b68a; color: #101014; }
+
+  .pp.acc-i .col.hl { border-color: #6366f1; background: rgba(99,102,241,0.1); }
+  .pp.acc-g .col.hl { border-color: #22c55e; background: rgba(34,197,94,0.1); }
+  .pp.acc-a .col.hl { border-color: #f59e0b; background: rgba(245,158,11,0.1); }
+  .pp.acc-b .col.hl { border-color: #3b82f6; background: rgba(59,130,246,0.1); }
+
+  .pp.five { }
+  .pp.five .cols { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 2px; }
+  .pp.five .col { padding: 2px 2px 3px; }
+  .pp.five .pr { font-size: 6.5px; }
+
+  .pp.two .cols { grid-template-columns: 1fr 1fr; gap: 4px; }
+  .pp.two .col { padding: 4px 5px 5px; }
+  .pp.two .pr { font-size: 9px; }
+
+  .pp.ed {
+    background: #f1e7cf; color: #2a1e0c;
+    padding: 6px 7px;
+    font-family: 'EB Garamond', serif;
+  }
+  .pp.ed .eye-s {
+    font-family: 'EB Garamond', serif;
+    font-size: 6px; font-style: italic;
+    color: rgba(42,30,12,0.55);
+    margin-bottom: 2px;
+  }
+  .pp.ed h1 {
+    font-family: 'EB Garamond', serif;
+    font-size: 10.5px; font-weight: 500;
+    line-height: 1.02; letter-spacing: -0.015em;
+    color: #2a1e0c;
+    margin-bottom: 3px;
+  }
+  .pp.ed h1 em { font-style: italic; color: #6b3a1e; font-weight: 500; }
+  .pp.ed .body-t {
+    font-size: 6.5px; line-height: 1.3;
+    color: rgba(42,30,12,0.85);
+    letter-spacing: 0;
+    max-width: 100%;
+  }
+  .pp.ed .rule { width: 12px; height: 1px; background: #6b3a1e; margin: 2px 0 3px; }
+
+  .pp.noct {
+    background: #15151a; color: #e9e4d8;
+    padding: 6px 7px;
+    font-family: 'EB Garamond', serif;
+  }
+  .pp.noct .eye-s {
+    font-family: 'EB Garamond', serif;
+    font-size: 6px; font-style: italic;
+    color: #b8a376; margin-bottom: 3px;
+  }
+  .pp.noct .rule { width: 12px; height: 1px; background: #b8a376; margin-bottom: 3px; }
+  .pp.noct h1 {
+    font-family: 'EB Garamond', serif;
+    font-size: 11px; font-weight: 500;
+    line-height: 1; letter-spacing: -0.015em;
+    color: #f5efde; margin-bottom: 3px;
+  }
+  .pp.noct h1 em { font-style: italic; color: #d4b97a; font-weight: 500; }
+  .pp.noct .body-t {
+    font-size: 6px; line-height: 1.35;
+    color: rgba(233,228,216,0.6);
+  }
+  .pp.noct .cta-s {
+    display: inline-block; font-size: 6px;
+    color: #f5efde; padding-bottom: 1px;
+    border-bottom: 1px solid rgba(184,163,118,0.6);
+    margin-top: 3px;
+  }
+
+  .pp.bmast {
+    background: #050506; color: #f2efe8;
+    padding: 6px 7px;
+    font-family: 'EB Garamond', serif;
+  }
+  .pp.bmast .mast {
+    border-bottom: 1px solid rgba(242,239,232,0.22);
+    padding-bottom: 2.5px;
+    margin-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .pp.bmast .mast-n {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .pp.bmast .mast-n em { font-style: italic; color: #c8b68a; font-weight: 500; }
+  .pp.bmast .mast-m {
+    font-size: 5.5px; font-style: italic;
+    color: rgba(242,239,232,0.5);
+  }
+  .pp.bmast .eye-s {
+    font-size: 5px; text-transform: uppercase;
+    letter-spacing: 0.18em; color: #c8b68a;
+    font-weight: 600; margin-bottom: 2px;
+  }
+  .pp.bmast h1 {
+    font-family: 'EB Garamond', serif;
+    font-size: 9.5px; font-weight: 500;
+    line-height: 1.02; letter-spacing: -0.015em;
+    margin-bottom: 3px; color: #fffdf5;
+  }
+  .pp.bmast h1 em { font-style: italic; color: #c8b68a; font-weight: 500; }
+  .pp.bmast .deck {
+    font-size: 6px; font-style: italic;
+    color: rgba(242,239,232,0.55);
+    line-height: 1.3;
+  }
+
+  .pp.cards-pill .col { border-radius: 6px; padding: 4px 4px 5px; }
+  .pp.card-flat { background: #fafaf7; }
+
+  /* ── Right rail ────────────────────────────────────────────────────── */
+  .rail {
+    position: absolute; top: 14px; right: 14px;
+    width: 178px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: 12px 10px 10px;
+    z-index: 12;
+    font-size: 11px;
+    height: calc(100% - 28px - 72px);
+  }
+  .rail h4 {
+    font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--dim);
+    padding: 0 4px 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .rail h4 .sort-h { color: var(--accent); font-size: 8.5px; letter-spacing: 0.04em; font-weight: 600; text-transform: none; }
+
+  .sort-row {
+    padding: 6px 6px; border-radius: 4px;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 10.5px; color: var(--ink-2);
+    border-top: 1px solid var(--hairline-s);
+  }
+  .sort-row:first-of-type { border-top: none; }
+  .sort-row.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .sort-row .ico {
+    width: 9px; height: 9px; border-radius: 1.5px;
+    background: var(--faint); flex-shrink: 0;
+    position: relative;
+  }
+  .sort-row.on .ico { background: var(--accent); }
+  .sort-row .ico::after {
+    content: ''; position: absolute; inset: 1.5px;
+    background: #fff; border-radius: 1px;
+    opacity: 0;
+  }
+  .sort-row.on .ico::after {
+    opacity: 1;
+    clip-path: polygon(0 40%, 40% 80%, 100% 20%, 85% 5%, 40% 55%, 12% 28%);
+  }
+  .sort-row .lbl { flex: 1; letter-spacing: -0.005em; }
+  .sort-row .dir {
+    font-size: 9px; color: var(--muted);
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+  }
+  .sort-row.on .dir { color: var(--accent); }
+
+  .rail-sep { height: 1px; background: var(--hairline-s); margin: 8px 4px; }
+  .rail-sub {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--dim);
+    padding: 4px 4px 5px;
+  }
+  .lgnd {
+    font-size: 9.5px; color: var(--muted);
+    padding: 2px 6px 2px; line-height: 1.5;
+    letter-spacing: -0.003em;
+  }
+  .lgnd .good { color: #16803a; font-weight: 600; }
+  .lgnd .bad { color: var(--bad); font-weight: 600; }
+  .lgnd .mid { color: #a86810; font-weight: 600; }
+
+  /* ── Bottom bar ────────────────────────────────────────────────────── */
+  .bottom {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--surface);
+    border-top: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 18px;
+    z-index: 15;
+    gap: 10px;
+  }
+  .bottom .lead {
+    font-size: 11.5px; color: var(--muted);
+    display: flex; align-items: center; gap: 10px;
+    letter-spacing: -0.003em;
+  }
+  .bottom .lead strong { color: var(--ink); font-weight: 600; }
+  .bottom .lead .dk {
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    font-size: 10px;
+    color: var(--dim); letter-spacing: 0;
+  }
+  .bottom .spacer { flex: 1; }
+  .btn {
+    height: 32px; padding: 0 13px;
+    border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--hairline);
+    background: var(--surface); color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: -0.003em;
+  }
+  .btn.primary {
+    background: var(--accent); color: #fff;
+    border-color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 4px 14px -5px rgba(124,58,237,0.45);
+  }
+  .btn.primary .k {
+    display: inline-block; padding: 1px 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18); font-size: 10px;
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    letter-spacing: 0.02em; margin-left: 2px;
+  }
+  .btn.tertiary { color: var(--muted); background: transparent; border-color: transparent; }
+  .btn .plus {
+    width: 10px; height: 10px; position: relative; display: inline-block;
+  }
+  .btn .plus::before, .btn .plus::after {
+    content: ''; position: absolute; background: currentColor; border-radius: 0.5px;
+  }
+  .btn .plus::before { left: 4.3px; top: 0; width: 1.4px; height: 10px; }
+  .btn .plus::after { top: 4.3px; left: 0; width: 10px; height: 1.4px; }
+</style>
+</head>
+<body>
+
+<!-- ── Chrome ──────────────────────────────────────────────────────── -->
+<div class="chrome">
+  <div class="logo"></div>
+  <div class="brand">Design Graph <span class="dim">/ compare</span></div>
+  <div class="chrome-sep"></div>
+  <div class="breadcrumb">
+    <span>live-canvas</span>
+    <span class="chev">›</span>
+    <span>your canvas</span>
+    <span class="chev">›</span>
+    <span>augmented</span>
+    <span class="chev">›</span>
+    <strong>compare</strong>
+    <span class="tag">Pricing · side-by-side</span>
+  </div>
+  <div class="chrome-right">
+    <div class="chip count-pill"><span class="dot"></span><b>12 variants</b> · 2 selected</div>
+    <div class="chip kbd"><span class="k">⇧</span><span class="k">D</span> diff</div>
+    <div class="chip kbd"><span class="k">esc</span> back</div>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ── Sidebar ───────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <h4>All variants</h4>
+
+    <div class="group-h"><span>Original</span><span>9</span></div>
+    <div class="var-row on"><span class="ck-mini on"></span><span class="var-dot p"></span><span class="var-name">pricing-dense-grid</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot"></span><span class="var-name">pricing-three-tier</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot i"></span><span class="var-name">pricing-two-col</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot b"></span><span class="var-name">pricing-table-five</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot a"></span><span class="var-name">pricing-mono-card</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot g"></span><span class="var-name">pricing-usage-slider</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot t"></span><span class="var-name">pricing-compact-flat</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot v"></span><span class="var-name">pricing-pill-cards</span></div>
+    <div class="var-row"><span class="ck-mini"></span><span class="var-dot dark"></span><span class="var-name">pricing-dark-tier</span></div>
+
+    <div class="group-h fresh"><span>Just spawned</span><span>3</span></div>
+    <div class="var-row new on"><span class="ck-mini on"></span><span class="var-dot dark"></span><span class="var-name">pricing-editorial-serif</span></div>
+    <div class="var-row new"><span class="ck-mini"></span><span class="var-dot dark"></span><span class="var-name">pricing-nocturne-hero</span></div>
+    <div class="var-row new"><span class="ck-mini"></span><span class="var-dot dark"></span><span class="var-name">pricing-broadsheet</span></div>
+  </aside>
+
+  <!-- ── Compare dock ──────────────────────────────────────────────── -->
+  <div class="dock">
+    <div class="dock-head">
+      <div class="dock-title">
+        <span class="h">Side-by-side diff</span>
+        <span class="diff-key"><span><span class="sw grey"></span>matching</span><span><span class="sw purp"></span>different</span></span>
+      </div>
+      <div class="dock-actions">
+        <div class="dock-btn">Swap</div>
+        <div class="dock-btn">Add slot</div>
+        <div class="dock-btn primary">Annotate</div>
+      </div>
+    </div>
+
+    <div class="dock-body">
+      <!-- Left: pricing-dense-grid (original) -->
+      <div class="dock-col">
+        <div class="dock-label">
+          <span><span class="nm">pricing-dense-grid</span> <span class="id">price-02</span></span>
+          <span style="color:var(--muted);font-size:9.5px;">clarity <b style="color:var(--bad);">2.4</b> · density <b style="color:#16803a;">4.6</b></span>
+        </div>
+        <div class="preview">
+          <div class="pp tight">
+            <div class="eye">Plans &nbsp;·&nbsp; priced per seat</div>
+            <h1>Every tier, every line item. No surprises at renewal.</h1>
+            <div class="cols" style="grid-template-columns: repeat(5, 1fr); gap: 2px;">
+              <div class="col"><div class="pl">Solo</div><div class="pr">$0</div><div class="ln m"></div><div class="ln s"></div></div>
+              <div class="col"><div class="pl">Team</div><div class="pr">$12<span>/s</span></div><div class="ln m"></div><div class="ln m"></div><div class="ln s"></div></div>
+              <div class="col hl"><div class="pl">Studio</div><div class="pr">$24<span>/s</span></div><div class="ln m"></div><div class="ln m"></div><div class="ln s"></div></div>
+              <div class="col"><div class="pl">Scale</div><div class="pr">$48<span>/s</span></div><div class="ln m"></div><div class="ln m"></div><div class="ln s"></div></div>
+              <div class="col"><div class="pl">Ent.</div><div class="pr">Call</div><div class="ln m"></div><div class="ln s"></div></div>
+            </div>
+            <div style="margin-top:5px; display:flex; gap:3px;">
+              <div class="cta">Start free</div>
+              <div class="cta" style="background:transparent;color:var(--ink);border:1px solid var(--hairline);">See full grid</div>
+            </div>
+            <div style="margin-top:4px; font-size:5px; color:var(--muted); line-height:1.35;">
+              Compare every feature across all five plans — included limits, overage rates, and premium add-ons.
+            </div>
+          </div>
+        </div>
+        <div class="attrs">
+          <span class="k">Typography</span><span class="v">Inter 500, dense</span>
+          <span class="k">Accent</span><span class="v">#7c3aed · purple</span>
+          <span class="k">Tiers shown</span><span class="v">5 columns</span>
+          <span class="k">Paragraph</span><span class="v">2 lines · 18 words</span>
+          <span class="k">CTA style</span><span class="v">Dual · solid + ghost</span>
+          <span class="k">Tone</span><span class="v">Utilitarian · data-forward</span>
+        </div>
+      </div>
+
+      <!-- VS separator -->
+      <div class="dock-sep">
+        <div class="line"></div>
+        <div class="vs">vs</div>
+        <div class="line"></div>
+      </div>
+
+      <!-- Right: pricing-editorial-serif (new) -->
+      <div class="dock-col">
+        <div class="dock-label">
+          <span><span class="nm">pricing-editorial-serif</span> <span class="id">price-13</span><span class="new-chip">New</span></span>
+          <span style="color:var(--muted);font-size:9.5px;">clarity <b style="color:#16803a;">4.2</b> · density <b style="color:#a86810;">2.8</b></span>
+        </div>
+        <div class="preview">
+          <div class="pp ed">
+            <div class="eye-s">An essay &nbsp;·&nbsp; on pricing</div>
+            <div class="rule"></div>
+            <h1>One plan, read aloud: <em>pay for what the canvas remembers.</em></h1>
+            <div class="body-t" style="margin-bottom:4px;">
+              There is no grid here — only a number, a promise, and the quiet arithmetic of usage. Twenty-four dollars a seat a month, billed the way a newspaper would: forthrightly, in plain text.
+            </div>
+            <div style="display:flex; gap:5px; align-items:baseline; font-family:'EB Garamond',serif; font-style:italic; font-size:6.5px; color:#6b3a1e;">
+              <span style="font-size:9px; font-style:normal; font-weight:600; color:#2a1e0c;">$24</span>
+              <span>per seat · monthly</span>
+              <span style="margin-left:auto; border-bottom:1px solid #6b3a1e; padding-bottom:0.5px;">Begin the trial →</span>
+            </div>
+          </div>
+        </div>
+        <div class="attrs">
+          <span class="k">Typography</span><span class="v diff">EB Garamond 500, editorial</span>
+          <span class="k">Accent</span><span class="v diff">#6b3a1e · oxblood</span>
+          <span class="k">Tiers shown</span><span class="v diff">1 headline price</span>
+          <span class="k">Paragraph</span><span class="v diff">4 lines · 42 words</span>
+          <span class="k">CTA style</span><span class="v diff">Inline link · serif italic</span>
+          <span class="k">Tone</span><span class="v diff">Editorial · literary</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right rail ────────────────────────────────────────────────── -->
+  <aside class="rail">
+    <h4>Sort all 12<span class="sort-h">click attr</span></h4>
+
+    <div class="sort-row on"><span class="ico"></span><span class="lbl">Typography</span><span class="dir">A→Z</span></div>
+    <div class="sort-row"><span class="ico"></span><span class="lbl">Density</span><span class="dir">hi→lo</span></div>
+    <div class="sort-row"><span class="ico"></span><span class="lbl">Tier count</span><span class="dir">1→5</span></div>
+    <div class="sort-row"><span class="ico"></span><span class="lbl">CTA strength</span><span class="dir">soft→loud</span></div>
+    <div class="sort-row"><span class="ico"></span><span class="lbl">Accent color</span><span class="dir">hue</span></div>
+    <div class="sort-row"><span class="ico"></span><span class="lbl">Clarity score</span><span class="dir">hi→lo</span></div>
+
+    <div class="rail-sep"></div>
+    <div class="rail-sub">Score legend</div>
+    <div class="lgnd">
+      <span class="good">4.0+</span> strong ·
+      <span class="mid">3.0–3.9</span> mixed ·
+      <span class="bad">&lt; 3.0</span> weak
+    </div>
+    <div class="rail-sep"></div>
+    <div class="rail-sub">Selection</div>
+    <div class="lgnd" style="padding-top:0;">
+      <span style="color:var(--accent);font-weight:600;">2 pinned</span> · max 4 · click card to toggle
+    </div>
+  </aside>
+
+  <!-- ── 4×3 grid ──────────────────────────────────────────────────── -->
+  <div class="grid">
+
+    <!-- Row 1 -->
+    <div class="gcard sel">
+      <div class="gc-head">
+        <span class="nm">pricing-dense-grid</span>
+        <span class="score lo">2.4</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp tight mono">
+          <div class="eye">Plans</div>
+          <div class="cols" style="grid-template-columns: repeat(5, 1fr); gap: 1.5px;">
+            <div class="col"><div class="pl">Solo</div><div class="pr" style="font-size:7px;">$0</div><div class="ln m"></div><div class="ln s"></div></div>
+            <div class="col"><div class="pl">Team</div><div class="pr" style="font-size:7px;">$12</div><div class="ln m"></div><div class="ln s"></div></div>
+            <div class="col hl"><div class="pl">Studio</div><div class="pr" style="font-size:7px;">$24</div><div class="ln m"></div><div class="ln m"></div></div>
+            <div class="col"><div class="pl">Scale</div><div class="pr" style="font-size:7px;">$48</div><div class="ln m"></div><div class="ln s"></div></div>
+            <div class="col"><div class="pl">Ent</div><div class="pr" style="font-size:7px;">Call</div><div class="ln s"></div></div>
+          </div>
+          <div style="margin-top:4px;">
+            <div class="ln m"></div><div class="ln s"></div><div class="ln m"></div>
+          </div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#7c3aed;"></span>Inter · dense</span><span>5 tiers</span></div>
+    </div>
+
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-three-tier</span>
+        <span class="score">4.1</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp">
+          <div class="eye">Plans</div>
+          <h1>Priced per active canvas</h1>
+          <div class="cols">
+            <div class="col"><div class="pl">Solo</div><div class="pr">$0</div><div class="ln m"></div><div class="ln s"></div></div>
+            <div class="col hl"><div class="pl">Studio</div><div class="pr">$24<span>/s</span></div><div class="ln m"></div><div class="ln m"></div></div>
+            <div class="col"><div class="pl">Team</div><div class="pr">Call</div><div class="ln s"></div></div>
+          </div>
+          <div class="cta">Start free</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#7c3aed;"></span>Inter · balanced</span><span>3 tiers</span></div>
+    </div>
+
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-two-col</span>
+        <span class="score mid">3.6</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp two acc-i">
+          <div class="eye">Two ways to work</div>
+          <h1>Studio or Scale.</h1>
+          <div class="cols">
+            <div class="col"><div class="pl">Studio</div><div class="pr">$24<span>/s</span></div><div class="ln m"></div><div class="ln m"></div><div class="ln s"></div></div>
+            <div class="col hl"><div class="pl">Scale</div><div class="pr">$96<span>/s</span></div><div class="ln m"></div><div class="ln m"></div><div class="ln m"></div></div>
+          </div>
+          <div class="cta" style="background:#6366f1;">Talk to us</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#6366f1;"></span>Inter · roomy</span><span>2 tiers</span></div>
+    </div>
+
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-table-five</span>
+        <span class="score lo">2.8</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp five acc-b tight">
+          <div class="eye">Full feature table</div>
+          <div class="cols">
+            <div class="col"><div class="pl">Free</div><div class="pr">$0</div></div>
+            <div class="col"><div class="pl">Pro</div><div class="pr">$18</div></div>
+            <div class="col hl"><div class="pl">Team</div><div class="pr">$32</div></div>
+            <div class="col"><div class="pl">Biz</div><div class="pr">$64</div></div>
+            <div class="col"><div class="pl">Ent</div><div class="pr">—</div></div>
+          </div>
+          <div style="margin-top:3px;">
+            <div class="ln m"></div><div class="ln m"></div><div class="ln s"></div><div class="ln m"></div><div class="ln s"></div>
+          </div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#3b82f6;"></span>Inter · tabular</span><span>5 tiers</span></div>
+    </div>
+
+    <!-- Row 2 -->
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-mono-card</span>
+        <span class="score">4.0</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp acc-a">
+          <div class="eye">One price</div>
+          <h1>$24<span style="font-size:5px;color:var(--muted);">/seat · monthly</span></h1>
+          <div class="ln m"></div>
+          <div class="ln m"></div>
+          <div class="ln s"></div>
+          <div class="ln m"></div>
+          <div class="cta" style="background:#f59e0b;">Start 14-day trial</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#f59e0b;"></span>Inter · single</span><span>1 tier</span></div>
+    </div>
+
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-usage-slider</span>
+        <span class="score">4.3</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp acc-g">
+          <div class="eye">Usage-based</div>
+          <h1>Pay per run, not per seat.</h1>
+          <div style="background:#fafaf7;border:1px solid var(--hairline-s);border-radius:3px;padding:4px 5px;">
+            <div style="font-size:5.5px;color:var(--muted);">10k runs / mo</div>
+            <div style="height:3px;background:var(--hairline);border-radius:1.5px;margin:3px 0;position:relative;">
+              <div style="position:absolute;left:0;top:0;width:40%;height:100%;background:#22c55e;border-radius:1.5px;"></div>
+              <div style="position:absolute;left:40%;top:-2px;width:7px;height:7px;border-radius:50%;background:#22c55e;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:6.5px;font-weight:600;"><span>$18/mo</span><span style="color:var(--muted);font-weight:450;">est.</span></div>
+          </div>
+          <div class="cta" style="background:#22c55e;">Size my plan</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#22c55e;"></span>Inter · interactive</span><span>slider</span></div>
+    </div>
+
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-compact-flat</span>
+        <span class="score mid">3.4</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp card-flat tight">
+          <div class="eye" style="color:#14b8a6;">Flat &amp; simple</div>
+          <h1>Three flats. No upsell.</h1>
+          <div class="cols">
+            <div class="col" style="background:#fff;"><div class="pl">S</div><div class="pr">$9</div></div>
+            <div class="col" style="background:#fff;"><div class="pl">M</div><div class="pr">$29</div></div>
+            <div class="col" style="background:#fff;border-color:#14b8a6;"><div class="pl">L</div><div class="pr">$79</div></div>
+          </div>
+          <div style="margin-top:3px;"><div class="ln m"></div><div class="ln s"></div></div>
+          <div class="cta" style="background:#14b8a6;">Pick a size</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#14b8a6;"></span>Inter · minimal</span><span>3 flats</span></div>
+    </div>
+
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-pill-cards</span>
+        <span class="score">4.0</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp cards-pill">
+          <div class="eye">Plans</div>
+          <h1>Rounded. Roomy.</h1>
+          <div class="cols">
+            <div class="col" style="border-radius:6px;"><div class="pl">Solo</div><div class="pr">$0</div><div class="ln m"></div></div>
+            <div class="col hl" style="border-radius:6px;background:rgba(139,92,246,0.12);border-color:#8b5cf6;"><div class="pl">Pro</div><div class="pr">$28</div><div class="ln m"></div><div class="ln m"></div></div>
+            <div class="col" style="border-radius:6px;"><div class="pl">Max</div><div class="pr">$58</div><div class="ln m"></div></div>
+          </div>
+          <div class="cta" style="background:#8b5cf6;border-radius:10px;padding:2px 7px;">Choose plan</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#8b5cf6;"></span>Inter · rounded</span><span>3 tiers</span></div>
+    </div>
+
+    <!-- Row 3 -->
+    <div class="gcard">
+      <div class="gc-head">
+        <span class="nm">pricing-dark-tier</span>
+        <span class="score mid">3.7</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp dark-p">
+          <div class="eye">Dark tier</div>
+          <h1 style="color:#fff;">Priced per canvas.</h1>
+          <div class="cols">
+            <div class="col"><div class="pl">Solo</div><div class="pr">$0</div><div class="ln m"></div></div>
+            <div class="col hl"><div class="pl">Studio</div><div class="pr">$24</div><div class="ln m"></div><div class="ln m"></div></div>
+            <div class="col"><div class="pl">Team</div><div class="pr">$60</div><div class="ln m"></div></div>
+          </div>
+          <div class="cta">Start free</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#111;"></span>Inter · dark UI</span><span>3 tiers</span></div>
+    </div>
+
+    <!-- NEW 1 — selected -->
+    <div class="gcard new-g sel">
+      <div class="gc-head">
+        <span class="nm">pricing-editorial-serif</span>
+        <span class="new-flag">New</span>
+        <span class="score">4.2</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp ed">
+          <div class="eye-s">An essay · on pricing</div>
+          <div class="rule"></div>
+          <h1>One plan, read <em>aloud.</em></h1>
+          <div class="body-t">Pay the way a newspaper would bill: plainly. Twenty-four dollars a seat, month after month, with nothing hidden in the fold.</div>
+          <div style="font-family:'EB Garamond',serif;font-style:italic;font-size:6px;color:#6b3a1e;margin-top:3px;border-bottom:1px solid #6b3a1e;display:inline-block;padding-bottom:0.5px;">Begin the trial →</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#6b3a1e;"></span>Garamond · editorial</span><span>1 price</span></div>
+    </div>
+
+    <!-- NEW 2 -->
+    <div class="gcard new-g">
+      <div class="gc-head">
+        <span class="nm">pricing-nocturne-hero</span>
+        <span class="new-flag">New</span>
+        <span class="score">3.9</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp noct">
+          <div class="eye-s">Mercato · vol. vii</div>
+          <div class="rule"></div>
+          <h1>Pay for what the canvas <em>remembers.</em></h1>
+          <div class="body-t">A dispatch for teams that prefer one price, one promise, and no upsell buried two clicks deep.</div>
+          <div class="cta-s">Read the plan →</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#d4b97a;"></span>Garamond · nocturne</span><span>1 price</span></div>
+    </div>
+
+    <!-- NEW 3 -->
+    <div class="gcard new-g">
+      <div class="gc-head">
+        <span class="nm">pricing-broadsheet</span>
+        <span class="new-flag">New</span>
+        <span class="score">4.4</span>
+      </div>
+      <div class="gc-body">
+        <div class="pp bmast">
+          <div class="mast">
+            <div class="mast-n">The <em>Mercato</em></div>
+            <div class="mast-m">Price · Fri</div>
+          </div>
+          <div class="eye-s">Leaders</div>
+          <h1>Twenty-four dollars, <em>plainly</em> stated.</h1>
+          <div class="deck">An argument for pricing the way broadsheets used to: a single line, set in serif, with no footnote for the weary reader.</div>
+        </div>
+      </div>
+      <div class="gc-meta"><span><span class="swatch" style="background:#c8b68a;"></span>Garamond · broadsheet</span><span>1 price</span></div>
+    </div>
+  </div>
+
+  <!-- ── Bottom bar ────────────────────────────────────────────────── -->
+  <div class="bottom">
+    <div class="lead">
+      <strong>2 selected</strong>
+      <span>·</span>
+      <span>pricing-dense-grid &nbsp;<span style="color:var(--dim);">vs</span>&nbsp; pricing-editorial-serif</span>
+      <span>·</span>
+      <span class="dk">6 attrs · 6 differ · 0 match</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn tertiary"><span class="plus"></span>Spawn a hybrid</div>
+    <div class="btn">Annotate diff</div>
+    <div class="btn primary">Pick these 2 to ship<span class="k">⏎</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>

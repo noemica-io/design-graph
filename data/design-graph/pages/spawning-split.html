@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Spawning — dead vs alive in motion</title>
+<meta name="viewport" content="width=1280" />
+<style>
+  :root {
+    --ink: #0b0b0f;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --accent-deep: #7c3aed;
+    --running: #f97316;
+    --running-soft: #fed7aa;
+    --running-deep: #c2410c;
+    --ok: #10b981;
+    --grey-bg: #ececec;
+    --grey-chrome: #d8d8d8;
+    --grey-line: #c4c4c4;
+    --grey-ink: #4a4a4a;
+    --grey-mute: #8a8a8a;
+    --canvas-bg: #faf9ff;
+    --canvas-dot: #d9d2f0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 1280px; height: 800px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    color: var(--ink);
+    background: #fff;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
+    overflow: hidden;
+  }
+
+  /* ───────── Top nav ───────── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 56px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+    pointer-events: none;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 600; font-size: 14px; letter-spacing: -0.01em;
+    pointer-events: auto;
+  }
+  nav .brand .dot {
+    width: 14px; height: 14px; border-radius: 3px;
+    background: linear-gradient(135deg, #b8b8b8 0 50%, var(--running) 50% 100%);
+  }
+  nav .crumbs {
+    font-size: 13px; color: #888;
+    display: flex; align-items: center; gap: 10px;
+    pointer-events: auto;
+  }
+  nav .crumbs .sep { color: #ccc; }
+  nav .crumbs .here { color: var(--running); font-weight: 500; }
+  nav .nav-right {
+    font-size: 12px; color: #888;
+    pointer-events: auto;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    display: flex; align-items: center; gap: 8px;
+  }
+  nav .nav-right .live-pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--running);
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.22);
+    animation: pipblink 1.2s ease-in-out infinite;
+  }
+  @keyframes pipblink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ───────── Header strip (banner) ───────── */
+  .banner {
+    position: absolute;
+    top: 56px; left: 0; right: 0;
+    height: 38px; z-index: 6;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(90deg,
+      rgba(236,236,236,0.85) 0%,
+      rgba(236,236,236,0.85) 46%,
+      rgba(255,245,235,0.92) 54%,
+      rgba(255,245,235,0.92) 100%);
+    border-bottom: 1px solid #e8e0d4;
+    font-size: 12.5px;
+    letter-spacing: -0.005em;
+    color: #5a5550;
+  }
+  .banner .l {
+    color: #8a8a8a;
+  }
+  .banner .r {
+    color: var(--running-deep);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+  .banner .pivot {
+    color: #ccc; margin: 0 10px;
+  }
+
+  /* ───────── Split (tilted seam) ───────── */
+  .split {
+    position: relative;
+    top: 94px;
+    height: 706px;
+    /* Right side is slightly wider than left — the tilt */
+    display: grid; grid-template-columns: 47% 53%;
+  }
+  /* The seam itself — angled */
+  .seam {
+    position: absolute; top: -6px; bottom: -6px;
+    left: 47%;
+    width: 0;
+    z-index: 4;
+    transform: rotate(-1.4deg);
+    transform-origin: top center;
+  }
+  .seam::before {
+    content: "";
+    position: absolute; top: 0; bottom: 0; left: 0;
+    width: 1px;
+    background: linear-gradient(180deg,
+      rgba(200,200,200,0) 0%,
+      rgba(180,180,180,0.7) 10%,
+      rgba(249,115,22,0.45) 50%,
+      rgba(180,180,180,0.7) 90%,
+      rgba(200,200,200,0) 100%);
+  }
+  /* Pressure wave — the right side pushing */
+  .seam::after {
+    content: "";
+    position: absolute; top: 50%; left: -1px;
+    transform: translateY(-50%);
+    width: 18px; height: 180px;
+    background: radial-gradient(ellipse at left center,
+      rgba(249,115,22,0.14) 0%,
+      rgba(249,115,22,0) 70%);
+    pointer-events: none;
+  }
+
+  /* ═══════════ LEFT — grey, frozen, slow ═══════════ */
+  .left {
+    background: var(--grey-bg);
+    color: var(--grey-ink);
+    padding: 32px 44px 40px 48px;
+    position: relative;
+    overflow: hidden;
+    filter: saturate(0.35);
+    opacity: 0.86;
+  }
+  .left::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, transparent 78%, rgba(236,236,236,0.75) 100%);
+    pointer-events: none;
+  }
+  .left .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--grey-mute); margin-bottom: 8px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .left .eyebrow::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: #b0b0b0;
+  }
+  .left h2 {
+    font-size: 18px; line-height: 1.25; margin: 0 0 14px 0;
+    font-weight: 600; letter-spacing: -0.02em; color: #3a3a3a;
+  }
+
+  /* slow timer */
+  .slowtimer {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #e2e2e2;
+    border: 1px solid #cfcfcf;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: #5a5a5a;
+    margin-bottom: 14px;
+  }
+  .slowtimer .hour {
+    color: #8a6a40;
+    font-weight: 600;
+  }
+  .slowtimer::before {
+    content: "";
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #b8a070;
+    flex-shrink: 0;
+  }
+
+  /* The artboard grid (smaller than setup-split) */
+  .artboard-wrap {
+    display: grid;
+    grid-template-columns: 1fr 150px;
+    gap: 10px;
+    align-items: start;
+  }
+  .artboard {
+    background: #fff;
+    border: 1px solid var(--grey-line);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    position: relative;
+  }
+  .artboard .ab-top {
+    height: 20px;
+    background: #f4f4f4;
+    border-bottom: 1px solid var(--grey-line);
+    display: flex; align-items: center;
+    padding: 0 9px;
+    gap: 5px;
+    font-size: 9.5px; color: #888;
+  }
+  .artboard .ab-top .dots { display: flex; gap: 4px; }
+  .artboard .ab-top .dots span {
+    width: 6px; height: 6px; border-radius: 50%; background: #d0d0d0;
+  }
+  .artboard .ab-top .filename {
+    font-weight: 500; color: #666; margin-left: 4px;
+  }
+  .artboard .ab-top .version {
+    margin-left: auto; font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #a0a0a0; font-size: 9px;
+  }
+  .artboard .ab-label {
+    padding: 5px 11px;
+    font-size: 9.5px; color: #9a9a9a;
+    border-bottom: 1px solid #ececec;
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .artboard .ab-label .px { color: #bababa; }
+  .artboard .ab-body {
+    padding: 18px 18px 16px 18px;
+    position: relative;
+    min-height: 250px;
+  }
+  .ab-body .eye {
+    font-size: 8.5px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: #a8a8a8; margin-bottom: 7px; font-weight: 500;
+  }
+  .ab-body .hero-h {
+    height: 13px; background: #d4d4d4; border-radius: 2px;
+    width: 72%; margin-bottom: 6px;
+  }
+  .ab-body .hero-h.two {
+    width: 56%; background: #dcdcdc;
+  }
+  .ab-body .hero-sub {
+    height: 4px; background: #e8e8e8; border-radius: 2px;
+    width: 80%; margin-top: 8px;
+  }
+  .ab-body .hero-sub.b { width: 60%; margin-top: 4px; }
+  .ab-body .tiers {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px; margin-top: 16px;
+  }
+  .ab-body .tier {
+    border: 1px solid #e4e4e4; border-radius: 3px;
+    padding: 8px 6px;
+    background: #fafafa;
+    height: 90px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .ab-body .tier .name { height: 4px; background: #cfcfcf; border-radius: 2px; width: 50%; }
+  .ab-body .tier .price { height: 10px; background: #bababa; border-radius: 2px; width: 65%; margin: 3px 0 5px 0; }
+  .ab-body .tier .feat { height: 3px; background: #e4e4e4; border-radius: 1px; width: 90%; }
+  .ab-body .tier .feat.b { width: 75%; }
+  .ab-body .tier .feat.c { width: 85%; }
+  .ab-body .tier .btn { height: 11px; background: #d8d8d8; border-radius: 2px; margin-top: auto; }
+  .ab-body .tier.mid {
+    background: #f4f0fa; border-color: #ddd0ee; position: relative;
+  }
+  .ab-body .tier.mid::after {
+    content: ""; position: absolute; top: -1px; left: -1px; right: -1px;
+    height: 2px; background: #b8a0dc; border-radius: 3px 3px 0 0;
+  }
+
+  /* NEW: the calendar chip that appeared */
+  .calchip {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: #fff;
+    border: 1px dashed #b8a6a6;
+    border-radius: 3px;
+    padding: 3px 7px;
+    font-size: 9px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #8a6a6a;
+    display: flex; align-items: center; gap: 5px;
+    letter-spacing: -0.005em;
+  }
+  .calchip::before {
+    content: "◷"; color: #a88080; font-size: 10px;
+  }
+
+  /* Comment pins */
+  .comment-pin {
+    position: absolute;
+    width: 14px; height: 14px;
+    background: #b84848;
+    color: #fff;
+    border-radius: 50% 50% 50% 2px;
+    font-size: 8px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    opacity: 0.75;
+  }
+
+  /* Committee sidebar — trickle */
+  .committee {
+    background: #fff;
+    border: 1px solid var(--grey-line);
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+  .committee h4 {
+    margin: 0 0 8px 0;
+    font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #9a9a9a; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .committee h4 .count {
+    background: #e8d8d8; color: #8a4a4a;
+    padding: 1px 5px; border-radius: 2px;
+    font-size: 8.5px; letter-spacing: 0; text-transform: none;
+    font-weight: 600;
+  }
+  .committee .cmt {
+    display: flex; gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px dashed #e4e4e4;
+  }
+  .committee .cmt:last-of-type { border-bottom: none; }
+  .committee .cmt .av {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    background: #c0c0c0;
+    font-size: 7.5px; color: #fff; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0;
+  }
+  .committee .cmt:nth-child(2) .av { background: #b08c8c; }
+  .committee .cmt:nth-child(3) .av { background: #8ca0b8; }
+  .committee .cmt:nth-child(4) .av { background: #a0b090; }
+  .committee .cmt .body {
+    color: #5a5a5a;
+    line-height: 1.32;
+    font-size: 10px;
+  }
+  .committee .cmt .body .who {
+    font-weight: 600; color: #3a3a3a;
+    font-size: 9.5px;
+  }
+  .committee .cmt .body .when {
+    color: #aaa; font-size: 8.5px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    margin-left: 3px;
+  }
+  .committee .meetblock {
+    margin-top: 8px;
+    padding: 6px 7px;
+    border: 1px solid #d8d0c0;
+    background: #f4efe4;
+    border-radius: 3px;
+    font-size: 9px;
+    color: #7a6a4a;
+    line-height: 1.4;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .committee .meetblock::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 1px;
+    background: #b8a070;
+    flex-shrink: 0;
+  }
+  .committee .meetblock b { font-weight: 600; color: #5a4a30; }
+
+  /* tagline at bottom of left */
+  .left .tagline {
+    position: absolute;
+    bottom: 22px; left: 48px; right: 44px;
+    font-size: 11px;
+    color: #8a8a8a;
+    font-style: italic;
+    letter-spacing: -0.005em;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'Inter', sans-serif;
+  }
+  .left .tagline .file {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: #a8a8a8;
+    font-style: normal;
+    text-decoration: line-through;
+    text-decoration-color: #c8c8c8;
+  }
+
+  /* ═══════════ RIGHT — alive, rapid, orange ═══════════ */
+  .right {
+    background: #fff;
+    padding: 32px 48px 40px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .right::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: 11px 11px;
+    opacity: 0.42;
+    pointer-events: none;
+  }
+  .right > * { position: relative; z-index: 1; }
+
+  .right .top-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+  }
+  .right .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--running); font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .right .eyebrow .pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--running);
+    box-shadow: 0 0 0 4px rgba(249,115,22,0.22);
+    animation: pip 1.1s ease-in-out infinite;
+  }
+  @keyframes pip {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(249,115,22,0.22); }
+    50% { box-shadow: 0 0 0 7px rgba(249,115,22,0.08); }
+  }
+
+  /* live timer */
+  .livetimer {
+    background: #0b0b0f;
+    color: #fff;
+    border-radius: 5px;
+    padding: 5px 10px 5px 8px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    display: inline-flex; align-items: center; gap: 7px;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+  }
+  .livetimer::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--running);
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.25);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+  .livetimer .label {
+    color: #999;
+    font-size: 10px;
+  }
+  .livetimer .num {
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .right h2 {
+    font-size: 19px; line-height: 1.2; margin: 4px 0 14px 0;
+    font-weight: 600; letter-spacing: -0.02em;
+  }
+  .right h2 .accent {
+    color: var(--running);
+    background: linear-gradient(180deg, transparent 60%, rgba(249,115,22,0.14) 60%);
+    padding: 0 2px;
+  }
+
+  /* live canvas */
+  .livecanvas {
+    background: var(--canvas-bg);
+    border: 1px solid #ebe4f8;
+    border-radius: 7px;
+    padding: 10px;
+    position: relative;
+    overflow: hidden;
+    height: 350px;
+  }
+  .livecanvas::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, #d0c4ee 1px, transparent 1px);
+    background-size: 18px 18px;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .livecanvas .canvas-head {
+    position: absolute;
+    top: 8px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: #6a6080;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .livecanvas .canvas-head .left-label {
+    color: var(--accent-deep);
+    font-weight: 500;
+  }
+  .livecanvas .canvas-head .right-label {
+    color: #8a80a0;
+  }
+  .livecanvas .canvas-head .right-label b { color: var(--running); font-weight: 600; }
+
+  /* variant card grid */
+  .vgrid {
+    position: absolute;
+    top: 28px; left: 10px; right: 10px; bottom: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    z-index: 1;
+  }
+  .vcard {
+    background: #fff;
+    border: 1px solid #e4ddf3;
+    border-radius: 4px;
+    padding: 6px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+    animation: float-in 0.5s both ease-out;
+  }
+  @keyframes float-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .vcard:nth-child(1) { animation-delay: 0.02s; }
+  .vcard:nth-child(2) { animation-delay: 0.10s; }
+  .vcard:nth-child(3) { animation-delay: 0.18s; }
+  .vcard:nth-child(4) { animation-delay: 0.26s; }
+  .vcard:nth-child(5) { animation-delay: 0.34s; }
+  .vcard:nth-child(6) { animation-delay: 0.42s; }
+  .vcard:nth-child(7) { animation-delay: 0.50s; }
+  .vcard:nth-child(8) { animation-delay: 0.58s; }
+
+  .vcard .thumb {
+    flex: 1;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    background: #fafafa;
+    min-height: 68px;
+  }
+  .vcard .meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 8.5px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: -0.005em;
+  }
+  .vcard .meta .id { color: #666; font-size: 8px; }
+  .vcard .meta .pill {
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-size: 7.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .vcard .meta .pill.done {
+    background: #d1fae5;
+    color: #046b4b;
+  }
+  .vcard .meta .pill.running {
+    background: #ffedd5;
+    color: var(--running-deep);
+    animation: rpulse 1.2s ease-in-out infinite;
+  }
+  @keyframes rpulse {
+    0%, 100% { background: #ffedd5; }
+    50% { background: #fed7aa; }
+  }
+  .vcard .meta .pill.queued {
+    background: #eee;
+    color: #888;
+  }
+
+  /* DONE THUMBNAILS — three distinct mini pricing pages */
+
+  /* THUMB A: dark-bold pricing */
+  .thumb-a {
+    background: linear-gradient(180deg, #18122b 0%, #241a3c 100%);
+  }
+  .thumb-a::before {
+    content: "";
+    position: absolute;
+    top: 6px; left: 6px;
+    width: 38%; height: 2.5px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 1px;
+  }
+  .thumb-a::after {
+    content: "";
+    position: absolute;
+    top: 11px; left: 6px;
+    width: 55%; height: 1.5px;
+    background: rgba(255,255,255,0.18);
+    border-radius: 1px;
+  }
+  .thumb-a .tiers-mini {
+    position: absolute;
+    left: 6px; right: 6px; bottom: 6px;
+    height: 38px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+  }
+  .thumb-a .tiers-mini .t {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 2px;
+    position: relative;
+  }
+  .thumb-a .tiers-mini .t.hi {
+    background: linear-gradient(180deg, #f97316 0%, #c2410c 100%);
+    border-color: #f97316;
+  }
+  .thumb-a .tiers-mini .t::before {
+    content: "";
+    position: absolute; top: 3px; left: 3px;
+    width: 55%; height: 1.5px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 1px;
+  }
+  .thumb-a .tiers-mini .t::after {
+    content: "";
+    position: absolute; top: 7px; left: 3px;
+    width: 70%; height: 4px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 1px;
+  }
+
+  /* THUMB B: editorial serif single-column */
+  .thumb-b {
+    background: #fdf9f0;
+  }
+  .thumb-b::before {
+    content: "Price, plainly.";
+    position: absolute;
+    top: 6px; left: 6px; right: 6px;
+    font-family: 'Georgia', serif;
+    font-size: 8.5px;
+    font-style: italic;
+    color: #4a3a28;
+    letter-spacing: -0.01em;
+  }
+  .thumb-b::after {
+    content: "";
+    position: absolute;
+    top: 17px; left: 6px;
+    width: 70%; height: 1px;
+    background: #c8b898;
+  }
+  .thumb-b .rows {
+    position: absolute;
+    left: 6px; right: 6px; top: 22px; bottom: 6px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .thumb-b .rows .row {
+    display: flex; justify-content: space-between;
+    align-items: center;
+    border-bottom: 0.5px dotted #c8b898;
+    padding-bottom: 2px;
+  }
+  .thumb-b .rows .row:last-child { border-bottom: none; }
+  .thumb-b .rows .row .nm {
+    height: 3px; background: #8a6a4a; width: 40%;
+    border-radius: 1px;
+  }
+  .thumb-b .rows .row .nm.b { width: 50%; }
+  .thumb-b .rows .row .nm.c { width: 35%; }
+  .thumb-b .rows .row .pr {
+    height: 4px; background: #c2410c; width: 18%;
+    border-radius: 1px;
+  }
+
+  /* THUMB C: playful pastel with icon tiles */
+  .thumb-c {
+    background: linear-gradient(135deg, #fce7f3 0%, #fef3c7 50%, #dbeafe 100%);
+  }
+  .thumb-c::before {
+    content: "";
+    position: absolute;
+    top: 5px; left: 6px;
+    width: 60%; height: 6px;
+    background: #1f1147;
+    border-radius: 1px;
+  }
+  .thumb-c::after {
+    content: "✦";
+    position: absolute;
+    top: 2px; right: 5px;
+    font-size: 10px;
+    color: #ec4899;
+  }
+  .thumb-c .cards-mini {
+    position: absolute;
+    left: 6px; right: 6px; bottom: 6px;
+    height: 42px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+  }
+  .thumb-c .cards-mini .c {
+    background: #fff;
+    border-radius: 4px;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+  .thumb-c .cards-mini .c::before {
+    content: "";
+    position: absolute;
+    top: 3px; left: 50%; transform: translateX(-50%);
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .thumb-c .cards-mini .c:nth-child(1)::before { background: #f472b6; }
+  .thumb-c .cards-mini .c:nth-child(2)::before { background: #fbbf24; }
+  .thumb-c .cards-mini .c:nth-child(3)::before { background: #60a5fa; }
+  .thumb-c .cards-mini .c::after {
+    content: "";
+    position: absolute;
+    bottom: 4px; left: 3px;
+    width: 75%; height: 2.5px;
+    background: #d0b090;
+    border-radius: 1px;
+  }
+
+  /* RUNNING / SHIMMER */
+  .thumb-running {
+    background: linear-gradient(90deg,
+      #fff5eb 0%,
+      #fed7aa 50%,
+      #fff5eb 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+    position: relative;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .thumb-running::before {
+    content: "";
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 45%; height: 2px;
+    background: rgba(249,115,22,0.35);
+    border-radius: 1px;
+  }
+  .thumb-running::after {
+    content: "";
+    position: absolute;
+    top: 14px; left: 8px;
+    width: 68%; height: 1.5px;
+    background: rgba(249,115,22,0.2);
+    border-radius: 1px;
+  }
+  .thumb-running .scaff {
+    position: absolute;
+    bottom: 8px; left: 8px; right: 8px;
+    height: 30px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+  }
+  .thumb-running .scaff span {
+    background: rgba(249,115,22,0.14);
+    border-radius: 2px;
+  }
+  .thumb-running .typing {
+    position: absolute;
+    bottom: 42px; left: 8px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 7.5px;
+    color: var(--running-deep);
+    display: flex; align-items: center; gap: 2px;
+  }
+  .thumb-running .typing .dot {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--running);
+    animation: blinkdot 1.2s ease-in-out infinite;
+  }
+  .thumb-running .typing .dot:nth-child(2) { animation-delay: 0.2s; }
+  .thumb-running .typing .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blinkdot {
+    0%, 80%, 100% { opacity: 0.2; }
+    40% { opacity: 1; }
+  }
+
+  /* QUEUED */
+  .thumb-queued {
+    background: repeating-linear-gradient(
+      45deg,
+      #f6f3fb 0px,
+      #f6f3fb 6px,
+      #ede7f7 6px,
+      #ede7f7 12px);
+    opacity: 0.6;
+    position: relative;
+  }
+  .thumb-queued::after {
+    content: "⋯";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px; color: #a0a0b5;
+    letter-spacing: 2px;
+  }
+
+  /* color chip per card type */
+  .vcard.color-purple { border-top: 2px solid #8b5cf6; }
+  .vcard.color-teal   { border-top: 2px solid #14b8a6; }
+  .vcard.color-pink   { border-top: 2px solid #ec4899; }
+  .vcard.color-amber  { border-top: 2px solid #f59e0b; }
+  .vcard.color-indigo { border-top: 2px solid #6366f1; }
+  .vcard.color-rose   { border-top: 2px solid #f43f5e; }
+  .vcard.color-blue   { border-top: 2px solid #3b82f6; }
+  .vcard.color-lime   { border-top: 2px solid #84cc16; }
+
+  /* agent log */
+  .agentlog {
+    margin-top: 11px;
+    background: #0b0b0f;
+    border-radius: 6px;
+    padding: 9px 11px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: #d4d4d4;
+    max-height: 108px;
+    overflow: hidden;
+    position: relative;
+  }
+  .agentlog::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 26px;
+    background: linear-gradient(180deg, transparent 0%, #0b0b0f 85%);
+    pointer-events: none;
+  }
+  .agentlog .logrow {
+    display: grid;
+    grid-template-columns: 70px 1fr 60px;
+    gap: 10px;
+    line-height: 1.5;
+    padding: 1px 0;
+    align-items: center;
+  }
+  .agentlog .logrow .id { color: #8a8a9a; }
+  .agentlog .logrow .msg { color: #e5e5e5; }
+  .agentlog .logrow .t { color: #6a6a7a; text-align: right; font-size: 9.5px; }
+  .agentlog .logrow.ok .msg::before {
+    content: "✓  ";
+    color: var(--ok);
+  }
+  .agentlog .logrow.ok .msg {
+    color: #a8d8c0;
+  }
+  .agentlog .logrow.run .msg::before {
+    content: "▸  ";
+    color: var(--running);
+  }
+  .agentlog .logrow.run .msg {
+    color: #fbbf7a;
+  }
+  .agentlog .logrow.queued .msg::before {
+    content: "·  ";
+    color: #666;
+  }
+  .agentlog .logrow.queued .msg,
+  .agentlog .logrow.queued .id {
+    color: #666;
+  }
+
+  /* right tagline */
+  .right .tagline {
+    position: absolute;
+    bottom: 22px; left: 44px; right: 48px;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--running-deep);
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'Inter', sans-serif;
+  }
+  .right .tagline .meta {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: #a0a0b5;
+    font-style: normal;
+    letter-spacing: 0;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span>Design Graph</span>
+  </div>
+  <div class="crumbs">
+    <span>New canvas</span>
+    <span class="sep">/</span>
+    <span>Setup</span>
+    <span class="sep">/</span>
+    <span class="here">Spawning</span>
+  </div>
+  <div class="nav-right">
+    <span class="live-pip"></span>
+    <span>8 agents running</span>
+  </div>
+</nav>
+
+<div class="banner">
+  <span class="l">The old way is still waiting.</span>
+  <span class="pivot">·</span>
+  <span class="r">The new way has already shipped four.</span>
+</div>
+
+<section class="split">
+  <div class="seam"></div>
+
+  <!-- ═══════════ LEFT — frozen, still, grey ═══════════ -->
+  <div class="left">
+    <div class="eyebrow">The one you'd have made</div>
+    <h2>Pricing Page · v1 — scheduled for review.</h2>
+
+    <div class="slowtimer">
+      time since request:&nbsp; <span class="hour">2 days, 4 hours</span>
+    </div>
+
+    <div class="artboard-wrap">
+      <div class="artboard">
+        <div class="ab-top">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="filename">Pricing_v3_legal-review.fig</div>
+          <div class="version">v3 · locked</div>
+        </div>
+        <div class="ab-label">
+          <span>Pricing Page · v1</span>
+          <span class="px">1440 × 900</span>
+        </div>
+        <div class="ab-body">
+          <div class="eye">Simple, honest pricing</div>
+          <div class="hero-h"></div>
+          <div class="hero-h two"></div>
+          <div class="hero-sub"></div>
+          <div class="hero-sub b"></div>
+          <div class="tiers">
+            <div class="tier">
+              <div class="name"></div>
+              <div class="price"></div>
+              <div class="feat"></div>
+              <div class="feat b"></div>
+              <div class="feat c"></div>
+              <div class="btn"></div>
+            </div>
+            <div class="tier mid">
+              <div class="name"></div>
+              <div class="price"></div>
+              <div class="feat"></div>
+              <div class="feat b"></div>
+              <div class="feat c"></div>
+              <div class="btn"></div>
+            </div>
+            <div class="tier">
+              <div class="name"></div>
+              <div class="price"></div>
+              <div class="feat"></div>
+              <div class="feat b"></div>
+              <div class="feat c"></div>
+              <div class="btn"></div>
+            </div>
+          </div>
+
+          <div class="calchip">review scheduled · Tue 10am</div>
+
+          <div class="comment-pin" style="top: 30px; left: -5px;">!</div>
+          <div class="comment-pin" style="top: 96px; right: -5px;">3</div>
+          <div class="comment-pin" style="bottom: 58px; left: 38%;">?</div>
+          <div class="comment-pin" style="bottom: 20px; right: -5px;">2</div>
+        </div>
+      </div>
+
+      <div class="committee">
+        <h4>Committee <span class="count">slow</span></h4>
+        <div class="cmt">
+          <div class="av">AK</div>
+          <div class="body">
+            <span class="who">Annika</span><span class="when">4h ago</span><br/>
+            left a comment
+          </div>
+        </div>
+        <div class="cmt">
+          <div class="av">JM</div>
+          <div class="body">
+            <span class="who">James</span><span class="when">2h ago</span><br/>
+            reacted 👍
+          </div>
+        </div>
+        <div class="cmt">
+          <div class="av">PT</div>
+          <div class="body">
+            <span class="who">Priya</span><span class="when">y'day</span><br/>
+            "let's discuss tue"
+          </div>
+        </div>
+        <div class="cmt">
+          <div class="av">DR</div>
+          <div class="body">
+            <span class="who">Dana</span><span class="when">mon</span><br/>
+            forwarded to legal
+          </div>
+        </div>
+        <div class="meetblock">
+          <div>
+            <b>Meeting in 3d</b><br/>
+            Tue · 10am · Conf Rm B
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tagline">
+      <em>this is the pace of one direction</em>
+      <span class="file">Pricing_v3_legal-review_USE-THIS.fig</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ RIGHT — alive, spawning, orange ═══════════ -->
+  <div class="right">
+    <div class="top-row">
+      <div>
+        <div class="eyebrow"><span class="pip"></span>8 agents spawning in parallel</div>
+        <h2>Eight variants materializing <span class="accent">right now</span>.</h2>
+      </div>
+      <div class="livetimer">
+        <span class="label">spawn&nbsp;+</span>
+        <span class="num">00:00:47</span>
+      </div>
+    </div>
+
+    <div class="livecanvas">
+      <div class="canvas-head">
+        <span class="left-label">canvas · pricing-page-variants</span>
+        <span class="right-label"><b>4</b> done · <b>4</b> running · <b>2</b> queued</span>
+      </div>
+
+      <div class="vgrid">
+        <!-- 3 DONE -->
+        <div class="vcard color-purple">
+          <div class="thumb thumb-a">
+            <div class="tiers-mini">
+              <div class="t"></div>
+              <div class="t hi"></div>
+              <div class="t"></div>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="id">dark-bold</span>
+            <span class="pill done">done</span>
+          </div>
+        </div>
+
+        <div class="vcard color-amber">
+          <div class="thumb thumb-b">
+            <div class="rows">
+              <div class="row"><div class="nm"></div><div class="pr"></div></div>
+              <div class="row"><div class="nm b"></div><div class="pr"></div></div>
+              <div class="row"><div class="nm c"></div><div class="pr"></div></div>
+              <div class="row"><div class="nm"></div><div class="pr"></div></div>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="id">editorial</span>
+            <span class="pill done">done</span>
+          </div>
+        </div>
+
+        <div class="vcard color-pink">
+          <div class="thumb thumb-c">
+            <div class="cards-mini">
+              <div class="c"></div>
+              <div class="c"></div>
+              <div class="c"></div>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="id">playful</span>
+            <span class="pill done">done</span>
+          </div>
+        </div>
+
+        <!-- 3 RUNNING -->
+        <div class="vcard color-teal">
+          <div class="thumb thumb-running">
+            <div class="typing">writing <span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="scaff"><span></span><span></span><span></span></div>
+          </div>
+          <div class="meta">
+            <span class="id">minimal-calm</span>
+            <span class="pill running">running</span>
+          </div>
+        </div>
+
+        <div class="vcard color-indigo">
+          <div class="thumb thumb-running">
+            <div class="typing">writing <span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="scaff"><span></span><span></span><span></span></div>
+          </div>
+          <div class="meta">
+            <span class="id">dense-compare</span>
+            <span class="pill running">running</span>
+          </div>
+        </div>
+
+        <div class="vcard color-rose">
+          <div class="thumb thumb-running">
+            <div class="typing">writing <span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            <div class="scaff"><span></span><span></span><span></span></div>
+          </div>
+          <div class="meta">
+            <span class="id">usage-meter</span>
+            <span class="pill running">running</span>
+          </div>
+        </div>
+
+        <!-- 2 QUEUED -->
+        <div class="vcard color-blue">
+          <div class="thumb thumb-queued"></div>
+          <div class="meta">
+            <span class="id">trust-heavy</span>
+            <span class="pill queued">queued</span>
+          </div>
+        </div>
+
+        <div class="vcard color-lime">
+          <div class="thumb thumb-queued"></div>
+          <div class="meta">
+            <span class="id">weird-one</span>
+            <span class="pill queued">queued</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="agentlog">
+      <div class="logrow ok">
+        <span class="id">agent-01</span>
+        <span class="msg">dark-bold · rendered pricing.html</span>
+        <span class="t">48s</span>
+      </div>
+      <div class="logrow ok">
+        <span class="id">agent-02</span>
+        <span class="msg">editorial · rendered pricing.html</span>
+        <span class="t">51s</span>
+      </div>
+      <div class="logrow run">
+        <span class="id">agent-03</span>
+        <span class="msg">minimal-calm · writing hero + tier section…</span>
+        <span class="t">—</span>
+      </div>
+      <div class="logrow run">
+        <span class="id">agent-04</span>
+        <span class="msg">dense-compare · writing feature matrix…</span>
+        <span class="t">—</span>
+      </div>
+      <div class="logrow run">
+        <span class="id">agent-05</span>
+        <span class="msg">usage-meter · writing slider widget…</span>
+        <span class="t">—</span>
+      </div>
+      <div class="logrow run">
+        <span class="id">agent-06</span>
+        <span class="msg">playful · finalizing icon tiles…</span>
+        <span class="t">—</span>
+      </div>
+      <div class="logrow queued">
+        <span class="id">agent-07</span>
+        <span class="msg">trust-heavy · queued · starts at T+60s</span>
+        <span class="t">—</span>
+      </div>
+      <div class="logrow queued">
+        <span class="id">agent-08</span>
+        <span class="msg">weird-one · queued · starts at T+65s</span>
+        <span class="t">—</span>
+      </div>
+    </div>
+
+    <div class="tagline">
+      <em>this is the pace of ten</em>
+      <span class="meta">~90s total · $0.14 so far</span>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "default": "design-graph",
+  "projects": [
+    {
+      "id": "design-graph",
+      "name": "Design Graph",
+      "description": "The meta project — Design Graph designing itself."
+    }
+  ]
+}

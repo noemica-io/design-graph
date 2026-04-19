@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Design Graph — carousel review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:          #fafaf7;
+    --ink:         #111113;
+    --ink-2:       rgba(17,17,19,0.72);
+    --muted:       rgba(17,17,19,0.52);
+    --dim:         rgba(17,17,19,0.34);
+    --faint:       rgba(17,17,19,0.18);
+    --hairline:    rgba(17,17,19,0.10);
+    --hairline-s:  rgba(17,17,19,0.06);
+    --surface:     #ffffff;
+    --accent:      #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.006em;
+  }
+
+  /* ── Minimal topbar ─────────────────────────────────────────── */
+  .top {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 52px;
+    display: flex; align-items: center;
+    padding: 0 24px;
+    z-index: 20;
+    border-bottom: 1px solid var(--hairline-s);
+  }
+  .top .name {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px; font-weight: 500; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .top .name .dim { color: var(--dim); font-weight: 450; margin: 0 8px; }
+  .top .idx {
+    margin-left: auto;
+    font-size: 12px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+  }
+  .top .idx b { color: var(--ink); font-weight: 600; }
+
+  .pick {
+    margin-left: 18px;
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 26px; padding: 0 11px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(124,58,237,0.22);
+    font-size: 11.5px; font-weight: 500;
+    letter-spacing: -0.002em;
+  }
+  .pick .ar {
+    font-size: 12px; transform: translateY(-0.5px);
+  }
+
+  /* ── Stage: full-bleed exhibit ──────────────────────────────── */
+  .stage {
+    position: absolute; top: 52px; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
+  }
+
+  /* Invisible hit regions for nav, with ghost arrows */
+  .hit {
+    position: absolute; top: 0; bottom: 0;
+    width: 160px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 5;
+  }
+  .hit.left  { left: 0; }
+  .hit.right { right: 0; }
+  .hit .ghost {
+    font-size: 38px; font-weight: 300;
+    color: var(--faint);
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+
+  /* The single exhibited variant */
+  .exhibit {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, calc(-50% - 28px));
+    width: 900px; height: 600px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    box-shadow:
+      0 1px 0 rgba(17,17,19,0.02),
+      0 30px 80px -30px rgba(17,17,19,0.18),
+      0 8px 24px -8px rgba(17,17,19,0.06);
+    overflow: hidden;
+  }
+
+  .caption {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, calc(-50% - 360px));
+    display: flex; align-items: baseline; gap: 10px;
+    font-size: 11px; color: var(--dim);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 600;
+  }
+  .caption .sep { color: var(--faint); }
+  .caption .tt { color: var(--ink-2); letter-spacing: -0.004em; text-transform: none; font-weight: 500; font-size: 13px; }
+
+  /* Bottom pagination */
+  .pager {
+    position: absolute;
+    left: 50%; bottom: 40px;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 22px;
+    z-index: 6;
+  }
+  .dots { display: flex; gap: 10px; align-items: center; }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--faint);
+  }
+  .dot.active {
+    background: var(--accent);
+    width: 7px; height: 7px;
+    box-shadow: 0 0 0 4px var(--accent-soft);
+  }
+  .kbhint {
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    font-size: 10.5px; color: var(--muted);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .kbhint .arr { color: var(--dim); font-size: 12px; }
+  .kbhint b { color: var(--ink); font-weight: 600; }
+
+  /* ────────────────────────────────────────────────────────────
+     Variant 03 — Minimalist pricing page
+     ──────────────────────────────────────────────────────────── */
+  .v-pricing {
+    width: 100%; height: 100%;
+    padding: 44px 56px 40px;
+    display: flex; flex-direction: column;
+    background: #fcfcf9;
+    color: #17171a;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.008em;
+  }
+  .vp-top {
+    display: flex; align-items: center;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(17,17,19,0.06);
+  }
+  .vp-mark {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.02em;
+  }
+  .vp-mark .m {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: #17171a;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 10px; font-weight: 700;
+  }
+  .vp-nav {
+    margin-left: auto;
+    display: flex; gap: 28px;
+    font-size: 12.5px; color: rgba(17,17,19,0.6);
+    font-weight: 450;
+  }
+  .vp-nav .on { color: #17171a; font-weight: 500; }
+  .vp-cta {
+    margin-left: 32px;
+    font-size: 12.5px; font-weight: 500;
+    color: #17171a;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .vp-cta .arr { font-size: 11px; color: rgba(17,17,19,0.45); }
+
+  .vp-hero {
+    padding: 54px 0 44px;
+    text-align: center;
+    border-bottom: 1px solid rgba(17,17,19,0.06);
+  }
+  .vp-eyebrow {
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(17,17,19,0.5);
+    margin-bottom: 18px;
+  }
+  .vp-h1 {
+    font-size: 42px; font-weight: 600;
+    letter-spacing: -0.028em;
+    line-height: 1.05;
+    color: #17171a;
+  }
+  .vp-h1 em {
+    font-style: normal; color: rgba(17,17,19,0.4);
+  }
+  .vp-sub {
+    margin-top: 14px;
+    font-size: 14.5px; color: rgba(17,17,19,0.58);
+    font-weight: 450; letter-spacing: -0.003em;
+  }
+
+  .vp-plans {
+    margin-top: 40px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    flex: 1;
+  }
+  .vp-plan {
+    padding: 4px 28px 0;
+    display: flex; flex-direction: column;
+  }
+  .vp-plan + .vp-plan { border-left: 1px solid rgba(17,17,19,0.06); }
+
+  .vp-pname {
+    font-size: 12.5px; font-weight: 600;
+    letter-spacing: -0.005em;
+    color: #17171a;
+    margin-bottom: 4px;
+  }
+  .vp-pdesc {
+    font-size: 11.5px; color: rgba(17,17,19,0.52);
+    font-weight: 450; letter-spacing: -0.002em;
+    margin-bottom: 18px;
+    min-height: 30px;
+  }
+  .vp-price {
+    font-size: 34px; font-weight: 600;
+    letter-spacing: -0.028em;
+    color: #17171a;
+    display: flex; align-items: baseline; gap: 4px;
+  }
+  .vp-price .pm {
+    font-size: 12px; color: rgba(17,17,19,0.5);
+    font-weight: 450; letter-spacing: -0.002em;
+  }
+  .vp-line {
+    margin-top: 16px;
+    width: 24px; height: 1px;
+    background: rgba(17,17,19,0.2);
+  }
+  .vp-feats {
+    margin-top: 16px;
+    list-style: none;
+    font-size: 12px; color: rgba(17,17,19,0.72);
+    font-weight: 450; letter-spacing: -0.002em;
+  }
+  .vp-feats li {
+    padding: 5px 0;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .vp-feats li::before {
+    content: '–'; color: rgba(17,17,19,0.32);
+    font-weight: 400;
+  }
+  .vp-pbtn {
+    margin-top: auto;
+    margin-bottom: 2px;
+    font-size: 12px; color: #17171a;
+    font-weight: 500; letter-spacing: -0.002em;
+    padding-top: 16px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .vp-pbtn .arr { color: rgba(17,17,19,0.4); font-size: 11px; }
+  .vp-plan.mid .vp-pname { color: #17171a; }
+  .vp-plan.mid .vp-pname::after {
+    content: ' · recommended';
+    color: rgba(17,17,19,0.4); font-weight: 450;
+    font-size: 11px; letter-spacing: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="name">Pricing page explorations <span class="dim">·</span> review</div>
+  <div class="idx"><b>3</b> / 5</div>
+  <div class="pick">pick <span class="ar">→</span></div>
+</div>
+
+<div class="stage">
+
+  <!-- Left hit region with ghost arrow -->
+  <div class="hit left"><div class="ghost">‹</div></div>
+
+  <!-- Caption above exhibit -->
+  <div class="caption">
+    <span>Variant 03</span>
+    <span class="sep">/</span>
+    <span class="tt">Minimalist pricing page</span>
+  </div>
+
+  <!-- The exhibit -->
+  <div class="exhibit">
+    <div class="v-pricing">
+      <div class="vp-top">
+        <div class="vp-mark"><span class="m">L</span>Linework</div>
+        <div class="vp-nav">
+          <span>Product</span>
+          <span>Docs</span>
+          <span>Customers</span>
+          <span class="on">Pricing</span>
+        </div>
+        <div class="vp-cta">Sign in <span class="arr">→</span></div>
+      </div>
+
+      <div class="vp-hero">
+        <div class="vp-eyebrow">Pricing</div>
+        <div class="vp-h1">Simple, <em>per-seat.</em></div>
+        <div class="vp-sub">No tiers hidden behind a form. Cancel anytime.</div>
+      </div>
+
+      <div class="vp-plans">
+        <div class="vp-plan">
+          <div class="vp-pname">Solo</div>
+          <div class="vp-pdesc">For individual makers and tinkerers.</div>
+          <div class="vp-price">$0<span class="pm">/ month</span></div>
+          <div class="vp-line"></div>
+          <ul class="vp-feats">
+            <li>1 workspace</li>
+            <li>Up to 3 projects</li>
+            <li>Community support</li>
+          </ul>
+          <div class="vp-pbtn">Start free <span class="arr">→</span></div>
+        </div>
+
+        <div class="vp-plan mid">
+          <div class="vp-pname">Team</div>
+          <div class="vp-pdesc">For small teams shipping in parallel.</div>
+          <div class="vp-price">$18<span class="pm">/ seat / mo</span></div>
+          <div class="vp-line"></div>
+          <ul class="vp-feats">
+            <li>Unlimited projects</li>
+            <li>Shared canvases</li>
+            <li>Version history, 90 days</li>
+            <li>Priority support</li>
+          </ul>
+          <div class="vp-pbtn">Choose Team <span class="arr">→</span></div>
+        </div>
+
+        <div class="vp-plan">
+          <div class="vp-pname">Studio</div>
+          <div class="vp-pdesc">For agencies and larger design orgs.</div>
+          <div class="vp-price">$42<span class="pm">/ seat / mo</span></div>
+          <div class="vp-line"></div>
+          <ul class="vp-feats">
+            <li>SSO &amp; audit log</li>
+            <li>Unlimited history</li>
+            <li>Custom roles</li>
+            <li>Dedicated CSM</li>
+          </ul>
+          <div class="vp-pbtn">Talk to sales <span class="arr">→</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right hit region with ghost arrow -->
+  <div class="hit right"><div class="ghost">›</div></div>
+
+  <!-- Pagination -->
+  <div class="pager">
+    <div class="kbhint"><span class="arr">←</span> <b>3</b> of 5 <span class="arr">→</span></div>
+    <div class="dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot active"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

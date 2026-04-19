@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — the one you'd have shipped.</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0e;
+    --bg-soft: #111116;
+    --ink: #efece7;
+    --ink-dim: #8c8a86;
+    --ink-mute: #5a5860;
+    --hair: #22212a;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --accent-deep: #6d28d9;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.008em;
+  }
+
+  /* subtle film grain + vignette for confessional intimacy */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(139,92,246,0.055) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 110%, rgba(0,0,0,0.6) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    opacity: 0.7;
+    z-index: 1;
+  }
+
+  /* ───────── the dissolving seam ───────── */
+  /* a visual echo of the landing's 50/50 split — a hairline
+     that exists at top, fades out by mid-page, gone by bottom. */
+  .seam {
+    position: absolute;
+    left: 50%; top: 0;
+    width: 1px; height: 320px;
+    background: linear-gradient(180deg,
+      rgba(139,92,246,0.55) 0%,
+      rgba(139,92,246,0.25) 40%,
+      rgba(139,92,246,0.0) 100%);
+    z-index: 2;
+  }
+  .seam::after {
+    content: "we were two.";
+    position: absolute;
+    top: 18px; left: 16px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12px;
+    color: rgba(167,139,250,0.55);
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+  }
+  .seam-echo {
+    position: absolute;
+    left: 50%; top: 320px;
+    transform: translateX(-50%);
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12px;
+    color: rgba(140,138,134,0.55);
+    z-index: 2;
+    letter-spacing: 0.01em;
+  }
+
+  /* ───────── nav — almost invisible ───────── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 56px; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 500; font-size: 13px;
+    color: var(--ink-dim);
+  }
+  nav .brand .dot {
+    width: 12px; height: 12px; border-radius: 3px;
+    background: linear-gradient(135deg, #2a2830 0 50%, var(--accent) 50% 100%);
+  }
+  nav .brand b {
+    font-weight: 500; color: var(--ink);
+  }
+  nav .step {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+  nav .step b {
+    color: var(--accent-soft);
+    font-weight: 500;
+  }
+
+  /* ───────── stage ───────── */
+  .stage {
+    position: relative;
+    z-index: 3;
+    width: 100%; height: 800px;
+    padding: 108px 120px 64px 120px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 30px;
+  }
+  .eyebrow .pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(139,92,246,0.14);
+    animation: pip 2.4s ease-in-out infinite;
+  }
+  @keyframes pip {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  .eyebrow .sep { color: var(--ink-mute); }
+  .eyebrow .meta { color: var(--ink-dim); letter-spacing: 0.1em; }
+
+  .question {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-size: 68px;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin: 0 0 22px 0;
+    max-width: 900px;
+  }
+  .question em {
+    font-style: italic;
+    color: var(--accent-soft);
+    font-weight: 300;
+  }
+  .question .caret {
+    display: inline-block;
+    width: 3px; height: 0.82em;
+    background: var(--accent);
+    margin-left: 6px;
+    transform: translateY(0.08em);
+    animation: caret 1.1s step-end infinite;
+  }
+  @keyframes caret {
+    50% { opacity: 0; }
+  }
+
+  .subtext {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-dim);
+    max-width: 620px;
+    margin: 0 0 44px 0;
+  }
+  .subtext b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ───────── the notebook textarea ───────── */
+  .notebook {
+    position: relative;
+    max-width: 940px;
+    margin-bottom: 20px;
+  }
+  .notebook .rule {
+    position: absolute;
+    left: 0; right: 0; bottom: -10px;
+    height: 1px;
+    background: linear-gradient(90deg,
+      rgba(139,92,246,0.35) 0%,
+      rgba(139,92,246,0.08) 40%,
+      transparent 100%);
+  }
+  .notebook textarea {
+    width: 100%;
+    min-height: 130px;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    resize: none;
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-size: 24px;
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+    padding: 0;
+  }
+  .notebook textarea::placeholder {
+    color: var(--ink-mute);
+    font-style: italic;
+  }
+  .notebook .hint {
+    position: absolute;
+    right: 0; top: -26px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+  }
+  .notebook .hint b {
+    color: var(--ink-dim);
+    font-weight: 400;
+  }
+
+  /* ───────── footnote row ───────── */
+  .footrow {
+    max-width: 940px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 30px;
+    padding-top: 22px;
+    border-top: 1px solid var(--hair);
+  }
+  .variants {
+    display: flex; align-items: center; gap: 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+  .variants .label { color: var(--ink-dim); }
+  .variants .stepper {
+    display: inline-flex; align-items: center;
+    border: 1px solid var(--hair);
+    border-radius: 5px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.015);
+  }
+  .variants .stepper button {
+    background: transparent;
+    border: 0;
+    color: var(--ink-dim);
+    width: 26px; height: 26px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, background 0.15s;
+  }
+  .variants .stepper button:hover {
+    background: rgba(139,92,246,0.1);
+    color: var(--accent-soft);
+  }
+  .variants .stepper .n {
+    min-width: 34px;
+    text-align: center;
+    color: var(--ink);
+    font-weight: 500;
+    font-size: 13px;
+    border-left: 1px solid var(--hair);
+    border-right: 1px solid var(--hair);
+    height: 26px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .variants .hint-small {
+    color: var(--ink-mute);
+    font-style: italic;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  /* ───────── CTA ───────── */
+  .commit {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    padding: 13px 22px 13px 24px;
+    border-radius: 7px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.08) inset,
+      0 10px 30px -8px rgba(139,92,246,0.55);
+    transition: transform 0.15s, background 0.15s, box-shadow 0.2s;
+  }
+  .commit:hover {
+    transform: translateY(-1px);
+    background: #7c3aed;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.08) inset,
+      0 14px 36px -6px rgba(139,92,246,0.7);
+  }
+  .commit .arrow {
+    transition: transform 0.2s;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .commit:hover .arrow { transform: translateX(3px); }
+  .commit .verb { font-style: normal; }
+  .commit .amp {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    opacity: 0.85;
+  }
+
+  /* ───────── marginalia (epigraph) ───────── */
+  .marginalia {
+    position: absolute;
+    right: 72px;
+    top: 178px;
+    max-width: 210px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-mute);
+    text-align: right;
+    z-index: 3;
+    border-right: 1px solid rgba(139,92,246,0.25);
+    padding-right: 16px;
+  }
+  .marginalia::before {
+    content: "—";
+    display: block;
+    color: var(--accent);
+    margin-bottom: 6px;
+    font-style: normal;
+    letter-spacing: 0.2em;
+  }
+  .marginalia b {
+    color: var(--ink-dim);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: block;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* ───────── bottom fineprint ───────── */
+  .fineprint {
+    position: absolute;
+    bottom: 28px; left: 120px; right: 120px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+    z-index: 3;
+  }
+  .fineprint .left-hint {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .fineprint .kbd {
+    border: 1px solid var(--hair);
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: var(--ink-dim);
+    background: rgba(255,255,255,0.015);
+  }
+  .fineprint a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    border-bottom: 1px solid var(--hair);
+    padding-bottom: 1px;
+  }
+  .fineprint a:hover { color: var(--accent-soft); border-bottom-color: var(--accent); }
+
+  /* content z-stack */
+  .stage > * { position: relative; z-index: 3; }
+</style>
+</head>
+<body>
+
+<div class="seam"></div>
+<div class="seam-echo">now we are one.</div>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span><b>Design Graph</b></span>
+  </div>
+  <div class="step">step <b>02</b> / setup · <span style="color:var(--ink-dim)">confession</span></div>
+</nav>
+
+<aside class="marginalia">
+  "Pick a direction, defend it, revise it to death."<br/>
+  That was the old way. Before you ruin it again, just tell us what it was going to be.
+  <b>— from the pitch, one scroll ago</b>
+</aside>
+
+<main class="stage">
+
+  <div class="eyebrow">
+    <span class="pip"></span>
+    <span>Before we spawn anything</span>
+    <span class="sep">·</span>
+    <span class="meta">one question, no form fields</span>
+  </div>
+
+  <h1 class="question">
+    Tell us the <em>one direction</em><br/>
+    you'd have shipped on your own.<span class="caret"></span>
+  </h1>
+
+  <p class="subtext">
+    The one you'd have defended in the review. Not the safe summary — the
+    <b>actual instinct</b>. We'll build that, and nine alternates you didn't
+    know to ask for. Consider this the confession booth. It's private, and
+    it decides what the other nine are arguing against.
+  </p>
+
+  <div class="notebook">
+    <div class="hint">editorial · <b>draft</b> · autosaving</div>
+    <textarea
+      autofocus
+      spellcheck="false"
+      placeholder="Start with the first idea that came to you. Don't edit. The worse the sentence, the better the signal."
+    >A dense editorial landing. Left column is a crossed-out version of how we used to do it; right column is the product, mid-stride. One purple accent, serif headline, everything else grey. No screenshots — a working miniature instead. The CTA is wry, not earnest.</textarea>
+    <div class="rule"></div>
+  </div>
+
+  <div class="footrow">
+    <div class="variants">
+      <span class="label">Variants to spawn</span>
+      <span class="stepper" role="group" aria-label="Variant count">
+        <button type="button" aria-label="Decrease">−</button>
+        <span class="n">10</span>
+        <button type="button" aria-label="Increase">+</button>
+      </span>
+      <span class="hint-small">your one, plus nine you didn't ask for</span>
+    </div>
+
+    <button class="commit" type="button">
+      <span class="verb">Commit</span>
+      <span class="amp">&amp;</span>
+      <span class="verb">spawn</span>
+      <span class="arrow">→</span>
+    </button>
+  </div>
+
+</main>
+
+<div class="fineprint">
+  <div class="left-hint">
+    <span>press</span>
+    <span class="kbd">⌘</span>
+    <span class="kbd">↵</span>
+    <span>to commit · <span class="kbd">esc</span> to reconsider</span>
+  </div>
+  <div>
+    <a href="landing-split-brain.html">← back to the pitch</a>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — here is the one. and here are nine others.</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0b0e;
+    --bg-soft: #111116;
+    --ink: #efece7;
+    --ink-dim: #8c8a86;
+    --ink-mute: #5a5860;
+    --ink-faint: #3a3944;
+    --hair: #22212a;
+    --hair-soft: #1a1922;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --accent-deep: #6d28d9;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.008em;
+  }
+
+  /* grain + vignette — same recipe as confession page */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(139,92,246,0.045) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 115%, rgba(0,0,0,0.55) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    opacity: 0.6;
+    z-index: 1;
+  }
+
+  /* ───────── nav ───────── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 52px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 500; font-size: 13px;
+    color: var(--ink-dim);
+  }
+  nav .brand .dot {
+    width: 12px; height: 12px; border-radius: 3px;
+    background: linear-gradient(135deg, #2a2830 0 50%, var(--accent) 50% 100%);
+  }
+  nav .brand b { font-weight: 500; color: var(--ink); }
+  nav .step {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+  nav .step b { color: var(--accent-soft); font-weight: 500; }
+
+  /* ───────── the final seam — only through card 1 ───────── */
+  .final-seam {
+    position: absolute;
+    left: 245px;              /* aligns with card 1 center */
+    top: 232px;
+    width: 1px;
+    height: 186px;
+    background: linear-gradient(180deg,
+      rgba(139,92,246,0.0) 0%,
+      rgba(139,92,246,0.55) 20%,
+      rgba(139,92,246,0.55) 80%,
+      rgba(139,92,246,0.0) 100%);
+    z-index: 5;
+    pointer-events: none;
+  }
+  .final-seam::before {
+    content: "the seam resolves here.";
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 10.5px;
+    color: rgba(167,139,250,0.5);
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  /* ───────── stage ───────── */
+  .stage {
+    position: relative; z-index: 3;
+    width: 100%; height: 800px;
+    padding: 76px 64px 48px 64px;
+    display: flex; flex-direction: column;
+  }
+
+  /* header row: quote on left, headline on right-ish */
+  .header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: end;
+    margin-bottom: 26px;
+  }
+
+  .confession-card {
+    position: relative;
+    padding: 14px 16px 14px 18px;
+    border-left: 1px solid rgba(139,92,246,0.35);
+    background: linear-gradient(90deg, rgba(139,92,246,0.05) 0%, transparent 100%);
+    max-width: 520px;
+  }
+  .confession-card .tag {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .confession-card .tag .pip {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.14);
+  }
+  .confession-card .tag .when {
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    font-weight: 400;
+  }
+  .confession-card blockquote {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink-dim);
+    letter-spacing: -0.002em;
+  }
+  .confession-card blockquote::before {
+    content: "“";
+    color: var(--accent-soft);
+    font-style: normal;
+    margin-right: 1px;
+  }
+  .confession-card blockquote::after {
+    content: "”";
+    color: var(--accent-soft);
+    font-style: normal;
+  }
+  .confession-card .cite {
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+  }
+  .confession-card .cite b {
+    color: var(--ink-dim);
+    font-weight: 400;
+  }
+
+  .headline {
+    text-align: right;
+    padding-right: 4px;
+  }
+  .headline .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 10px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .headline .eyebrow b {
+    color: var(--accent-soft);
+    font-weight: 500;
+  }
+  .headline h1 {
+    margin: 0;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-size: 34px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .headline h1 em {
+    font-style: italic;
+    color: var(--accent-soft);
+    font-weight: 300;
+  }
+  .headline .sub {
+    margin-top: 8px;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-mute);
+    max-width: 440px;
+    margin-left: auto;
+    font-style: italic;
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+  }
+
+  /* ───────── grid (3-4-3) on dotted canvas ───────── */
+  .gallery {
+    position: relative;
+    flex: 1;
+    border: 1px solid var(--hair);
+    border-radius: 8px;
+    background: #09090c;
+    padding: 18px 22px 20px 22px;
+    overflow: hidden;
+  }
+  .gallery::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(139,92,246,0.06) 1px, transparent 1px);
+    background-size: 18px 18px;
+    background-position: 9px 9px;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .gallery .ledger {
+    position: absolute; top: 10px; left: 14px; right: 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    z-index: 3;
+    pointer-events: none;
+  }
+  .gallery .ledger .left {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .gallery .ledger .left .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
+  }
+  .gallery .ledger b { color: var(--ink-dim); font-weight: 400; }
+  .gallery .ledger .right em {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-mute);
+    letter-spacing: 0;
+  }
+
+  .row {
+    display: grid;
+    gap: 14px;
+    margin-top: 0;
+  }
+  .row.r1 { grid-template-columns: repeat(3, 1fr); margin-top: 22px; padding: 0 56px; }
+  .row.r2 { grid-template-columns: repeat(4, 1fr); margin-top: 14px; }
+  .row.r3 { grid-template-columns: repeat(3, 1fr); margin-top: 14px; padding: 0 56px; }
+
+  /* ───────── card ───────── */
+  .card {
+    position: relative;
+    background: var(--bg-soft);
+    border: 1px solid var(--hair);
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: transform 0.2s, border-color 0.2s;
+    z-index: 2;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(139,92,246,0.35);
+  }
+  .card .thumb {
+    position: relative;
+    height: 92px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--hair);
+  }
+  .card .body {
+    padding: 8px 10px 9px 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-height: 68px;
+  }
+  .card .desc {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: var(--ink-dim);
+    letter-spacing: -0.002em;
+  }
+  .card .foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: auto;
+    padding-top: 4px;
+  }
+  .card .tag-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--ink-mute);
+    text-transform: uppercase;
+  }
+  .card .open {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9.5px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 4px;
+    letter-spacing: 0.02em;
+  }
+  .card:hover .open { color: var(--accent-soft); }
+
+  /* THE CONFESSED — card 1 */
+  .card.confessed {
+    border: 1px solid rgba(139,92,246,0.55);
+    box-shadow:
+      0 0 0 1px rgba(139,92,246,0.15),
+      0 10px 34px -10px rgba(139,92,246,0.4);
+    background: linear-gradient(180deg, #13111c 0%, #0f0e16 100%);
+  }
+  .card.confessed .thumb {
+    border-bottom-color: rgba(139,92,246,0.28);
+  }
+  .card.confessed .badge {
+    position: absolute;
+    top: 6px; left: 6px;
+    z-index: 3;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 7px 3px 6px;
+    background: rgba(11,11,14,0.8);
+    border: 1px solid rgba(139,92,246,0.55);
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    color: var(--accent-soft);
+    letter-spacing: 0.04em;
+    backdrop-filter: blur(4px);
+  }
+  .card.confessed .badge .glyph {
+    font-size: 10px;
+    line-height: 1;
+    transform: translateY(-0.5px);
+  }
+  .card.confessed .desc { color: var(--ink); }
+
+  /* ───────── mini page thumbnails (each distinct) ───────── */
+  .t { position: absolute; inset: 0; }
+
+  /* 1. CONFESSED — minimalist single plan, cream-on-dark, serif, $29/mo */
+  .t.t1 {
+    background: #f6f2ea;
+    color: #1b1a1f;
+    padding: 10px 12px;
+    font-family: 'Fraunces', Georgia, serif;
+  }
+  .t.t1 .h {
+    font-size: 7px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .t.t1 .price {
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .t.t1 .price sup {
+    font-size: 9px;
+    font-weight: 400;
+    vertical-align: top;
+    margin-right: 1px;
+  }
+  .t.t1 .price small {
+    font-size: 7px;
+    color: #6a6762;
+    margin-left: 3px;
+    font-style: italic;
+  }
+  .t.t1 .sub {
+    font-size: 6px;
+    color: #6a6762;
+    font-style: italic;
+    margin-top: 3px;
+    max-width: 85%;
+    line-height: 1.3;
+  }
+  .t.t1 .btn {
+    position: absolute;
+    bottom: 8px; left: 12px;
+    background: #8b5cf6;
+    color: #fff;
+    padding: 3px 7px;
+    font-size: 6.5px;
+    border-radius: 2px;
+    letter-spacing: 0.02em;
+    font-family: 'Inter', sans-serif;
+  }
+  .t.t1 .accent-line {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 18px; height: 1px;
+    background: #8b5cf6;
+  }
+
+  /* 2. "The one you didn't ask for" — dense comparison table, 3 plans */
+  .t.t2 {
+    background: #fafaf9;
+    color: #1a1a1a;
+    padding: 8px;
+    font-family: 'Inter', sans-serif;
+  }
+  .t.t2 .row-t {
+    display: grid;
+    grid-template-columns: 34% 22% 22% 22%;
+    gap: 1px;
+    font-size: 5px;
+    border-bottom: 1px solid #d8d4cc;
+    padding: 2px 0;
+  }
+  .t.t2 .row-t.head {
+    font-weight: 600;
+    border-bottom: 1px solid #222;
+    padding-bottom: 3px;
+  }
+  .t.t2 .row-t.head div:nth-child(3) { color: #2563eb; }
+  .t.t2 .row-t .c { text-align: center; color: #555; }
+  .t.t2 .row-t .c.y { color: #2563eb; font-weight: 600; }
+  .t.t2 .row-t .c.n { color: #c8c4bc; }
+  .t.t2 .t-head {
+    font-family: 'Fraunces', serif;
+    font-size: 9px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    letter-spacing: -0.01em;
+  }
+
+  /* 3. "The loud one" — tiered with yearly/monthly toggle, brutalist */
+  .t.t3 {
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    font-family: 'Inter', sans-serif;
+  }
+  .t.t3 .big {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+  .t.t3 .big .yellow { color: #eaff00; }
+  .t.t3 .toggle {
+    display: inline-flex;
+    margin-top: 5px;
+    border: 1px solid #eaff00;
+    font-size: 5px;
+    font-weight: 600;
+  }
+  .t.t3 .toggle span {
+    padding: 2px 5px;
+  }
+  .t.t3 .toggle .on {
+    background: #eaff00;
+    color: #000;
+  }
+  .t.t3 .tiers {
+    display: flex; gap: 3px;
+    margin-top: 5px;
+  }
+  .t.t3 .tier {
+    flex: 1;
+    border: 1px solid #333;
+    padding: 3px;
+    font-size: 5px;
+  }
+  .t.t3 .tier.hot {
+    background: #eaff00;
+    color: #000;
+    border-color: #eaff00;
+  }
+  .t.t3 .tier b { font-size: 8px; }
+
+  /* 4. "The one that would have alarmed legal" — neon/cyber with disclaimer */
+  .t.t4 {
+    background: radial-gradient(ellipse at 30% 30%, #1a0d2e 0%, #05010a 80%);
+    color: #fff;
+    padding: 8px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .t.t4 .glow {
+    font-size: 11px;
+    font-weight: 500;
+    color: #00ffd1;
+    text-shadow: 0 0 8px rgba(0,255,209,0.6);
+    letter-spacing: -0.01em;
+  }
+  .t.t4 .lock {
+    font-size: 5px;
+    color: #ff2d6d;
+    margin-top: 3px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .t.t4 .card-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    margin-top: 4px;
+  }
+  .t.t4 .plan {
+    border: 1px solid rgba(0,255,209,0.4);
+    padding: 3px;
+    font-size: 5px;
+  }
+  .t.t4 .plan b {
+    color: #00ffd1;
+    font-size: 8px;
+    display: block;
+  }
+  .t.t4 .fine {
+    position: absolute;
+    bottom: 6px; left: 8px; right: 8px;
+    font-size: 4px;
+    color: #ff2d6d;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
+  }
+
+  /* 5. "The one a designer would pick" — ultra minimal, typography-forward */
+  .t.t5 {
+    background: #ede9e0;
+    color: #16161a;
+    padding: 14px 12px;
+    font-family: 'Fraunces', Georgia, serif;
+  }
+  .t.t5 .slash {
+    font-size: 4.5px;
+    letter-spacing: 0.3em;
+    color: #88857d;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .t.t5 .one {
+    font-size: 30px;
+    font-weight: 300;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    font-style: italic;
+  }
+  .t.t5 .tiny {
+    font-size: 5px;
+    color: #88857d;
+    margin-top: 4px;
+    font-style: italic;
+    max-width: 70%;
+    line-height: 1.4;
+  }
+  .t.t5 .dash {
+    position: absolute;
+    bottom: 14px; left: 12px;
+    font-size: 6px;
+    letter-spacing: 0.06em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* 6. "The one a CFO would pick" — dense spreadsheet / ROI matrix */
+  .t.t6 {
+    background: #fafafa;
+    color: #2a2a2a;
+    padding: 5px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .t.t6 .head-row {
+    font-size: 5px;
+    font-weight: 600;
+    padding: 2px 3px;
+    background: #e8e8e6;
+    border-bottom: 1px solid #bbb;
+    display: grid;
+    grid-template-columns: 1fr 0.6fr 0.6fr 0.6fr 0.6fr;
+    gap: 1px;
+    letter-spacing: 0.02em;
+  }
+  .t.t6 .d-row {
+    font-size: 4.5px;
+    padding: 1.5px 3px;
+    border-bottom: 1px solid #eee;
+    display: grid;
+    grid-template-columns: 1fr 0.6fr 0.6fr 0.6fr 0.6fr;
+    gap: 1px;
+  }
+  .t.t6 .d-row.highlight { background: #fef3c7; }
+  .t.t6 .d-row .num { text-align: right; }
+  .t.t6 .d-row .pos { color: #047857; }
+  .t.t6 .d-row .neg { color: #b91c1c; }
+  .t.t6 .hdr-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 6px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    color: #555;
+  }
+
+  /* 7. "The one that tested better" — tiered, blue accent, checkmarks */
+  .t.t7 {
+    background: #fff;
+    color: #111;
+    padding: 7px;
+    font-family: 'Inter', sans-serif;
+  }
+  .t.t7 .title {
+    font-size: 8px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .t.t7 .p-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+  }
+  .t.t7 .p {
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 4px;
+    font-size: 5px;
+    text-align: center;
+  }
+  .t.t7 .p.mid {
+    border-color: #2563eb;
+    border-width: 1.5px;
+    background: #eff6ff;
+    position: relative;
+  }
+  .t.t7 .p.mid::before {
+    content: "POPULAR";
+    position: absolute;
+    top: -5px; left: 50%;
+    transform: translateX(-50%);
+    background: #2563eb;
+    color: #fff;
+    font-size: 4px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+  }
+  .t.t7 .p b {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    display: block;
+    margin: 2px 0;
+  }
+  .t.t7 .check {
+    font-size: 4.5px;
+    color: #64748b;
+    text-align: left;
+    line-height: 1.5;
+    margin-top: 3px;
+  }
+  .t.t7 .check div::before {
+    content: "✓ ";
+    color: #2563eb;
+  }
+
+  /* 8. "The pastel one" — playful, pink/mint, round shapes */
+  .t.t8 {
+    background: linear-gradient(135deg, #ffe7f1 0%, #e4f9ee 100%);
+    color: #3b2f44;
+    padding: 8px;
+    font-family: 'Inter', sans-serif;
+  }
+  .t.t8 .blob {
+    position: absolute;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,170,200,0.4);
+    top: -8px; right: -6px;
+  }
+  .t.t8 .blob2 {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(150,230,200,0.45);
+    bottom: -4px; left: -4px;
+  }
+  .t.t8 .h {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  .t.t8 .h span {
+    background: #fff;
+    padding: 0 3px;
+    border-radius: 6px;
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+  }
+  .t.t8 .card-p {
+    margin-top: 5px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 5px 6px;
+    font-size: 5px;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  }
+  .t.t8 .card-p b {
+    font-size: 11px;
+    letter-spacing: -0.03em;
+  }
+  .t.t8 .pill {
+    display: inline-block;
+    background: #3b2f44;
+    color: #fff;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 4.5px;
+    margin-top: 3px;
+  }
+
+  /* 9. "The mobile one" — phone silhouette with stacked plans */
+  .t.t9 {
+    background: #1a1a20;
+    color: #ddd;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .t.t9::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 6px);
+  }
+  .t.t9 .phone {
+    width: 54px;
+    height: 80px;
+    background: #fff;
+    border-radius: 7px;
+    border: 1.5px solid #000;
+    padding: 5px 4px;
+    position: relative;
+    color: #111;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  }
+  .t.t9 .phone::before {
+    content: "";
+    position: absolute;
+    top: 3px; left: 50%;
+    transform: translateX(-50%);
+    width: 12px; height: 1.5px;
+    background: #333;
+    border-radius: 1px;
+  }
+  .t.t9 .phone .ph-title {
+    font-size: 4.5px;
+    font-weight: 700;
+    margin-top: 5px;
+    letter-spacing: -0.01em;
+  }
+  .t.t9 .phone .ph-plan {
+    background: #f4f4f4;
+    margin-top: 3px;
+    padding: 2px 3px;
+    font-size: 3.5px;
+    border-radius: 2px;
+  }
+  .t.t9 .phone .ph-plan.sel {
+    background: #8b5cf6;
+    color: #fff;
+  }
+  .t.t9 .phone .ph-plan b { font-size: 5px; display: block; }
+  .t.t9 .phone .ph-btn {
+    position: absolute;
+    bottom: 4px; left: 4px; right: 4px;
+    background: #000;
+    color: #fff;
+    text-align: center;
+    padding: 2px;
+    border-radius: 2px;
+    font-size: 4px;
+    font-weight: 600;
+  }
+
+  /* 10. "The footer-only" — almost nothing, massive whitespace */
+  .t.t10 {
+    background: #ffffff;
+    color: #0a0a0a;
+    padding: 8px 10px;
+    font-family: 'Inter', sans-serif;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .t.t10 .top {
+    font-size: 4.5px;
+    letter-spacing: 0.18em;
+    color: #999;
+    text-transform: uppercase;
+  }
+  .t.t10 .middle {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 10px;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    margin: 6px 0;
+    font-style: italic;
+    color: #0a0a0a;
+  }
+  .t.t10 .middle em {
+    font-style: normal;
+    border-bottom: 1px solid #0a0a0a;
+  }
+  .t.t10 .footer {
+    border-top: 1px solid #e5e5e5;
+    padding-top: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    font-size: 4px;
+    color: #666;
+    letter-spacing: 0.04em;
+  }
+  .t.t10 .footer b { color: #0a0a0a; font-weight: 500; }
+
+  /* ───────── bottom CTA row ───────── */
+  .bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding-top: 2px;
+  }
+  .bottom .legend {
+    display: flex; align-items: center; gap: 16px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    color: var(--ink-mute);
+    letter-spacing: 0.02em;
+  }
+  .bottom .legend .swatch {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .bottom .legend .swatch .sq {
+    width: 8px; height: 8px; border-radius: 1.5px;
+    border: 1px solid rgba(139,92,246,0.55);
+    background: rgba(139,92,246,0.18);
+  }
+  .bottom .legend .swatch .sq.plain {
+    border-color: var(--hair);
+    background: var(--bg-soft);
+  }
+  .bottom .legend em {
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    color: var(--ink-dim);
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  .walkthrough {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid rgba(139,92,246,0.45);
+    padding: 10px 18px 10px 20px;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .walkthrough:hover {
+    background: rgba(139,92,246,0.08);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .walkthrough .amp {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--accent-soft);
+    opacity: 0.9;
+  }
+  .walkthrough .arrow {
+    font-size: 15px;
+    line-height: 1;
+    color: var(--accent-soft);
+    transition: transform 0.2s;
+  }
+  .walkthrough:hover .arrow { transform: translateX(3px); }
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span><b>Design Graph</b></span>
+  </div>
+  <div class="step">step <b>03</b> / reveal · <span style="color:var(--ink-dim)">ten</span></div>
+</nav>
+
+<!-- the final seam — a last whisper of the 50/50 split, now resolved through the confessed card -->
+<div class="final-seam"></div>
+
+<main class="stage">
+
+  <div class="header">
+    <aside class="confession-card">
+      <div class="tag">
+        <span class="pip"></span>
+        <span>Your confession</span>
+        <span class="when">· just now</span>
+      </div>
+      <blockquote>A minimalist pricing page with a single annual plan, $29/mo, no feature comparison table.</blockquote>
+      <div class="cite"><b>— you, one breath ago.</b> we kept the sentence exactly.</div>
+    </aside>
+
+    <div class="headline">
+      <div class="eyebrow">the <b>ten</b> are rendered. nothing to click away.</div>
+      <h1>Here is the one.<br/>And here are <em>nine others.</em></h1>
+      <p class="sub">
+        The one you'd have shipped is still first. The other nine are what
+        you'd have dismissed in the Slack thread — rendered anyway, at full size, in case.
+      </p>
+    </div>
+  </div>
+
+  <section class="gallery">
+    <div class="ledger">
+      <div class="left">
+        <span class="dot"></span>
+        <span>spawn · <b>10 / 10 rendered</b></span>
+        <span>·</span>
+        <span>1 confessed · 9 parallel</span>
+      </div>
+      <div class="right"><em>none are selected yet. that's the next step.</em></div>
+    </div>
+
+    <!-- Row 1 — three cards -->
+    <div class="row r1">
+      <!-- THE CONFESSED -->
+      <article class="card confessed">
+        <div class="badge"><span class="glyph">↻</span><span>the one you'd have picked</span></div>
+        <div class="thumb">
+          <div class="t t1">
+            <div class="accent-line"></div>
+            <div class="h">Pricing, honestly.</div>
+            <div class="price"><sup>$</sup>29<small>/mo, billed yearly</small></div>
+            <div class="sub">One plan. Everything included. If you outgrow it, we'll ask.</div>
+            <div class="btn">Start annual →</div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one you confessed. Single plan, $29, no table — the page you'd have defended in review.</div>
+          <div class="foot">
+            <span class="tag-label">variant-01 · the one</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t2">
+            <div class="t-head">Compare plans</div>
+            <div class="row-t head"><div>&nbsp;</div><div class="c">Starter</div><div class="c">Pro</div><div class="c">Team</div></div>
+            <div class="row-t"><div>Pages</div><div class="c">3</div><div class="c y">Unlimited</div><div class="c y">Unlimited</div></div>
+            <div class="row-t"><div>Seats</div><div class="c">1</div><div class="c">5</div><div class="c y">25</div></div>
+            <div class="row-t"><div>History</div><div class="c n">—</div><div class="c y">30d</div><div class="c y">1y</div></div>
+            <div class="row-t"><div>SSO</div><div class="c n">—</div><div class="c n">—</div><div class="c y">✓</div></div>
+            <div class="row-t"><div>SLA</div><div class="c n">—</div><div class="c n">—</div><div class="c y">99.9%</div></div>
+            <div class="row-t"><div>Support</div><div class="c">Email</div><div class="c y">Priority</div><div class="c y">Dedicated</div></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one you didn't ask for — a full comparison table, because someone on the team will demand one.</div>
+          <div class="foot">
+            <span class="tag-label">variant-02 · the matrix</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 3 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t3">
+            <div class="big">PAY<br/><span class="yellow">LESS.</span></div>
+            <div class="toggle"><span class="on">YR</span><span>MO</span></div>
+            <div class="tiers">
+              <div class="tier"><b>9</b>free</div>
+              <div class="tier hot"><b>29</b>hot</div>
+              <div class="tier"><b>99</b>team</div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The loud one. Brutalist, yellow accent, shouting at the user in case subtlety is killing conversion.</div>
+          <div class="foot">
+            <span class="tag-label">variant-03 · the loud one</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Row 2 — four cards -->
+    <div class="row r2">
+      <!-- 4 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t4">
+            <div class="glow">// pay.exe</div>
+            <div class="lock">⟶ 00:47 left · auto-renews</div>
+            <div class="card-row">
+              <div class="plan"><b>$29</b>solo / yr</div>
+              <div class="plan"><b>$149</b>team / yr</div>
+            </div>
+            <div class="fine">*subscription auto-renews unless cancelled before cycle end. rates locked for 12mo. see §4.2 for data retention terms. not available in all regions.</div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one that would have alarmed legal. Dark terminal aesthetic, countdown timer, regrettable small print.</div>
+          <div class="foot">
+            <span class="tag-label">variant-04 · counsel, no</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 5 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t5">
+            <div class="slash">// pricing</div>
+            <div class="one">twenty-<br/>nine.</div>
+            <div class="tiny">per month, paid yearly. it is the entire price.</div>
+            <div class="dash">— only plan</div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one a designer would pick. Oversized italic serif numeral, the word "twenty-nine" spelled out, nothing else.</div>
+          <div class="foot">
+            <span class="tag-label">variant-05 · editorial</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 6 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t6">
+            <div class="hdr-label">Pricing · ROI modeling</div>
+            <div class="head-row"><div>plan</div><div>seats</div><div>/yr</div><div>saved</div><div>ROI</div></div>
+            <div class="d-row highlight"><div>Annual</div><div class="num">1</div><div class="num">348</div><div class="num pos">+1,912</div><div class="num pos">5.4x</div></div>
+            <div class="d-row"><div>Monthly</div><div class="num">1</div><div class="num">468</div><div class="num pos">+1,780</div><div class="num pos">3.8x</div></div>
+            <div class="d-row"><div>Team-5</div><div class="num">5</div><div class="num">1,740</div><div class="num pos">+8,260</div><div class="num pos">4.7x</div></div>
+            <div class="d-row"><div>Self-host</div><div class="num">∞</div><div class="num">4,800</div><div class="num neg">−1,200</div><div class="num neg">0.8x</div></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one a CFO would pick. A spreadsheet in disguise — ROI, payback period, everything justified in numbers.</div>
+          <div class="foot">
+            <span class="tag-label">variant-06 · the sheet</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 7 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t7">
+            <div class="title">Simple, transparent pricing.</div>
+            <div class="p-row">
+              <div class="p"><b>$9</b>Solo<div class="check"><div>1 seat</div><div>3 pages</div></div></div>
+              <div class="p mid"><b>$29</b>Pro<div class="check"><div>5 seats</div><div>Unlimited</div><div>History</div></div></div>
+              <div class="p"><b>$99</b>Team<div class="check"><div>25 seats</div><div>SSO</div><div>SLA</div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one that tested better. Three tiers, blue "Popular" ribbon, Jakob's-Law familiar. Lifted signup 18%.</div>
+          <div class="foot">
+            <span class="tag-label">variant-07 · proven</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Row 3 — three cards -->
+    <div class="row r3">
+      <!-- 8 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t8">
+            <div class="blob"></div>
+            <div class="blob2"></div>
+            <div class="h">pricing, <span>but fun</span></div>
+            <div class="card-p">
+              <small style="font-size:4.5px;color:#88688c;">one plan, all yours</small>
+              <b>$29/mo</b>
+              <span class="pill">let's go →</span>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The playful one. Soft blobs, pastel gradient, "let's go" button — the version marketing would push for launch.</div>
+          <div class="foot">
+            <span class="tag-label">variant-08 · pastel</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 9 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t9">
+            <div class="phone">
+              <div class="ph-title">Choose a plan</div>
+              <div class="ph-plan"><b>$9</b>Solo, monthly</div>
+              <div class="ph-plan sel"><b>$29</b>Annual · save 40%</div>
+              <div class="ph-plan"><b>$99</b>Team</div>
+              <div class="ph-btn">Continue</div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The mobile-first one. Stacked cards, thumb-sized tap targets, chrome for the 68% who'll see it on a phone first.</div>
+          <div class="foot">
+            <span class="tag-label">variant-09 · thumb-zone</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- 10 -->
+      <article class="card">
+        <div class="thumb">
+          <div class="t t10">
+            <div class="top">pricing</div>
+            <div class="middle">It's <em>$29/month</em>, billed yearly. That's everything on the page.</div>
+            <div class="footer">
+              <div><b>Buy</b><br/>→ checkout</div>
+              <div><b>Terms</b><br/>PDF, 2pg</div>
+              <div><b>Contact</b><br/>hi@</div>
+            </div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="desc">The one that's almost nothing. One sentence. A footer with three links. Dares the user to bounce.</div>
+          <div class="foot">
+            <span class="tag-label">variant-10 · the dare</span>
+            <a class="open" href="#">Open →</a>
+          </div>
+        </div>
+      </article>
+    </div>
+
+  </section>
+
+  <div class="bottom">
+    <div class="legend">
+      <span class="swatch"><span class="sq"></span><span>the one you confessed</span></span>
+      <span class="swatch"><span class="sq plain"></span><span>the nine you didn't</span></span>
+      <span><em>none selected — they're all still alive.</em></span>
+    </div>
+
+    <button class="walkthrough" type="button">
+      <span>Walk through each</span>
+      <span class="amp">—</span>
+      <span>one at a time</span>
+      <span class="arrow">→</span>
+    </button>
+  </div>
+
+</main>
+
+</body>
+</html>

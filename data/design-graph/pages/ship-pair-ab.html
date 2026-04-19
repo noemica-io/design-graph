@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Ship · A/B pair — Design Graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:          #fafaf7;
+    --canvas:      #f5f4ef;
+    --ink:         #111113;
+    --ink-2:       rgba(17,17,19,0.72);
+    --muted:       rgba(17,17,19,0.52);
+    --dim:         rgba(17,17,19,0.34);
+    --faint:       rgba(17,17,19,0.18);
+    --hairline:    rgba(17,17,19,0.10);
+    --hairline-s:  rgba(17,17,19,0.06);
+    --surface:     #ffffff;
+    --accent:      #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+    --accent-line: rgba(124,58,237,0.32);
+    --amber:       #fbbf24;
+    --amber-deep:  #b8810c;
+    --amber-soft:  rgba(251,191,36,0.16);
+    --amber-line:  rgba(251,191,36,0.55);
+    --good:        #22c55e;
+    --good-soft:   rgba(34,197,94,0.12);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.006em;
+  }
+
+  /* ── Chrome (simplified) ──────────────────────────────────────────── */
+  .chrome {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 16px;
+    z-index: 30;
+    font-size: 12px;
+  }
+  .logo {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent);
+    position: relative; margin-right: 10px;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -5px 0 0 #fff; }
+  .brand { font-weight: 600; letter-spacing: -0.012em; font-size: 13px; }
+  .brand .dim { color: var(--muted); font-weight: 450; margin-left: 6px; }
+  .chrome-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 14px; }
+  .breadcrumb { font-size: 12px; color: var(--muted); font-weight: 450; display: flex; align-items: center; gap: 6px; }
+  .breadcrumb strong { color: var(--ink); font-weight: 500; }
+  .breadcrumb .chev { color: var(--faint); font-size: 10px; }
+  .canvas-name {
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    font-size: 11px; color: var(--ink); font-weight: 500;
+    background: #f5f4ef; padding: 2px 7px; border-radius: 3px;
+    border: 1px solid var(--hairline);
+  }
+  .chrome-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .deployed-pill {
+    height: 26px; padding: 0 10px 0 8px;
+    background: var(--amber-soft);
+    border: 1px solid var(--amber-line);
+    border-radius: 5px;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--amber-deep);
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: -0.003em;
+  }
+  .deployed-pill .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 0 3px rgba(251,191,36,0.25);
+  }
+  .chip {
+    height: 26px; padding: 0 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ink-2); background: var(--surface);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip.kbd { color: var(--muted); font-family: 'ui-monospace','SF Mono',Menlo,monospace; font-size: 10.5px; }
+  .chip.kbd .k {
+    display: inline-block; padding: 1px 4px; border-radius: 2px;
+    background: #f5f4ef; border: 1px solid var(--hairline); margin: 0 2px; font-size: 9.5px;
+  }
+
+  /* ── Stage ────────────────────────────────────────────────────────── */
+  .stage {
+    position: absolute; top: 44px; left: 0; right: 0; bottom: 0;
+    background: var(--canvas);
+    background-image: radial-gradient(circle at 1px 1px, rgba(17,17,19,0.06) 1px, transparent 0);
+    background-size: 22px 22px;
+    overflow: hidden;
+  }
+
+  /* ── Left mini: kept alternates ───────────────────────────────────── */
+  .kept {
+    position: absolute; top: 18px; left: 16px;
+    width: 148px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: 10px 9px 9px;
+    z-index: 12;
+  }
+  .kept h4 {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--dim);
+    padding: 0 2px 7px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .kept h4 b { color: var(--ink); font-weight: 600; }
+  .thumbs {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  .thumb {
+    aspect-ratio: 1.3 / 1;
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    background: #fff;
+    position: relative; overflow: hidden;
+    padding: 3px 3.5px;
+    font-size: 4px;
+  }
+  .thumb .t-eye {
+    font-size: 3.5px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-weight: 600; margin-bottom: 1px;
+  }
+  .thumb .t-h {
+    font-size: 5px; font-weight: 600; letter-spacing: -0.01em;
+    line-height: 1; margin-bottom: 2px;
+  }
+  .thumb .t-cols {
+    display: flex; gap: 1.5px;
+  }
+  .thumb .t-col {
+    flex: 1;
+    background: #fafaf7;
+    border: 0.5px solid var(--hairline-s);
+    border-radius: 1px;
+    padding: 1.5px 1.5px 2px;
+    min-height: 11px;
+  }
+  .thumb .t-col.hl { background: var(--accent-soft); border-color: var(--accent-line); }
+  .thumb .t-pl { font-size: 3px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .thumb .t-pr { font-size: 5px; font-weight: 600; letter-spacing: -0.015em; line-height: 1; }
+  .thumb .t-ln { height: 0.5px; background: rgba(17,17,19,0.12); border-radius: 0.5px; margin-top: 1px; width: 80%; }
+  .thumb .t-ln.s { width: 50%; }
+
+  .thumb.dark { background: #101014; }
+  .thumb.dark .t-h { color: #eee; }
+  .thumb.dark .t-eye { color: rgba(255,255,255,0.55); }
+  .thumb.dark .t-col { background: #1b1b22; border-color: rgba(255,255,255,0.08); }
+  .thumb.dark .t-col.hl { background: rgba(200,182,138,0.15); border-color: rgba(200,182,138,0.4); }
+  .thumb.dark .t-ln { background: rgba(255,255,255,0.2); }
+
+  .thumb.serif { background: #15151a; }
+  .thumb.serif .t-h { font-family: 'EB Garamond', serif; font-weight: 500; color: #f5efde; font-style: italic; }
+  .thumb.serif .t-eye { color: #b8a376; }
+
+  .thumb.paper { background: #f1e7cf; }
+  .thumb.paper .t-h { font-family: 'EB Garamond', serif; color: #2a1e0c; font-weight: 500; }
+  .thumb.paper .t-eye { color: rgba(42,30,12,0.5); }
+
+  .thumb .t-dot {
+    position: absolute; bottom: 2px; right: 2.5px;
+    width: 4px; height: 4px; border-radius: 50%;
+  }
+  .thumb-cap {
+    font-size: 8px; color: var(--muted);
+    padding: 7px 2px 0; line-height: 1.35;
+    border-top: 1px solid var(--hairline-s);
+    margin-top: 8px;
+    letter-spacing: -0.003em;
+  }
+  .thumb-cap b { color: var(--ink); font-weight: 600; }
+
+  /* ── Right mini: sharing card ─────────────────────────────────────── */
+  .share {
+    position: absolute; top: 18px; right: 16px;
+    width: 180px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: 11px 11px 10px;
+    z-index: 12;
+  }
+  .share h4 {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.09em; color: var(--dim);
+    padding: 0 0 8px;
+  }
+  .share .url-row {
+    display: flex; align-items: center;
+    background: #fafaf7;
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    padding: 4px 4px 4px 8px;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .share .url {
+    flex: 1;
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    font-size: 10px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .share .copy {
+    height: 22px; padding: 0 8px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    font-size: 10px; font-weight: 500;
+    color: var(--ink-2);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .share .copy .ic {
+    width: 8px; height: 9px;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+    position: relative;
+  }
+  .share .copy .ic::before {
+    content: ''; position: absolute; top: -2px; left: 1.5px;
+    width: 6px; height: 7px;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+    background: var(--surface);
+  }
+  .share .row {
+    display: flex; justify-content: space-between;
+    font-size: 10px; padding: 4px 0;
+    border-top: 1px solid var(--hairline-s);
+  }
+  .share .row .k { color: var(--muted); }
+  .share .row .v { color: var(--ink); font-weight: 500; }
+  .share .avatars {
+    display: flex; margin-top: 8px; padding-top: 8px;
+    border-top: 1px solid var(--hairline-s);
+    align-items: center;
+  }
+  .share .av {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid #fff;
+    margin-left: -5px; font-size: 8px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .share .av:first-child { margin-left: 0; }
+  .share .av-lbl {
+    font-size: 9.5px; color: var(--muted); margin-left: 7px;
+    letter-spacing: -0.003em;
+  }
+
+  /* ── Center main ─────────────────────────────────────────────────── */
+  .main {
+    position: absolute; top: 18px; left: 180px; right: 212px;
+    bottom: 56px;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+
+  .main-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0 4px;
+  }
+  .main-head h1 {
+    font-size: 15px; font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .main-head h1 .amber-ink { color: var(--amber-deep); }
+  .main-head .sub {
+    font-size: 11px; color: var(--muted); font-weight: 450;
+    letter-spacing: -0.003em;
+  }
+  .main-head .sub b { color: var(--ink); font-weight: 500; }
+
+  /* ── Pair of renderings ───────────────────────────────────────────── */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 26px 1fr;
+    gap: 0;
+    min-height: 0;
+  }
+  .variant-frame {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 0 rgba(17,17,19,0.03), 0 8px 24px -16px rgba(17,17,19,0.12);
+  }
+  .variant-frame .vf-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 11px;
+    border-bottom: 1px solid var(--hairline-s);
+    font-size: 11px;
+  }
+  .vf-badge {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    background: var(--amber);
+    color: #3d2b04;
+    font-size: 10.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0;
+    flex-shrink: 0;
+  }
+  .vf-badge.b { background: #3d2b04; color: var(--amber); }
+  .vf-head .nm { font-weight: 600; letter-spacing: -0.005em; }
+  .vf-head .id {
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    font-size: 10px; color: var(--dim);
+  }
+  .vf-head .spacer { flex: 1; }
+  .vf-head .meta {
+    font-size: 10px; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .vf-head .meta .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--good);
+  }
+  .vf-head .traffic-chip {
+    font-size: 10px; font-weight: 600;
+    color: var(--amber-deep);
+    background: var(--amber-soft);
+    border: 1px solid var(--amber-line);
+    padding: 1px 6px; border-radius: 3px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  .render {
+    flex: 1;
+    background: #fff;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* Variant A — pricing-dense-grid (full-size, legible) */
+  .dense {
+    padding: 16px 18px;
+    font-family: 'Inter', sans-serif;
+    height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .dense .eye {
+    font-size: 9.5px; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--muted);
+    font-weight: 600; margin-bottom: 6px;
+  }
+  .dense h2 {
+    font-size: 18px; font-weight: 600;
+    letter-spacing: -0.022em;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    max-width: 320px;
+  }
+  .dense .grid-5 {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .dense .tier {
+    background: #fafaf7;
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    padding: 7px 7px 8px;
+  }
+  .dense .tier.hl {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+  }
+  .dense .tier .tl {
+    font-size: 8.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .dense .tier.hl .tl { color: var(--accent); }
+  .dense .tier .tp {
+    font-size: 14px; font-weight: 700;
+    letter-spacing: -0.025em; line-height: 1;
+    margin-bottom: 5px;
+  }
+  .dense .tier .tp span {
+    font-size: 8px; color: var(--muted); font-weight: 450;
+    margin-left: 1px;
+  }
+  .dense .tier .feat {
+    font-size: 7.5px; color: var(--ink-2);
+    line-height: 1.35;
+    border-top: 1px solid var(--hairline-s);
+    padding-top: 4px;
+    letter-spacing: -0.003em;
+  }
+  .dense .tier .feat div {
+    padding: 1px 0;
+    display: flex; gap: 3px;
+  }
+  .dense .tier .feat div::before {
+    content: ''; display: inline-block;
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--dim); flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .dense .tier.hl .feat div::before { background: var(--accent); }
+  .dense .cta-row {
+    display: flex; gap: 6px;
+    margin-bottom: 8px;
+  }
+  .dense .btn {
+    height: 26px; padding: 0 12px;
+    border-radius: 4px;
+    font-size: 11px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .dense .btn.solid {
+    background: var(--ink); color: #fff;
+  }
+  .dense .btn.ghost {
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--hairline);
+  }
+  .dense .foot {
+    font-size: 9px; color: var(--muted);
+    line-height: 1.45;
+    letter-spacing: -0.003em;
+    margin-top: auto;
+    max-width: 340px;
+  }
+
+  /* Variant B — pricing-editorial-serif */
+  .editorial {
+    padding: 20px 24px;
+    height: 100%;
+    background: #f1e7cf;
+    color: #2a1e0c;
+    font-family: 'EB Garamond', serif;
+    display: flex; flex-direction: column;
+  }
+  .editorial .eye-s {
+    font-family: 'EB Garamond', serif;
+    font-size: 11px; font-style: italic;
+    color: rgba(42,30,12,0.6);
+    margin-bottom: 6px;
+  }
+  .editorial .rule {
+    width: 22px; height: 1px;
+    background: #6b3a1e;
+    margin-bottom: 10px;
+  }
+  .editorial h2 {
+    font-family: 'EB Garamond', serif;
+    font-size: 22px; font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    color: #2a1e0c;
+    margin-bottom: 10px;
+    max-width: 320px;
+  }
+  .editorial h2 em {
+    font-style: italic;
+    color: #6b3a1e;
+    font-weight: 500;
+  }
+  .editorial .body {
+    font-family: 'EB Garamond', serif;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(42,30,12,0.85);
+    letter-spacing: 0;
+    max-width: 310px;
+    margin-bottom: 12px;
+  }
+  .editorial .body span.drop {
+    font-size: 26px;
+    font-style: italic;
+    float: left;
+    line-height: 0.95;
+    margin: 2px 4px 0 0;
+    color: #6b3a1e;
+    font-weight: 500;
+  }
+  .editorial .price-line {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 8px 0 10px;
+    border-top: 1px solid rgba(107,58,30,0.3);
+    border-bottom: 1px solid rgba(107,58,30,0.3);
+    margin-bottom: 10px;
+    max-width: 330px;
+  }
+  .editorial .price-line .num {
+    font-family: 'EB Garamond', serif;
+    font-size: 24px; font-weight: 600;
+    color: #2a1e0c;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .editorial .price-line .unit {
+    font-family: 'EB Garamond', serif;
+    font-size: 11px; font-style: italic;
+    color: rgba(42,30,12,0.65);
+  }
+  .editorial .price-line .trial {
+    margin-left: auto;
+    font-family: 'EB Garamond', serif;
+    font-size: 11.5px; font-style: italic;
+    color: #6b3a1e;
+    border-bottom: 1px solid #6b3a1e;
+    padding-bottom: 1px;
+  }
+  .editorial .signoff {
+    margin-top: auto;
+    font-family: 'EB Garamond', serif;
+    font-size: 10.5px;
+    font-style: italic;
+    color: rgba(42,30,12,0.55);
+    letter-spacing: 0;
+  }
+
+  /* ── VS separator ────────────────────────────────────────────────── */
+  .vs-sep {
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 50%;
+    transform: translateY(-50%);
+  }
+  .vs-sep .l { flex: 1; width: 1px; background: var(--hairline); }
+  .vs-sep .split-ico {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .vs-sep .split-ico::before, .vs-sep .split-ico::after {
+    content: '';
+    position: absolute;
+    width: 7px; height: 2px; border-radius: 1px;
+    background: var(--amber-deep);
+  }
+  .vs-sep .split-ico::before { left: 3px; top: 10.5px; }
+  .vs-sep .split-ico::after { right: 3px; top: 10.5px; }
+  .vs-sep .split-ico .mid {
+    width: 2px; height: 10px;
+    background: var(--amber-deep);
+    border-radius: 1px;
+    position: relative;
+  }
+  .vs-sep .split-ico .mid::before, .vs-sep .split-ico .mid::after {
+    content: ''; position: absolute; left: 50%; width: 2px; height: 2px;
+    background: var(--amber-deep); border-radius: 50%; transform: translateX(-50%);
+  }
+  .vs-sep .split-ico .mid::before { top: -2px; }
+  .vs-sep .split-ico .mid::after { bottom: -2px; }
+
+  /* ── A/B control strip ───────────────────────────────────────────── */
+  .control-strip {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 1.8fr 1fr 0.75fr auto;
+    gap: 18px;
+    align-items: center;
+  }
+  .ctrl {
+    display: flex; flex-direction: column; gap: 5px;
+    min-width: 0;
+  }
+  .ctrl-h {
+    font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.09em;
+    color: var(--dim);
+  }
+
+  /* Traffic split slider */
+  .split {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .split-labels {
+    display: flex; justify-content: space-between;
+    font-size: 10.5px; color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 3px;
+  }
+  .split-labels b { font-weight: 600; letter-spacing: 0; }
+  .split-labels .a { color: var(--ink); }
+  .split-labels .b { color: var(--ink); }
+  .split-track {
+    position: relative;
+    height: 6px;
+    background: #eee8d7;
+    border-radius: 3px;
+    overflow: visible;
+  }
+  .split-fill-a {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 50%;
+    background: var(--amber);
+    border-radius: 3px 0 0 3px;
+  }
+  .split-fill-b {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 50%;
+    background: #3d2b04;
+    border-radius: 0 3px 3px 0;
+  }
+  .split-thumb {
+    position: absolute; left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--amber-deep);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 2;
+  }
+  .split-ticks {
+    position: relative;
+    height: 10px;
+    margin-top: 4px;
+  }
+  .split-ticks .tick {
+    position: absolute; top: 0;
+    width: 1px; height: 4px;
+    background: var(--dim);
+  }
+  .split-ticks .tick-lbl {
+    position: absolute; top: 5px;
+    font-size: 8.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    transform: translateX(-50%);
+  }
+
+  /* Select */
+  .select {
+    height: 30px;
+    background: #fafaf7;
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    padding: 0 10px 0 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+    letter-spacing: -0.003em;
+  }
+  .select .ic {
+    width: 10px; height: 10px;
+    flex-shrink: 0;
+    border: 1.2px solid var(--muted);
+    border-radius: 50%; position: relative;
+  }
+  .select .ic::after {
+    content: ''; position: absolute; top: 1.7px; left: 1.7px;
+    width: 4.5px; height: 4.5px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .select .txt { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .select .chev {
+    color: var(--dim); font-size: 9px;
+    flex-shrink: 0;
+  }
+  .select.duration .ic { border-color: var(--muted); }
+  .select.duration .ic::after { background: var(--amber-deep); }
+
+  /* Start button */
+  .start-btn {
+    height: 40px;
+    padding: 0 18px;
+    background: var(--amber);
+    border: 1px solid var(--amber-deep);
+    border-radius: 6px;
+    font-size: 13px; font-weight: 600;
+    color: #3d2b04;
+    display: inline-flex; align-items: center; gap: 8px;
+    letter-spacing: -0.005em;
+    box-shadow: 0 4px 14px -5px rgba(251,191,36,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.4);
+  }
+  .start-btn .arrow {
+    font-size: 14px; line-height: 1;
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────────── */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 36px;
+    background: var(--surface);
+    border-top: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px;
+    font-size: 10.5px;
+    color: var(--muted);
+    letter-spacing: -0.003em;
+    z-index: 14;
+  }
+  .footer .slack-ic {
+    width: 11px; height: 11px;
+    background: #611f69;
+    border-radius: 2px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .footer .slack-ic::before, .footer .slack-ic::after {
+    content: ''; position: absolute;
+    background: #fff; border-radius: 0.5px;
+  }
+  .footer .slack-ic::before {
+    top: 2px; left: 4.5px; width: 2px; height: 7px;
+  }
+  .footer .slack-ic::after {
+    top: 4.5px; left: 2px; width: 7px; height: 2px;
+  }
+  .footer code {
+    font-family: 'ui-monospace','SF Mono',Menlo,monospace;
+    font-size: 10px;
+    color: var(--ink);
+    background: #f5f4ef;
+    padding: 1.5px 5px; border-radius: 3px;
+    border: 1px solid var(--hairline);
+  }
+  .footer .sep {
+    color: var(--faint);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Chrome ──────────────────────────────────────────────────────── -->
+<div class="chrome">
+  <div class="logo"></div>
+  <div class="brand">Design Graph <span class="dim">/ ship</span></div>
+  <div class="chrome-sep"></div>
+  <div class="breadcrumb">
+    <span>live-canvas</span>
+    <span class="chev">›</span>
+    <span class="canvas-name">price-ab-1</span>
+    <span class="chev">›</span>
+    <strong>Ship</strong>
+  </div>
+  <div class="chrome-right">
+    <div class="deployed-pill"><span class="pulse"></span>Deployed · A/B</div>
+    <div class="chip kbd"><span class="k">esc</span> back to canvas</div>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ── Left mini: kept alternates ──────────────────────────────── -->
+  <aside class="kept">
+    <h4><span>Kept · <b>10</b> alternates</span><span style="color:var(--dim);font-weight:500;letter-spacing:0;">warm</span></h4>
+
+    <div class="thumbs">
+      <!-- 1 three-tier -->
+      <div class="thumb">
+        <div class="t-eye">Plans</div>
+        <div class="t-h">Per canvas</div>
+        <div class="t-cols">
+          <div class="t-col"><div class="t-pl">Solo</div><div class="t-pr">$0</div></div>
+          <div class="t-col hl"><div class="t-pl">Studio</div><div class="t-pr">$24</div></div>
+          <div class="t-col"><div class="t-pl">Team</div><div class="t-pr">—</div></div>
+        </div>
+        <div class="t-dot" style="background:#7c3aed;"></div>
+      </div>
+      <!-- 2 two-col -->
+      <div class="thumb">
+        <div class="t-eye">Two ways</div>
+        <div class="t-h">Studio · Scale</div>
+        <div class="t-cols">
+          <div class="t-col"><div class="t-pl">S</div><div class="t-pr">$24</div></div>
+          <div class="t-col hl" style="background:rgba(99,102,241,0.1);border-color:#6366f1;"><div class="t-pl">Sc</div><div class="t-pr">$96</div></div>
+        </div>
+        <div class="t-dot" style="background:#6366f1;"></div>
+      </div>
+      <!-- 3 table-five -->
+      <div class="thumb">
+        <div class="t-eye">Table</div>
+        <div class="t-h" style="font-size:4.5px;">Full comparison</div>
+        <div class="t-cols" style="gap:1px;">
+          <div class="t-col" style="padding:1px;"><div class="t-pr" style="font-size:4px;">$0</div></div>
+          <div class="t-col" style="padding:1px;"><div class="t-pr" style="font-size:4px;">$18</div></div>
+          <div class="t-col hl" style="padding:1px;background:rgba(59,130,246,0.1);border-color:#3b82f6;"><div class="t-pr" style="font-size:4px;">$32</div></div>
+          <div class="t-col" style="padding:1px;"><div class="t-pr" style="font-size:4px;">$64</div></div>
+          <div class="t-col" style="padding:1px;"><div class="t-pr" style="font-size:4px;">—</div></div>
+        </div>
+        <div class="t-dot" style="background:#3b82f6;"></div>
+      </div>
+      <!-- 4 mono-card -->
+      <div class="thumb">
+        <div class="t-eye">One price</div>
+        <div class="t-h">$24 /seat</div>
+        <div class="t-ln"></div><div class="t-ln"></div><div class="t-ln s"></div>
+        <div style="display:inline-block;background:#f59e0b;color:#fff;font-size:3.5px;padding:1px 3px;border-radius:1px;margin-top:2px;font-weight:500;">Trial</div>
+        <div class="t-dot" style="background:#f59e0b;"></div>
+      </div>
+      <!-- 5 usage-slider -->
+      <div class="thumb">
+        <div class="t-eye">Usage</div>
+        <div class="t-h">Per run</div>
+        <div style="background:#fafaf7;border:0.5px solid var(--hairline-s);border-radius:1px;padding:2px 2.5px;">
+          <div style="font-size:3px;color:var(--muted);">10k/mo</div>
+          <div style="height:1.5px;background:var(--hairline);border-radius:0.5px;margin:1.5px 0;position:relative;">
+            <div style="position:absolute;left:0;top:0;width:40%;height:100%;background:#22c55e;border-radius:0.5px;"></div>
+          </div>
+          <div style="font-size:4px;font-weight:600;">$18/mo</div>
+        </div>
+        <div class="t-dot" style="background:#22c55e;"></div>
+      </div>
+      <!-- 6 compact-flat -->
+      <div class="thumb">
+        <div class="t-eye" style="color:#14b8a6;">Flat</div>
+        <div class="t-h">Three flats</div>
+        <div class="t-cols">
+          <div class="t-col" style="background:#fff;"><div class="t-pr">$9</div></div>
+          <div class="t-col" style="background:#fff;"><div class="t-pr">$29</div></div>
+          <div class="t-col" style="background:#fff;border-color:#14b8a6;"><div class="t-pr">$79</div></div>
+        </div>
+        <div class="t-dot" style="background:#14b8a6;"></div>
+      </div>
+      <!-- 7 pill-cards -->
+      <div class="thumb">
+        <div class="t-eye">Rounded</div>
+        <div class="t-h">Roomy.</div>
+        <div class="t-cols">
+          <div class="t-col" style="border-radius:3px;"><div class="t-pl">Solo</div><div class="t-pr">$0</div></div>
+          <div class="t-col hl" style="border-radius:3px;background:rgba(139,92,246,0.12);border-color:#8b5cf6;"><div class="t-pl">Pro</div><div class="t-pr">$28</div></div>
+          <div class="t-col" style="border-radius:3px;"><div class="t-pl">Max</div><div class="t-pr">$58</div></div>
+        </div>
+        <div class="t-dot" style="background:#8b5cf6;"></div>
+      </div>
+      <!-- 8 dark-tier -->
+      <div class="thumb dark">
+        <div class="t-eye">Dark tier</div>
+        <div class="t-h">Per canvas</div>
+        <div class="t-cols">
+          <div class="t-col"><div class="t-pl">S</div><div class="t-pr" style="color:#eee;">$0</div></div>
+          <div class="t-col hl"><div class="t-pl">St</div><div class="t-pr" style="color:#c8b68a;">$24</div></div>
+          <div class="t-col"><div class="t-pl">T</div><div class="t-pr" style="color:#eee;">$60</div></div>
+        </div>
+        <div class="t-dot" style="background:#c8b68a;"></div>
+      </div>
+      <!-- 9 nocturne -->
+      <div class="thumb serif">
+        <div class="t-eye">Mercato</div>
+        <div class="t-h"><em>Remembers</em></div>
+        <div style="width:5px;height:0.5px;background:#b8a376;margin:1.5px 0;"></div>
+        <div style="font-size:3.5px;color:rgba(233,228,216,0.55);line-height:1.3;">A dispatch for teams who prefer one price.</div>
+        <div class="t-dot" style="background:#d4b97a;"></div>
+      </div>
+      <!-- 10 broadsheet -->
+      <div class="thumb paper">
+        <div class="t-eye">Leaders</div>
+        <div class="t-h">$24 <em>plainly</em></div>
+        <div style="width:6px;height:0.5px;background:#6b3a1e;margin:1px 0 2px;"></div>
+        <div style="font-size:3.5px;color:rgba(42,30,12,0.65);line-height:1.3;font-style:italic;">Set in serif, with no footnote.</div>
+        <div class="t-dot" style="background:#c8b68a;"></div>
+      </div>
+    </div>
+
+    <div class="thumb-cap">
+      <b>Parked, not deleted.</b> Swap in as challengers after round 1.
+    </div>
+  </aside>
+
+  <!-- ── Right mini: sharing ─────────────────────────────────────── -->
+  <aside class="share">
+    <h4>Share experiment</h4>
+    <div class="url-row">
+      <span class="url">dg.design/canvas/price-ab-1</span>
+      <button class="copy"><span class="ic"></span>Copy</button>
+    </div>
+    <div class="row">
+      <span class="k">Access</span>
+      <span class="v">Team · edit</span>
+    </div>
+    <div class="row">
+      <span class="k">Visibility</span>
+      <span class="v">Public link · view</span>
+    </div>
+    <div class="row">
+      <span class="k">Webhook</span>
+      <span class="v" style="font-family:'ui-monospace',monospace;font-size:9.5px;">posthog</span>
+    </div>
+    <div class="avatars">
+      <div class="av" style="background:#7c3aed;">SS</div>
+      <div class="av" style="background:#f59e0b;">MG</div>
+      <div class="av" style="background:#14b8a6;">JL</div>
+      <div class="av" style="background:#3b82f6;">+2</div>
+      <span class="av-lbl">watching</span>
+    </div>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <div class="main-head">
+      <h1>Ship <span class="amber-ink">both</span> — run them against each other.</h1>
+      <div class="sub"><b>2 variants</b> live · <b>Day 0 of 14</b> · <b>0 sessions</b> routed</div>
+    </div>
+
+    <div class="pair">
+
+      <!-- Variant A -->
+      <div class="variant-frame">
+        <div class="vf-head">
+          <div class="vf-badge">A</div>
+          <span class="nm">pricing-dense-grid</span>
+          <span class="id">price-02</span>
+          <div class="spacer"></div>
+          <div class="traffic-chip">50% traffic</div>
+        </div>
+        <div class="render">
+          <div class="dense">
+            <div class="eye">Plans · per seat, monthly</div>
+            <h2>Every tier, every line item. No surprises at renewal.</h2>
+            <div class="grid-5">
+              <div class="tier">
+                <div class="tl">Solo</div>
+                <div class="tp">$0</div>
+                <div class="feat">
+                  <div>1 canvas</div>
+                  <div>Watermark</div>
+                </div>
+              </div>
+              <div class="tier">
+                <div class="tl">Team</div>
+                <div class="tp">$12<span>/s</span></div>
+                <div class="feat">
+                  <div>5 canvases</div>
+                  <div>Shared library</div>
+                  <div>Guests</div>
+                </div>
+              </div>
+              <div class="tier hl">
+                <div class="tl">Studio</div>
+                <div class="tp">$24<span>/s</span></div>
+                <div class="feat">
+                  <div>Unlimited canvases</div>
+                  <div>Version history</div>
+                  <div>API access</div>
+                </div>
+              </div>
+              <div class="tier">
+                <div class="tl">Scale</div>
+                <div class="tp">$48<span>/s</span></div>
+                <div class="feat">
+                  <div>SSO · SCIM</div>
+                  <div>Audit log</div>
+                  <div>Dedicated PM</div>
+                </div>
+              </div>
+              <div class="tier">
+                <div class="tl">Ent.</div>
+                <div class="tp">Call</div>
+                <div class="feat">
+                  <div>SLA 99.95%</div>
+                  <div>VPC deploy</div>
+                </div>
+              </div>
+            </div>
+            <div class="cta-row">
+              <div class="btn solid">Start free</div>
+              <div class="btn ghost">See full grid →</div>
+            </div>
+            <div class="foot">
+              Compare every feature across all five plans — included limits, overage rates, and premium add-ons. Annual billing saves 16%.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- vs separator -->
+      <div class="vs-sep">
+        <div class="l"></div>
+        <div class="split-ico"><div class="mid"></div></div>
+        <div class="l"></div>
+      </div>
+
+      <!-- Variant B -->
+      <div class="variant-frame">
+        <div class="vf-head">
+          <div class="vf-badge b">B</div>
+          <span class="nm">pricing-editorial-serif</span>
+          <span class="id">price-13</span>
+          <div class="spacer"></div>
+          <div class="traffic-chip">50% traffic</div>
+        </div>
+        <div class="render">
+          <div class="editorial">
+            <div class="eye-s">An essay &nbsp;·&nbsp; on pricing</div>
+            <div class="rule"></div>
+            <h2>One plan, read aloud: <em>pay for what the canvas remembers.</em></h2>
+            <div class="body">
+              <span class="drop">T</span>here is no grid here — only a number, a promise, and the quiet arithmetic of usage. Twenty-four dollars a seat a month, billed the way a newspaper would: forthrightly, in plain text and without small print.
+            </div>
+            <div class="price-line">
+              <span class="num">$24</span>
+              <span class="unit">per seat &middot; monthly</span>
+              <span class="trial">Begin the trial →</span>
+            </div>
+            <div class="signoff">
+              Cancel any Friday. We will remember what you worked on either way.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Control strip ─────────────────────────────────────────── -->
+    <div class="control-strip">
+
+      <!-- Traffic split -->
+      <div class="ctrl">
+        <div class="ctrl-h">Traffic split</div>
+        <div class="split-labels">
+          <span><b class="a">A · 50%</b></span>
+          <span><b class="b">50% · B</b></span>
+        </div>
+        <div class="split-track">
+          <div class="split-fill-a"></div>
+          <div class="split-fill-b"></div>
+          <div class="split-thumb"></div>
+        </div>
+        <div class="split-ticks">
+          <div class="tick" style="left:30%;"></div>
+          <div class="tick-lbl" style="left:30%;">30/70</div>
+          <div class="tick" style="left:50%; background: var(--amber-deep); height:5px;"></div>
+          <div class="tick-lbl" style="left:50%; color: var(--amber-deep); font-weight:600;">50/50</div>
+          <div class="tick" style="left:70%;"></div>
+          <div class="tick-lbl" style="left:70%;">70/30</div>
+        </div>
+      </div>
+
+      <!-- Primary metric -->
+      <div class="ctrl">
+        <div class="ctrl-h">Primary metric</div>
+        <div class="select">
+          <span class="ic"></span>
+          <span class="txt">Signup rate</span>
+          <span class="chev">▾</span>
+        </div>
+      </div>
+
+      <!-- Duration -->
+      <div class="ctrl">
+        <div class="ctrl-h">Duration</div>
+        <div class="select duration">
+          <span class="ic"></span>
+          <span class="txt">2 weeks</span>
+          <span class="chev">▾</span>
+        </div>
+      </div>
+
+      <!-- Start -->
+      <div class="ctrl" style="align-items:flex-end;">
+        <div class="ctrl-h" style="visibility:hidden;">.</div>
+        <button class="start-btn">Start experiment <span class="arrow">→</span></button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<div class="footer">
+  <span class="slack-ic"></span>
+  Results will auto-report in
+  <code>#design-reviews</code>
+  <span class="sep">·</span>
+  daily digest at 9:00 PT
+  <span class="sep">·</span>
+  stops early on <b style="color:var(--ink);font-weight:600;">p &lt; 0.05</b>
+</div>
+
+</body>
+</html>

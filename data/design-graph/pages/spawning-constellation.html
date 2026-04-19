@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Design Graph — Spawning · Constellation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:        #0a0a0e;
+    --bg-2:      #0d0d14;
+    --ink:       #ece8df;
+    --ink-2:     rgba(236,232,223,0.72);
+    --muted:     rgba(236,232,223,0.48);
+    --dim:       rgba(236,232,223,0.30);
+    --faint:     rgba(236,232,223,0.14);
+    --hairline:  rgba(236,232,223,0.10);
+    --surface:   rgba(236,232,223,0.04);
+    --purple:    #a78bfa;
+    --purple-2:  #7c3aed;
+    --gold:      #f59e0b;
+    --gold-soft: rgba(245,158,11,0.18);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+
+  /* Space background */
+  .sky {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, #141422 0%, #0a0a0e 58%, #050508 100%);
+    overflow: hidden;
+  }
+  .stars { position: absolute; inset: 0; pointer-events: none; }
+  .stars i {
+    position: absolute;
+    width: 1px; height: 1px;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0.45;
+  }
+  .stars i.lg { width: 2px; height: 2px; opacity: 0.7; }
+  .stars i.tw { animation: twinkle 3.8s ease-in-out infinite; }
+  @keyframes twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.85; } }
+
+  /* Rings */
+  .rings { position: absolute; top: 400px; left: 640px; pointer-events: none; }
+  .ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(236,232,223,0.06);
+    transform: translate(-50%, -50%);
+  }
+  .ring.r1 { width: 340px; height: 340px; border-color: rgba(167,139,250,0.14); }
+  .ring.r2 { width: 560px; height: 560px; border-color: rgba(236,232,223,0.07); border-style: dashed; }
+  .ring.r3 { width: 760px; height: 760px; border-color: rgba(245,158,11,0.18); border-style: dotted; }
+
+  .ring-label {
+    position: absolute;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 9.5px;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    color: var(--dim);
+    transform: translate(-50%, -50%);
+    background: var(--bg);
+    padding: 0 8px;
+  }
+
+  /* Orbit system — everything inside rotates slowly */
+  .orbit {
+    position: absolute;
+    top: 400px; left: 640px;
+    width: 0; height: 0;
+    animation: spin 60s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Each satellite is positioned as translate, and counter-rotates so content reads upright */
+  .sat {
+    position: absolute;
+    top: 0; left: 0;
+    animation: spin-rev 60s linear infinite;
+  }
+  @keyframes spin-rev { to { transform: rotate(-360deg); } }
+
+  .sat-wrap {
+    position: absolute;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Center node */
+  .core {
+    position: absolute;
+    top: 400px; left: 640px;
+    transform: translate(-50%, -50%);
+    width: 136px; height: 136px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, rgba(167,139,250,0.28) 0%, rgba(124,58,237,0.14) 45%, transparent 75%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+  }
+  .core::before {
+    content: '';
+    position: absolute; inset: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #2a1f4a 0%, #140c28 70%);
+    border: 1px solid rgba(167,139,250,0.42);
+    box-shadow:
+      0 0 0 1px rgba(167,139,250,0.18),
+      0 0 40px 2px rgba(124,58,237,0.28);
+    animation: pulse-core 2.8s ease-in-out infinite;
+  }
+  @keyframes pulse-core {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(167,139,250,0.18), 0 0 40px 2px rgba(124,58,237,0.28); }
+    50%     { box-shadow: 0 0 0 2px rgba(167,139,250,0.30), 0 0 60px 6px rgba(124,58,237,0.42); }
+  }
+  .core .core-inner {
+    position: relative; z-index: 2;
+    width: 78px;
+    text-align: center;
+    color: var(--ink);
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 10px;
+    line-height: 1.28;
+    font-style: italic;
+    letter-spacing: 0;
+    padding: 0 2px;
+  }
+  .core .core-eyebrow {
+    font-family: 'Inter', sans-serif;
+    font-size: 7.5px;
+    font-style: normal;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    color: var(--purple);
+    margin-bottom: 5px;
+  }
+
+  /* Connecting lines from center */
+  .lines { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+
+  /* Cards */
+  .card {
+    background: rgba(20,20,30,0.86);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(236,232,223,0.08);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+  }
+  .card-label {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 9.5px;
+    font-style: italic;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .card-label.below { bottom: -20px; }
+  .card-label.below .id { color: var(--ink); font-style: normal; font-weight: 500; letter-spacing: 0.08em; margin-right: 6px; }
+  .card-label.below .dot { display: inline-block; width: 3px; height: 3px; background: var(--dim); border-radius: 50%; margin: 0 8px 2px; vertical-align: middle; }
+
+  /* Inner-ring (nearly done) — detailed renders */
+  .card.inner {
+    width: 210px; height: 148px;
+    border-color: rgba(167,139,250,0.30);
+    box-shadow: 0 0 0 1px rgba(167,139,250,0.10), 0 10px 30px -8px rgba(124,58,237,0.35);
+  }
+
+  /* Mid-ring (running) — medium, shimmer */
+  .card.mid {
+    width: 168px; height: 118px;
+    border-color: rgba(245,158,11,0.26);
+    box-shadow: 0 0 0 1px rgba(245,158,11,0.08), 0 6px 22px -10px rgba(245,158,11,0.32);
+  }
+
+  /* Outer-ring (queued) — small, dim */
+  .card.outer {
+    width: 120px; height: 84px;
+    background: transparent;
+    border: 1px dashed rgba(245,158,11,0.42);
+    border-radius: 5px;
+    box-shadow: none;
+  }
+
+  /* ── Inner design 1: editorial serif hero ──────────────────── */
+  .d-editorial {
+    height: 100%;
+    padding: 11px 12px 0;
+    background: #fbf8f1;
+    color: #1a1a1f;
+    position: relative;
+  }
+  .d-editorial .top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 9px;
+  }
+  .d-editorial .brand {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .d-editorial .brand::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #0f766e; margin-right: 5px; vertical-align: middle;
+  }
+  .d-editorial .nav {
+    font-size: 7px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(26,26,31,0.48);
+    font-weight: 500;
+  }
+  .d-editorial .nav span + span { margin-left: 6px; }
+  .d-editorial .head {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 16px; line-height: 1.08;
+    font-weight: 500; letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    max-width: 160px;
+  }
+  .d-editorial .head em { font-style: italic; color: #0f766e; }
+  .d-editorial .sub {
+    font-size: 7px; color: rgba(26,26,31,0.52);
+    line-height: 1.45; max-width: 150px;
+    margin-bottom: 8px;
+  }
+  .d-editorial .plans {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    border-top: 1px solid rgba(26,26,31,0.14);
+    padding-top: 6px;
+  }
+  .d-editorial .plans > div { padding-right: 6px; border-right: 1px solid rgba(26,26,31,0.06); }
+  .d-editorial .plans > div:last-child { border-right: none; }
+  .d-editorial .pn { font-family: 'Fraunces', serif; font-size: 7.5px; font-style: italic; color: rgba(26,26,31,0.55); margin-bottom: 2px; }
+  .d-editorial .pp { font-family: 'Fraunces', serif; font-size: 13px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+  .d-editorial .pp span { font-family: 'Inter', sans-serif; font-size: 6.5px; color: rgba(26,26,31,0.5); font-weight: 450; }
+  .d-editorial .cta {
+    position: absolute; bottom: 7px; right: 11px;
+    font-family: 'Fraunces', serif; font-style: italic;
+    font-size: 8px; color: #0f766e;
+  }
+
+  /* ── Inner design 2: minimal monochrome modernist ──────────── */
+  .d-minimal {
+    height: 100%;
+    padding: 11px 12px 0;
+    background: #0e0e14;
+    color: #ece8df;
+    position: relative;
+    border-left: 2px solid var(--purple);
+  }
+  .d-minimal .top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .d-minimal .brand {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .d-minimal .nav {
+    font-size: 7px; color: rgba(236,232,223,0.45);
+    letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .d-minimal .nav span + span { margin-left: 6px; }
+  .d-minimal .big {
+    font-size: 22px;
+    font-weight: 300;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    margin-bottom: 2px;
+  }
+  .d-minimal .big span { color: var(--purple); font-weight: 500; }
+  .d-minimal .kicker {
+    font-size: 7px;
+    color: rgba(236,232,223,0.5);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 9px;
+  }
+  .d-minimal .row {
+    display: flex; justify-content: space-between;
+    font-family: 'ui-monospace', Menlo, monospace;
+    font-size: 8px;
+    color: rgba(236,232,223,0.72);
+    padding: 3px 0;
+    border-top: 1px solid rgba(236,232,223,0.12);
+  }
+  .d-minimal .row b { color: #ece8df; font-weight: 500; }
+
+  /* ── Mid-ring running card — partial render + shimmer ──────── */
+  .d-rend {
+    height: 100%;
+    padding: 9px 10px 0;
+    background: #121219;
+    position: relative;
+    overflow: hidden;
+  }
+  .d-rend .line {
+    height: 6px; border-radius: 1.5px;
+    background: linear-gradient(100deg,
+      rgba(245,158,11,0.08) 0%,
+      rgba(245,158,11,0.28) 45%,
+      rgba(245,158,11,0.08) 90%);
+    background-size: 220% 100%;
+    animation: shim 1.8s linear infinite;
+    margin-bottom: 5px;
+  }
+  @keyframes shim {
+    0% { background-position: 100% 0; }
+    100% { background-position: -120% 0; }
+  }
+  .d-rend .line.t1 { width: 72%; height: 8px; background: rgba(236,232,223,0.14); animation: none; }
+  .d-rend .line.t2 { width: 48%; height: 4px; background: rgba(236,232,223,0.1); animation: none; margin-bottom: 8px; }
+  .d-rend .grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .d-rend .sk {
+    height: 40px; border-radius: 2px;
+    border: 1px solid rgba(245,158,11,0.16);
+    background: linear-gradient(100deg,
+      rgba(245,158,11,0.04) 0%,
+      rgba(245,158,11,0.18) 50%,
+      rgba(245,158,11,0.04) 100%);
+    background-size: 220% 100%;
+    animation: shim 1.9s linear infinite;
+  }
+  .d-rend .code {
+    position: absolute; bottom: 6px; left: 10px;
+    font-family: 'ui-monospace', Menlo, monospace;
+    font-size: 7.5px; color: var(--gold);
+    letter-spacing: 0;
+  }
+  .d-rend .code::after {
+    content: ''; display: inline-block;
+    width: 1.2px; height: 8px; background: var(--gold);
+    margin-left: 2px; vertical-align: middle;
+    animation: caret 1.1s step-end infinite;
+  }
+  @keyframes caret { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+
+  /* ── Mid-ring running card B: dense grid preview ──────────── */
+  .d-rend2 {
+    height: 100%;
+    padding: 8px 9px 0;
+    background: #fdfaf1;
+    position: relative;
+    overflow: hidden;
+  }
+  .d-rend2 .bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .d-rend2 .bar-brand {
+    font-size: 8px; font-weight: 700;
+    color: #1a1a1f;
+    letter-spacing: -0.005em;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .d-rend2 .bar-brand::before {
+    content: ''; width: 8px; height: 8px;
+    background: #facc15; border-radius: 2px;
+    transform: rotate(8deg);
+  }
+  .d-rend2 .toggle {
+    font-size: 6px; font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(26,26,31,0.6);
+    border: 1px solid rgba(26,26,31,0.2);
+    padding: 1.5px 4px;
+    border-radius: 2px;
+  }
+  .d-rend2 .h {
+    font-size: 9px; font-weight: 700;
+    color: #1a1a1f;
+    letter-spacing: -0.012em;
+    line-height: 1.15;
+    margin-bottom: 5px;
+  }
+  .d-rend2 .h b { background: #facc15; padding: 0 2px; border-radius: 1px; }
+  .d-rend2 .tiles {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+  }
+  .d-rend2 .tile {
+    background: #fff;
+    border: 1px solid rgba(26,26,31,0.14);
+    border-radius: 2px;
+    padding: 4px 4px 3px;
+    min-height: 40px;
+    position: relative;
+  }
+  .d-rend2 .tile.hl { background: #1a1a1f; border-color: #1a1a1f; }
+  .d-rend2 .tile .pn { font-size: 6px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(26,26,31,0.55); font-weight: 700; }
+  .d-rend2 .tile.hl .pn { color: rgba(255,255,255,0.6); }
+  .d-rend2 .tile .pp { font-size: 10px; font-weight: 700; color: #1a1a1f; letter-spacing: -0.02em; line-height: 1; margin-top: 1px; }
+  .d-rend2 .tile.hl .pp { color: #fff; }
+  .d-rend2 .tile .f { height: 1.2px; background: rgba(26,26,31,0.10); margin-top: 2px; border-radius: 1px; }
+  .d-rend2 .tile .f.s60 { width: 60%; }
+  .d-rend2 .tile.hl .f { background: rgba(255,255,255,0.22); }
+  .d-rend2 .shimmer-ovl {
+    position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 0%, rgba(245,158,11,0.08) 50%, transparent 100%);
+    background-size: 220% 100%;
+    animation: shim 1.9s linear infinite;
+    pointer-events: none;
+  }
+
+  /* ── Outer queued card ─────────────────────────────────────── */
+  .d-queue {
+    height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+    color: var(--gold);
+  }
+  .d-queue .q-id {
+    font-family: 'ui-monospace', Menlo, monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--gold);
+    opacity: 0.85;
+  }
+  .d-queue .q-t {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 9.5px;
+    color: rgba(245,158,11,0.75);
+    letter-spacing: 0;
+  }
+  .d-queue .q-ph {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1px dashed rgba(245,158,11,0.5);
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(245,158,11,0.65);
+    font-size: 10px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+  }
+
+  /* Status compass (top right) */
+  .compass {
+    position: absolute; top: 22px; right: 24px;
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 10.5px;
+    font-style: italic;
+    color: var(--ink-2);
+    letter-spacing: 0.01em;
+    z-index: 20;
+  }
+  .compass .ring-ic {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--hairline);
+    position: relative;
+  }
+  .compass .ring-ic::before {
+    content: ''; position: absolute;
+    top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--purple);
+    transform: translate(-50%, -50%);
+  }
+  .compass .ring-ic::after {
+    content: ''; position: absolute;
+    top: 2px; left: 50%;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--gold);
+    transform: translateX(-50%);
+  }
+  .compass .count {
+    font-family: 'ui-monospace', Menlo, monospace;
+    font-size: 10px;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    font-style: normal;
+  }
+  .compass .sep {
+    width: 1px; height: 12px; background: var(--hairline);
+  }
+  .compass .state {
+    color: var(--muted);
+  }
+
+  /* Top-left title — understated */
+  .title {
+    position: absolute; top: 22px; left: 26px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    z-index: 20;
+  }
+  .title b {
+    color: var(--ink);
+    font-weight: 500;
+    font-style: normal;
+    letter-spacing: 0.02em;
+  }
+
+  /* Bottom compose input — waiting */
+  .compose {
+    position: absolute;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    width: 440px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: rgba(20,20,30,0.7);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    z-index: 20;
+    backdrop-filter: blur(6px);
+  }
+  .compose .ic {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+  }
+  .compose .pl {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--dim);
+    flex: 1;
+    letter-spacing: 0;
+  }
+  .compose .tag {
+    font-family: 'ui-monospace', Menlo, monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 3px 8px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+  }
+
+  /* subtle rotation hint */
+  .orbit-hint {
+    position: absolute;
+    top: 54px; right: 24px;
+    font-family: 'ui-monospace', Menlo, monospace;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.14em;
+    z-index: 20;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="sky">
+  <!-- stars -->
+  <div class="stars">
+    <i class="tw" style="top:8%;left:11%;"></i>
+    <i style="top:13%;left:24%;"></i>
+    <i class="lg tw" style="top:22%;left:6%;"></i>
+    <i style="top:34%;left:17%;"></i>
+    <i class="tw" style="top:52%;left:9%;"></i>
+    <i style="top:68%;left:4%;"></i>
+    <i class="lg" style="top:78%;left:15%;"></i>
+    <i class="tw" style="top:88%;left:23%;"></i>
+    <i style="top:6%;left:42%;"></i>
+    <i class="tw" style="top:4%;left:58%;"></i>
+    <i style="top:12%;left:76%;"></i>
+    <i class="lg tw" style="top:21%;left:88%;"></i>
+    <i style="top:36%;left:94%;"></i>
+    <i class="tw" style="top:48%;left:91%;"></i>
+    <i style="top:62%;left:96%;"></i>
+    <i class="lg" style="top:74%;left:86%;"></i>
+    <i class="tw" style="top:83%;left:78%;"></i>
+    <i style="top:92%;left:62%;"></i>
+    <i class="tw" style="top:96%;left:44%;"></i>
+    <i style="top:88%;left:36%;"></i>
+    <i class="lg" style="top:18%;left:49%;"></i>
+    <i style="top:28%;left:66%;"></i>
+    <i class="tw" style="top:72%;left:38%;"></i>
+  </div>
+
+  <!-- Title -->
+  <div class="title">Design Graph <b>· Spawning</b> &nbsp;/ <i>constellation</i></div>
+
+  <!-- Compass status -->
+  <div class="compass">
+    <div class="ring-ic"></div>
+    <span class="count">3 / 5 drawn</span>
+    <span class="sep"></span>
+    <span class="state">converging</span>
+  </div>
+  <div class="orbit-hint">orbit · 60s / rev</div>
+
+  <!-- Rings -->
+  <div class="rings">
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+  </div>
+
+  <!-- Ring distance labels -->
+  <div class="ring-label" style="top: 230px; left: 640px;">Inner · nearly drawn</div>
+  <div class="ring-label" style="top: 120px; left: 640px;">Mid · rendering</div>
+  <div class="ring-label" style="top: 20px; left: 640px;">Outer · queued</div>
+
+  <!-- Connecting lines from core to each satellite (static positions) -->
+  <!--
+    Center: (640, 400)
+    Satellite positions (final, visible positions — cards centered here):
+      S1 (inner, angle ~200°):  (495, 455)   agent-01 · editorial
+      S2 (inner, angle ~-20°):  (800, 345)   agent-02 · minimal
+      S3 (mid,   angle ~120°):  (502, 620)   agent-03 · dense-grid
+      S4 (mid,   angle ~-60°):  (820, 155)   agent-04 · monochrome
+      S5 (outer, angle ~230°):  (395, 660)   agent-05 · queued
+  -->
+  <svg class="lines" viewBox="0 0 1280 800" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="grad-p" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.04"/>
+      </linearGradient>
+      <linearGradient id="grad-g" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.10"/>
+      </linearGradient>
+      <linearGradient id="grad-gold" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.32"/>
+        <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.28"/>
+      </linearGradient>
+    </defs>
+
+    <!-- to S1 inner -->
+    <path d="M 640,400 Q 572,432 495,455" stroke="url(#grad-p)" stroke-width="1" fill="none"/>
+    <!-- to S2 inner -->
+    <path d="M 640,400 Q 724,368 800,345" stroke="url(#grad-p)" stroke-width="1" fill="none"/>
+    <!-- to S3 mid -->
+    <path d="M 640,400 Q 572,510 502,620" stroke="url(#grad-g)" stroke-width="1" fill="none" stroke-dasharray="3 3"/>
+    <!-- to S4 mid -->
+    <path d="M 640,400 Q 732,280 820,155" stroke="url(#grad-g)" stroke-width="1" fill="none" stroke-dasharray="3 3"/>
+    <!-- to S5 outer -->
+    <path d="M 640,400 Q 520,530 395,660" stroke="url(#grad-gold)" stroke-width="1" fill="none" stroke-dasharray="2 4"/>
+  </svg>
+
+  <!-- Central node -->
+  <div class="core">
+    <div class="core-inner">
+      <div class="core-eyebrow">Prompt</div>
+      <div>a pricing page for a startup accounting app</div>
+    </div>
+  </div>
+
+  <!-- Orbit (rotates) with counter-rotating satellites -->
+  <div class="orbit">
+    <!-- S1 inner - editorial (relative to orbit center 0,0; visible at 495,455 → offset (-145, +55)) -->
+    <div class="sat" style="transform: translate(-145px, 55px);">
+      <div class="sat-wrap">
+        <div class="card inner">
+          <div class="d-editorial">
+            <div class="top">
+              <div class="brand">Ledgerly</div>
+              <div class="nav"><span>Product</span><span>Pricing</span></div>
+            </div>
+            <div class="head">Books that <em>close</em> themselves.</div>
+            <div class="sub">Flat pricing for founders who want bookkeeping to disappear into the background.</div>
+            <div class="plans">
+              <div>
+                <div class="pn">Starter</div>
+                <div class="pp">$19<span>/mo</span></div>
+              </div>
+              <div>
+                <div class="pn">Growth</div>
+                <div class="pp">$49<span>/mo</span></div>
+              </div>
+              <div>
+                <div class="pn">Scale</div>
+                <div class="pp">$129</div>
+              </div>
+            </div>
+            <div class="cta">Start a trial →</div>
+          </div>
+        </div>
+        <div class="card-label below"><span class="id">agent-01</span>· editorial</div>
+      </div>
+    </div>
+
+    <!-- S2 inner - minimal monochrome (visible at 800,345 → offset (+160, -55)) -->
+    <div class="sat" style="transform: translate(160px, -55px);">
+      <div class="sat-wrap">
+        <div class="card inner">
+          <div class="d-minimal">
+            <div class="top">
+              <div class="brand">LEDGERLY</div>
+              <div class="nav"><span>Work</span><span>Pricing</span></div>
+            </div>
+            <div class="kicker">— seats / monthly</div>
+            <div class="big">$<span>49</span></div>
+            <div class="row"><span>Entries</span><b>unlimited</b></div>
+            <div class="row"><span>Reconcile</span><b>auto</b></div>
+            <div class="row"><span>Seats</span><b>up to 5</b></div>
+          </div>
+        </div>
+        <div class="card-label below"><span class="id">agent-02</span>· minimal</div>
+      </div>
+    </div>
+
+    <!-- S3 mid - rendering (visible at 502,620 → offset (-138, +220)) -->
+    <div class="sat" style="transform: translate(-138px, 220px);">
+      <div class="sat-wrap">
+        <div class="card mid">
+          <div class="d-rend">
+            <div class="line t1"></div>
+            <div class="line t2"></div>
+            <div class="grid">
+              <div class="sk"></div>
+              <div class="sk" style="opacity:0.7"></div>
+              <div class="sk" style="opacity:0.4"></div>
+            </div>
+            <div class="code">&lt;section class="plans"&gt;</div>
+          </div>
+        </div>
+        <div class="card-label below"><span class="id">agent-03</span>· conversational</div>
+      </div>
+    </div>
+
+    <!-- S4 mid - rendering B (visible at 820,155 → offset (+180, -245)) -->
+    <div class="sat" style="transform: translate(180px, -245px);">
+      <div class="sat-wrap">
+        <div class="card mid">
+          <div class="d-rend2">
+            <div class="bar">
+              <div class="bar-brand">Ledgerly.</div>
+              <div class="toggle">YR −20%</div>
+            </div>
+            <div class="h">Pay for seats. <b>Not</b> for spreadsheets.</div>
+            <div class="tiles">
+              <div class="tile">
+                <div class="pn">Free</div>
+                <div class="pp">$0</div>
+                <div class="f"></div>
+                <div class="f s60"></div>
+              </div>
+              <div class="tile hl">
+                <div class="pn">Team</div>
+                <div class="pp">$39</div>
+                <div class="f"></div>
+                <div class="f s60"></div>
+              </div>
+              <div class="tile">
+                <div class="pn">Agency</div>
+                <div class="pp">$119</div>
+                <div class="f s60"></div>
+              </div>
+            </div>
+            <div class="shimmer-ovl"></div>
+          </div>
+        </div>
+        <div class="card-label below"><span class="id">agent-04</span>· dense grid</div>
+      </div>
+    </div>
+
+    <!-- S5 outer - queued (visible at 395,660 → offset (-245, +260)) -->
+    <div class="sat" style="transform: translate(-245px, 260px);">
+      <div class="sat-wrap">
+        <div class="card outer">
+          <div class="d-queue">
+            <div class="q-ph">05</div>
+            <div class="q-id">QUEUED</div>
+            <div class="q-t">awaiting slot</div>
+          </div>
+        </div>
+        <div class="card-label below"><span class="id">agent-05</span>· tbd</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compose (waiting) -->
+  <div class="compose">
+    <span class="ic"></span>
+    <span class="pl">compare when ready…</span>
+    <span class="tag">disabled</span>
+  </div>
+</div>
+
+</body>
+</html>

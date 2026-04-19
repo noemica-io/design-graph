@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — An invocation</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400;1,6..72,500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #faf8f4;
+    --ink: #1a1714;
+    --ink-soft: #3d3731;
+    --rule: #e8e2d6;
+    --mute: #8a8176;
+    --accent: #8b5cf6;
+    --accent-soft: #a855f7;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1100px 500px at 90% -10%, rgba(139, 92, 246, 0.04), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(139, 92, 246, 0.025), transparent 60%);
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 56px 96px 48px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Masthead — continued from landing, but marked "continued" */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .masthead .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .masthead .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .masthead .mark .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--accent);
+    display: inline-block;
+    transform: translateY(-1px);
+  }
+
+  .masthead .title {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+
+  .masthead .meta { color: var(--mute); }
+
+  /* Spread: left folio, centered writing surface, right marginalia */
+  .spread {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 180px 1fr 200px;
+    gap: 56px;
+    padding-top: 56px;
+    min-height: 0;
+  }
+
+  /* Left rail — section mark */
+  .rail-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .rail-left .folio b {
+    display: block;
+    color: var(--ink);
+    font-weight: 500;
+    margin-bottom: 4px;
+    letter-spacing: 0.2em;
+  }
+
+  .rail-left .roman {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 46px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 300;
+  }
+
+  .rail-left .roman-cap {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.24em;
+    color: var(--mute);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .rail-left .prev {
+    line-height: 1.7;
+  }
+
+  .rail-left .prev em {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+
+  /* Main column — the writing surface */
+  .surface {
+    max-width: 620px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kicker {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 18px;
+  }
+
+  .kicker .sep {
+    color: var(--rule);
+    margin: 0 10px;
+  }
+
+  .surface h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+
+  .surface h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-soft);
+  }
+
+  .surface .deck {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    margin: 0 0 34px;
+    max-width: 520px;
+  }
+
+  /* The writing surface itself — no chrome, just a hairline */
+  .field-wrap {
+    position: relative;
+    padding: 4px 0 18px;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 22px;
+  }
+
+  .field-wrap::before {
+    /* A faint second rule, like ruled paper, well below the first line */
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: -22px;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .field-wrap::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: -46px;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  .field {
+    width: 100%;
+    min-height: 120px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    resize: none;
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.5;
+    color: var(--ink);
+    padding: 0;
+    caret-color: var(--accent);
+  }
+
+  .field::placeholder {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--mute);
+    opacity: 1;
+  }
+
+  /* The typographic meta-control */
+  .meta-line {
+    margin: 42px 0 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 15.5px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+
+  .meta-line .adjust {
+    position: relative;
+    color: var(--ink);
+    border-bottom: 1px dotted var(--accent);
+    cursor: pointer;
+    padding: 0 1px;
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .meta-line .adjust::after {
+    content: " \2195";
+    font-size: 11px;
+    color: var(--accent);
+    font-style: normal;
+    letter-spacing: 0;
+    margin-left: 2px;
+    vertical-align: 2px;
+  }
+
+  .meta-line .hint {
+    font-style: italic;
+    color: var(--mute);
+    font-size: 14px;
+    margin-left: 10px;
+  }
+
+  /* Ornament + rule before the close */
+  .ornament {
+    text-align: center;
+    color: var(--accent);
+    font-size: 13px;
+    letter-spacing: 0.6em;
+    margin: 36px 0 14px;
+    user-select: none;
+  }
+
+  /* Close — signoff + quiet CTA */
+  .close {
+    margin-top: 4px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .signoff {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--mute);
+  }
+
+  .cta {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+    padding: 0 2px 3px;
+    transition: color 120ms ease, letter-spacing 200ms ease;
+  }
+
+  .cta::after {
+    content: " \2192";
+    color: var(--accent);
+    margin-left: 4px;
+    letter-spacing: 0;
+  }
+
+  .cta:hover {
+    color: var(--accent);
+    letter-spacing: 0.32em;
+  }
+
+  /* Right rail — marginalia */
+  .rail-right {
+    padding-top: 54px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .margin-note {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 200px;
+    padding-left: 14px;
+    border-left: 1px solid var(--accent);
+  }
+
+  .margin-note .label {
+    display: block;
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 9.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 8px;
+  }
+
+  .margin-note em {
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  .margin-aside {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mute);
+    line-height: 1.7;
+    padding-left: 14px;
+  }
+
+  .margin-aside .glyph {
+    color: var(--accent);
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    text-transform: none;
+    letter-spacing: 0;
+    margin-right: 6px;
+  }
+
+  /* Colophon */
+  .colophon {
+    position: absolute;
+    left: 96px;
+    right: 96px;
+    bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .colophon .dots {
+    letter-spacing: 0.4em;
+    color: var(--rule);
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="masthead">
+      <div class="brand">
+        <span class="mark"><span class="dot"></span>Design Graph</span>
+        <span class="title">continued &mdash; the reader becomes the writer</span>
+      </div>
+      <div class="meta">No. 01 &nbsp;·&nbsp; Chapter II</div>
+    </header>
+
+    <section class="spread">
+
+      <aside class="rail-left">
+        <div class="folio">
+          <b>Section</b>
+          <div class="roman">II.</div>
+          <div class="roman-cap">An<br/>Invocation</div>
+        </div>
+        <div class="prev">
+          <b style="color:var(--ink);font-family:Inter,system-ui,sans-serif;letter-spacing:0.2em;font-size:10.5px;">Previously</b>
+          <em>&ldquo;The work happens before the picking.&rdquo;</em>
+        </div>
+      </aside>
+
+      <article class="surface">
+        <div class="kicker">II &nbsp;<span class="sep">·</span>&nbsp; Your prompt <span class="sep">·</span> The blank page</div>
+
+        <h1>Now, <em>you</em> write the first line.</h1>
+
+        <p class="deck">No form to fill. No fields to complete. Just a sentence &mdash; the kind you'd say out loud to someone whose taste you trust.</p>
+
+        <div class="field-wrap">
+          <textarea
+            class="field"
+            rows="3"
+            autofocus
+            placeholder="Describe what you're trying to make."
+          ></textarea>
+        </div>
+
+        <p class="meta-line">
+          <span class="adjust" id="count">Five</span> directions will follow &mdash; each a different guess at what you meant.
+          <span class="hint">click to change</span>
+        </p>
+
+        <div class="ornament">&sect;</div>
+
+        <div class="close">
+          <span class="signoff">&mdash; When you're ready.</span>
+          <a class="cta" href="#">Begin</a>
+        </div>
+      </article>
+
+      <aside class="rail-right">
+        <div class="margin-note">
+          <span class="label">A note to the writer</span>
+          Write as if telling a <em>colleague you respect</em> &mdash; not a machine you're trying to trick. Specifics help. Contradictions help. <em>Do not pre-edit.</em> The room you leave for ambiguity is the room the variants will fill.
+        </div>
+        <div class="margin-aside">
+          <span class="glyph">&para;</span> Draft autosaved
+          <br/>
+          <span class="glyph">&sect;</span> &thinsp;Esc to reconsider
+        </div>
+      </aside>
+
+    </section>
+
+    <footer class="colophon">
+      <span>Set in Newsreader &amp; Inter</span>
+      <span class="dots">· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·</span>
+      <span>Design Graph · designgraph.studio</span>
+    </footer>
+
+  </div>
+
+<script>
+  // Typographic stepper — the word cycles through a small set.
+  (function () {
+    var words = ['Three', 'Four', 'Five', 'Six', 'Eight'];
+    var i = 2;
+    var el = document.getElementById('count');
+    if (!el) return;
+    el.addEventListener('click', function () {
+      i = (i + 1) % words.length;
+      el.textContent = words[i];
+    });
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — one file, or ten.</title>
+<meta name="viewport" content="width=1280" />
+<style>
+  :root {
+    --ink: #0b0b0f;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --accent-ink: #4c1d95;
+    --grey-bg: #ececec;
+    --grey-chrome: #d8d8d8;
+    --grey-line: #c4c4c4;
+    --grey-ink: #4a4a4a;
+    --grey-mute: #8a8a8a;
+    --canvas-bg: #faf9ff;
+    --canvas-dot: #d9d2f0;
+    --red: #c44;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    color: var(--ink);
+    background: #fff;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
+  }
+
+  /* ───────── Top nav ───────── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 56px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+    pointer-events: none;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 600; font-size: 14px; letter-spacing: -0.01em;
+    pointer-events: auto;
+  }
+  nav .brand .dot {
+    width: 14px; height: 14px; border-radius: 3px;
+    background: linear-gradient(135deg, #b8b8b8 0 50%, var(--accent) 50% 100%);
+  }
+  nav .nav-right {
+    display: flex; align-items: center; gap: 22px;
+    font-size: 13px; color: #555;
+    pointer-events: auto;
+  }
+  nav .nav-right a { color: inherit; text-decoration: none; }
+  nav .nav-right a:hover { color: var(--accent); }
+  nav .nav-right .cta {
+    background: var(--ink); color: #fff;
+    padding: 8px 14px; border-radius: 6px;
+    font-weight: 500;
+  }
+
+  /* ───────── Hero split ───────── */
+  .hero {
+    position: relative;
+    height: 800px;
+    display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .hero .seam {
+    position: absolute; top: 0; bottom: 0; left: 50%;
+    width: 1px; background: #ddd;
+    z-index: 4;
+  }
+  .hero .seam::before {
+    content: "vs";
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    width: 44px; height: 44px;
+    border: 1px solid #ddd; border-radius: 50%;
+    font-size: 12px; font-weight: 500; color: #888;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0;
+    font-style: italic;
+  }
+
+  /* LEFT — the old way */
+  .left {
+    background: var(--grey-bg);
+    color: var(--grey-ink);
+    padding: 110px 56px 40px 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .left .eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--grey-mute); margin-bottom: 18px; font-weight: 500;
+  }
+  .left h1 {
+    font-size: 44px; line-height: 1.05; margin: 0 0 22px 0;
+    font-weight: 600; letter-spacing: -0.025em;
+    color: #2a2a2a;
+  }
+  .left h1 em {
+    font-style: normal;
+    text-decoration: line-through;
+    text-decoration-color: #b5b5b5;
+    text-decoration-thickness: 2px;
+    color: #6a6a6a;
+  }
+  .left p.lede {
+    font-size: 15px; line-height: 1.55; color: #555; max-width: 460px;
+    margin: 0 0 28px 0;
+  }
+
+  /* Stylized Figma-like frame */
+  .figframe {
+    background: #fff;
+    border: 1px solid var(--grey-line);
+    border-radius: 6px;
+    height: 336px;
+    display: grid;
+    grid-template-rows: 28px 1fr;
+    grid-template-columns: 180px 1fr;
+    grid-template-areas:
+      "top top"
+      "side main";
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+    font-size: 11px;
+  }
+  .figframe .ftop {
+    grid-area: top;
+    background: #f4f4f4;
+    border-bottom: 1px solid var(--grey-line);
+    display: flex; align-items: center; padding: 0 10px;
+    gap: 8px;
+    color: #888;
+  }
+  .figframe .ftop .dots { display: flex; gap: 5px; }
+  .figframe .ftop .dots span {
+    width: 9px; height: 9px; border-radius: 50%; background: #d4d4d4;
+  }
+  .figframe .ftop .filename {
+    font-weight: 500; color: #555;
+    margin-left: 4px;
+  }
+  .figframe .ftop .filename b {
+    font-weight: 500; color: var(--red);
+  }
+  .figframe .ftop .right {
+    margin-left: auto;
+    display: flex; gap: 10px; align-items: center; color: #aaa;
+  }
+  .figframe .ftop .right .avatars { display: flex; }
+  .figframe .ftop .right .avatars span {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid #fff; margin-left: -4px;
+    background: #bbb;
+  }
+  .figframe .ftop .right .avatars span:nth-child(1) { background: #d0a0a0; }
+  .figframe .ftop .right .avatars span:nth-child(2) { background: #a0b0d0; }
+  .figframe .ftop .right .avatars span:nth-child(3) { background: #b0c0a0; }
+  .figframe .ftop .right .avatars span:nth-child(4) { background: #c8c8c8; font-size: 8px; color: #555; display: flex; align-items: center; justify-content: center; }
+
+  .figframe .fside {
+    grid-area: side;
+    background: #fafafa;
+    border-right: 1px solid var(--grey-line);
+    padding: 10px 12px;
+    color: #666;
+  }
+  .figframe .fside h4 {
+    font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #999; margin: 0 0 8px 0; font-weight: 600;
+  }
+  .figframe .fside ul {
+    list-style: none; padding: 0; margin: 0 0 14px 0;
+    font-size: 11px;
+  }
+  .figframe .fside li {
+    padding: 3px 6px 3px 18px; border-radius: 3px;
+    position: relative; color: #555;
+    line-height: 1.4;
+  }
+  .figframe .fside li::before {
+    content: ""; position: absolute; left: 6px; top: 7px;
+    width: 7px; height: 7px; border: 1px solid #bbb; border-radius: 1px;
+  }
+  .figframe .fside li.active { background: #e8e8e8; color: #333; }
+  .figframe .fside li.active::before { background: #999; border-color: #999; }
+  .figframe .fside .changes {
+    margin-top: 14px;
+    padding: 8px; border: 1px solid #e0c0c0; background: #f9ecec;
+    border-radius: 4px;
+    font-size: 10px; color: #8a4040; line-height: 1.4;
+  }
+  .figframe .fside .changes b { font-weight: 600; color: var(--red); }
+
+  .figframe .fmain {
+    grid-area: main;
+    background: #ededed;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .figframe .artboard {
+    width: 260px; height: 180px;
+    background: #fff;
+    border: 1px solid #c8c8c8;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  }
+  .figframe .artboard .ab-label {
+    position: absolute; top: -16px; left: 0;
+    font-size: 10px; color: #888;
+  }
+  .figframe .artboard .ab-content {
+    padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .figframe .artboard .bar { height: 6px; background: #e8e8e8; border-radius: 2px; }
+  .figframe .artboard .bar.lg { height: 14px; width: 60%; background: #d4d4d4; }
+  .figframe .artboard .bar.md { width: 85%; }
+  .figframe .artboard .bar.sm { width: 40%; }
+  .figframe .artboard .box {
+    height: 48px; background: #f0f0f0; border: 1px solid #e0e0e0;
+    border-radius: 3px; margin-top: 6px;
+  }
+
+  /* Red comment dots */
+  .comment {
+    position: absolute;
+    width: 18px; height: 18px;
+    background: var(--red);
+    color: #fff;
+    border-radius: 50% 50% 50% 2px;
+    font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    animation: pulse 2.8s ease-in-out infinite;
+  }
+  .comment:nth-child(even) { animation-delay: 0.7s; }
+  .comment:nth-child(3n) { animation-delay: 1.4s; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .left .version-tag {
+    position: absolute;
+    bottom: 28px; left: 56px;
+    font-size: 11px; color: #999;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* RIGHT — Design Graph */
+  .right {
+    background: #fff;
+    padding: 110px 56px 40px 56px;
+    position: relative;
+    overflow: hidden;
+  }
+  .right::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+    background-size: 22px 22px;
+    background-position: 11px 11px;
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .right > * { position: relative; z-index: 1; }
+
+  .right .eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 18px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .right .eyebrow .pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(139,92,246,0.18);
+  }
+  .right h1 {
+    font-size: 44px; line-height: 1.05; margin: 0 0 22px 0;
+    font-weight: 600; letter-spacing: -0.025em;
+  }
+  .right h1 span.accent { color: var(--accent); }
+  .right p.lede {
+    font-size: 15px; line-height: 1.55; color: #444; max-width: 470px;
+    margin: 0 0 28px 0;
+  }
+
+  .right .cta-row { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; }
+  .right .cta {
+    background: var(--accent); color: #fff;
+    padding: 11px 18px; border-radius: 7px;
+    font-weight: 500; font-size: 14px;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .right .cta:hover { transform: translateY(-1px); background: #7c3aed; }
+  .right .cta .arrow {
+    transition: transform 0.2s;
+  }
+  .right .cta:hover .arrow { transform: translateX(3px); }
+  .right .cta-sub { font-size: 13px; color: #888; }
+
+  /* Mini canvas */
+  .canvas {
+    height: 336px;
+    border: 1px solid #e6e0f5;
+    border-radius: 6px;
+    background: var(--canvas-bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .canvas::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, #d0c4ee 1px, transparent 1px);
+    background-size: 18px 18px;
+    opacity: 0.55;
+  }
+  /* Zoom chrome */
+  .canvas .zoom {
+    position: absolute; bottom: 10px; right: 10px;
+    background: #fff;
+    border: 1px solid #e4ddf3;
+    border-radius: 6px;
+    padding: 4px;
+    display: flex; gap: 2px;
+    font-size: 11px; color: #666;
+    z-index: 2;
+  }
+  .canvas .zoom span {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .canvas .zoom span:hover { background: #f3eeff; color: var(--accent); }
+  .canvas .zoom .pct {
+    width: auto; padding: 0 8px; font-weight: 500;
+  }
+  .canvas .live {
+    position: absolute; top: 10px; left: 12px;
+    font-size: 11px; color: var(--accent);
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 500; z-index: 2;
+  }
+  .canvas .live::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .canvas .counter {
+    position: absolute; top: 10px; right: 10px;
+    font-size: 11px; color: #888; z-index: 2;
+  }
+  .canvas .counter b { color: var(--accent); font-weight: 600; }
+
+  /* Variant cards on canvas */
+  .vgrid {
+    position: absolute;
+    top: 38px; left: 16px; right: 16px; bottom: 50px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .vcard {
+    background: #fff;
+    border: 1px solid #e4ddf3;
+    border-radius: 5px;
+    padding: 8px;
+    display: flex; flex-direction: column;
+    gap: 5px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    animation: float-in 0.6s both ease-out;
+  }
+  .vcard:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 6px 14px rgba(139,92,246,0.14);
+    z-index: 2;
+  }
+  .vcard:nth-child(1) { animation-delay: 0.05s; }
+  .vcard:nth-child(2) { animation-delay: 0.15s; }
+  .vcard:nth-child(3) { animation-delay: 0.25s; }
+  .vcard:nth-child(4) { animation-delay: 0.35s; }
+  .vcard:nth-child(5) { animation-delay: 0.45s; }
+  .vcard:nth-child(6) { animation-delay: 0.55s; }
+  .vcard:nth-child(7) { animation-delay: 0.65s; }
+  .vcard:nth-child(8) { animation-delay: 0.75s; }
+  @keyframes float-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .vcard .preview {
+    flex: 1;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+  }
+  .vcard .meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 9px; font-weight: 500;
+  }
+  .vcard .meta .id { color: #666; letter-spacing: -0.01em; }
+  .vcard .meta .chip {
+    width: 8px; height: 8px; border-radius: 2px;
+  }
+
+  /* per-card colors */
+  .vcard.c1 .preview { background: linear-gradient(180deg, #ede8fb 0%, #fff 100%); }
+  .vcard.c1 .chip { background: var(--accent); }
+  .vcard.c2 .preview { background: linear-gradient(180deg, #fdf0e0 0%, #fff 100%); }
+  .vcard.c2 .chip { background: #f59e0b; }
+  .vcard.c3 .preview { background: linear-gradient(180deg, #e3f5ea 0%, #fff 100%); }
+  .vcard.c3 .chip { background: #10b981; }
+  .vcard.c4 .preview { background: #1a1525; }
+  .vcard.c4 .chip { background: #6366f1; }
+  .vcard.c4 .meta .id { color: #888; }
+  .vcard.c5 .preview { background: linear-gradient(180deg, #fbe8f0 0%, #fff 100%); }
+  .vcard.c5 .chip { background: #ec4899; }
+  .vcard.c6 .preview { background: linear-gradient(180deg, #ddeaff 0%, #fff 100%); }
+  .vcard.c6 .chip { background: #3b82f6; }
+  .vcard.c7 .preview { background: #faf8ff; }
+  .vcard.c7 .chip { background: var(--accent-soft); }
+  .vcard.c8 .preview { background: linear-gradient(180deg, #fce8e8 0%, #fff 100%); }
+  .vcard.c8 .chip { background: #ef4444; }
+
+  /* Mini content inside previews */
+  .vcard .preview::before,
+  .vcard .preview::after {
+    content: "";
+    position: absolute;
+    background: rgba(0,0,0,0.08);
+    border-radius: 1px;
+  }
+  .vcard .preview::before {
+    left: 6px; top: 6px; width: 40%; height: 3px;
+  }
+  .vcard .preview::after {
+    left: 6px; top: 12px; width: 70%; height: 2px;
+  }
+  .vcard.c4 .preview::before,
+  .vcard.c4 .preview::after { background: rgba(255,255,255,0.15); }
+  .vcard .preview em {
+    position: absolute;
+    font-style: normal;
+    left: 6px; bottom: 6px;
+    font-size: 7px;
+    color: rgba(0,0,0,0.4);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .vcard.c4 .preview em { color: rgba(255,255,255,0.5); }
+
+  /* Connector lines between cards (suggesting a graph) */
+  .vgrid svg {
+    position: absolute; inset: 0; pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ───────── Comparison section (below fold) ───────── */
+  .compare {
+    background: #0b0b0f;
+    color: #d4d4d4;
+    padding: 90px 56px 110px 56px;
+    position: relative;
+  }
+  .compare h2 {
+    font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+    margin: 0 0 10px 0; color: #fff;
+    text-align: center;
+  }
+  .compare .sub {
+    text-align: center; color: #888; font-size: 14px;
+    margin: 0 0 44px 0;
+  }
+  .compare .table {
+    max-width: 980px; margin: 0 auto;
+    border: 1px solid #1e1e26;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .compare .row {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    border-bottom: 1px solid #1e1e26;
+    transition: background 0.18s;
+  }
+  .compare .row:last-child { border-bottom: none; }
+  .compare .row:hover { background: rgba(139,92,246,0.04); }
+  .compare .row:hover .new { color: #fff; }
+  .compare .row:hover .new::before {
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(139,92,246,0.2);
+  }
+  .compare .old, .compare .new {
+    padding: 20px 24px;
+    font-size: 15px; line-height: 1.5;
+    display: flex; align-items: center;
+    position: relative;
+    transition: color 0.18s;
+  }
+  .compare .old {
+    color: #6a6a6a;
+    text-decoration: line-through;
+    text-decoration-color: #333;
+    justify-content: flex-end;
+    text-align: right;
+  }
+  .compare .new {
+    color: #d4d4d4;
+    padding-left: 44px;
+  }
+  .compare .new::before {
+    content: "";
+    position: absolute; left: 24px; top: 50%;
+    transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #3a3a44;
+    transition: all 0.18s;
+  }
+  .compare .arrow-col {
+    display: flex; align-items: center; justify-content: center;
+    color: #444; font-size: 14px;
+    border-left: 1px solid #1e1e26;
+    border-right: 1px solid #1e1e26;
+  }
+  .compare .row:hover .arrow-col { color: var(--accent); }
+
+  /* Fade suggesting more below */
+  .fade {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 80px;
+    background: linear-gradient(180deg, transparent 0%, #0b0b0f 100%);
+    pointer-events: none;
+  }
+
+  /* Final CTA block */
+  .cta-block {
+    text-align: center;
+    padding: 86px 56px;
+    background: #fff;
+    border-top: 1px solid #eee;
+  }
+  .cta-block .kicker {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px; font-weight: 600;
+  }
+  .cta-block h3 {
+    font-size: 36px; font-weight: 600; letter-spacing: -0.025em;
+    margin: 0 0 10px 0;
+    color: var(--ink);
+  }
+  .cta-block h3 .stroke {
+    text-decoration: line-through;
+    text-decoration-color: #d0d0d0;
+    text-decoration-thickness: 2px;
+    color: #9a9a9a;
+  }
+  .cta-block p {
+    font-size: 15px; color: #666; margin: 0 auto 30px auto;
+    max-width: 520px; line-height: 1.55;
+  }
+  .cta-block .big-cta {
+    background: var(--accent); color: #fff;
+    padding: 14px 26px; border-radius: 8px;
+    font-weight: 500; font-size: 15px;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 10px;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .cta-block .big-cta:hover { transform: translateY(-1px); background: #7c3aed; }
+  .cta-block .fineprint {
+    margin-top: 18px; font-size: 12px; color: #aaa;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span>Design Graph</span>
+  </div>
+  <div class="nav-right">
+    <a href="#">How it works</a>
+    <a href="#">Gallery</a>
+    <a href="#">Changelog</a>
+    <a href="#" class="cta">Open the canvas</a>
+  </div>
+</nav>
+
+<!-- ═════════════ HERO ═════════════ -->
+<section class="hero">
+  <div class="seam"></div>
+
+  <!-- LEFT: old way -->
+  <div class="left">
+    <div class="eyebrow">The usual way</div>
+    <h1>Pick a direction,<br/>defend it,<br/><em>revise it to death.</em></h1>
+    <p class="lede">
+      One file. One artboard. A committee of opinions. By round four
+      nobody remembers why the first version was rejected — and the next
+      idea doesn't exist because there was never time to make it.
+    </p>
+
+    <div class="figframe">
+      <div class="ftop">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="filename">Homepage — <b>Final_v4_FINAL_reviewed.fig</b></div>
+        <div class="right">
+          <span>Share</span>
+          <div class="avatars">
+            <span></span><span></span><span></span><span>+5</span>
+          </div>
+        </div>
+      </div>
+      <div class="fside">
+        <h4>Pages</h4>
+        <ul>
+          <li class="active">Homepage</li>
+          <li>Homepage (old)</li>
+          <li>Homepage (archive)</li>
+          <li>Scratch</li>
+        </ul>
+        <div class="changes">
+          <b>23 requested changes</b><br/>
+          12 unresolved threads<br/>
+          Due Friday
+        </div>
+      </div>
+      <div class="fmain">
+        <div class="artboard">
+          <div class="ab-label">Homepage / Desktop</div>
+          <div class="ab-content">
+            <div class="bar lg"></div>
+            <div class="bar md"></div>
+            <div class="bar sm"></div>
+            <div class="box"></div>
+          </div>
+          <div class="comment" style="top: -8px; right: 40px;">!</div>
+          <div class="comment" style="top: 40px; left: -9px;">3</div>
+          <div class="comment" style="top: 92px; right: -8px;">?</div>
+          <div class="comment" style="bottom: 36px; left: 42%;">5</div>
+          <div class="comment" style="bottom: -8px; right: 60px;">!</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="version-tag">Final_v4_FINAL_reviewed_USE-THIS.fig · 2h ago</div>
+  </div>
+
+  <!-- RIGHT: Design Graph -->
+  <div class="right">
+    <div class="eyebrow"><span class="pip"></span>Design Graph</div>
+    <h1>Don't pick.<br/><span class="accent">Explore ten.</span></h1>
+    <p class="lede">
+      Spawn parallel agents. Each one makes a real, self-contained page.
+      They land on a canvas. You drag to compare, chat to iterate, and
+      keep the ones that actually answer the question.
+    </p>
+    <div class="cta-row">
+      <a href="#" class="cta">
+        See what else was possible
+        <span class="arrow">→</span>
+      </a>
+      <span class="cta-sub">no signup · runs in your terminal</span>
+    </div>
+
+    <div class="canvas">
+      <div class="live">live · 8 agents</div>
+      <div class="counter"><b>8</b> variants · 2 selected</div>
+      <div class="vgrid">
+        <svg>
+          <line x1="15%" y1="50%" x2="38%" y2="50%" stroke="#d9d2f0" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="63%" y1="50%" x2="88%" y2="50%" stroke="#d9d2f0" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="50%" y1="38%" x2="50%" y2="62%" stroke="#d9d2f0" stroke-width="1" stroke-dasharray="3 3"/>
+        </svg>
+        <div class="vcard c1">
+          <div class="preview"><em>hero-dense</em></div>
+          <div class="meta"><span class="id">landing-dense</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c2">
+          <div class="preview"><em>editorial</em></div>
+          <div class="meta"><span class="id">landing-mag</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c3">
+          <div class="preview"><em>quiet demo</em></div>
+          <div class="meta"><span class="id">landing-demo</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c4">
+          <div class="preview"><em>dark/inverse</em></div>
+          <div class="meta"><span class="id">landing-dark</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c5">
+          <div class="preview"><em>playful</em></div>
+          <div class="meta"><span class="id">landing-soft</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c6">
+          <div class="preview"><em>utility</em></div>
+          <div class="meta"><span class="id">landing-docs</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c7">
+          <div class="preview"><em>minimal</em></div>
+          <div class="meta"><span class="id">landing-bare</span><span class="chip"></span></div>
+        </div>
+        <div class="vcard c8">
+          <div class="preview"><em>confrontation</em></div>
+          <div class="meta"><span class="id">landing-split</span><span class="chip"></span></div>
+        </div>
+      </div>
+      <div class="zoom">
+        <span>−</span>
+        <span class="pct">100%</span>
+        <span>+</span>
+        <span>⤢</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════ COMPARISON ═════════════ -->
+<section class="compare">
+  <h2>A side-by-side honesty check.</h2>
+  <p class="sub">No marketing-speak. Just what actually changes.</p>
+  <div class="table">
+    <div class="row">
+      <div class="old">Start with one direction.</div>
+      <div class="arrow-col">→</div>
+      <div class="new">Start with ten.</div>
+    </div>
+    <div class="row">
+      <div class="old">Revise based on feedback.</div>
+      <div class="arrow-col">→</div>
+      <div class="new">Revise in parallel.</div>
+    </div>
+    <div class="row">
+      <div class="old">Defend a pick.</div>
+      <div class="arrow-col">→</div>
+      <div class="new">See what else was possible.</div>
+    </div>
+    <div class="row">
+      <div class="old">"Can you try it more like X?"</div>
+      <div class="arrow-col">→</div>
+      <div class="new">X, Y, Z and four you didn't ask for.</div>
+    </div>
+    <div class="row">
+      <div class="old">Version names ending in _FINAL.</div>
+      <div class="arrow-col">→</div>
+      <div class="new">A graph you can walk back through.</div>
+    </div>
+    <div class="row">
+      <div class="old">One file everyone edits.</div>
+      <div class="arrow-col">→</div>
+      <div class="new">N files nobody has to share.</div>
+    </div>
+  </div>
+  <div class="fade"></div>
+</section>
+
+<!-- ═════════════ CTA ═════════════ -->
+<section class="cta-block">
+  <div class="kicker">Pick your side</div>
+  <h3><span class="stroke">Pick one.</span> &nbsp;Explore all of them.</h3>
+  <p>
+    There's exactly one button on this page. It goes to the obvious place.
+    That's the joke — and also, genuinely, the pitch.
+  </p>
+  <a href="#" class="big-cta">
+    See what else was possible
+    <span>→</span>
+  </a>
+  <div class="fineprint">Design Graph was built with Design Graph. This page is one of its variants.</div>
+</section>
+
+</body>
+</html>

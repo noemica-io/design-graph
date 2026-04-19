@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Design Graph — head-to-head</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Fraunces:ital,wght@0,400;0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #fafaf7;
+    --canvas: #f5f4ef;
+    --ink: #111113;
+    --ink-2: rgba(17,17,19,0.72);
+    --muted: rgba(17,17,19,0.52);
+    --dim: rgba(17,17,19,0.34);
+    --faint: rgba(17,17,19,0.18);
+    --hairline: rgba(17,17,19,0.10);
+    --hairline-s: rgba(17,17,19,0.06);
+    --surface: #ffffff;
+    --accent: #7c3aed;
+    --accent-hi: #6d28d9;
+    --accent-soft: rgba(124,58,237,0.10);
+  }
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg); color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.006em;
+  }
+
+  /* Topbar */
+  .chrome {
+    position: absolute; top: 0; left: 0; right: 0; height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center; padding: 0 16px;
+    z-index: 20; font-size: 12px;
+  }
+  .logo {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent); position: relative;
+    margin-right: 10px;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 5px; height: 5px; border-radius: 50%; background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -5px 0 0 #fff; }
+  .brand { font-weight: 600; letter-spacing: -0.012em; font-size: 13px; }
+  .brand .dim { color: var(--muted); font-weight: 450; margin-left: 6px; }
+  .chrome-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 14px; }
+  .canvas-name { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+  .canvas-name .q { color: var(--muted); font-weight: 450; margin-left: 6px; }
+  .match-indicator {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11.5px; font-weight: 500; color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .match-indicator .label { color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px; font-weight: 600; }
+  .match-indicator .bar { width: 80px; height: 4px; background: var(--hairline); border-radius: 2px; overflow: hidden; }
+  .match-indicator .fill { width: 20%; height: 100%; background: var(--ink); border-radius: 2px; }
+
+  /* Stage */
+  .stage {
+    position: absolute; top: 44px; left: 0; right: 0; bottom: 0;
+    background: var(--canvas);
+  }
+
+  /* Two-up arena */
+  .arena {
+    position: absolute; top: 28px; left: 0; right: 0;
+    display: flex; justify-content: center; align-items: flex-start;
+    gap: 0;
+  }
+  .side {
+    width: 520px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .gap {
+    width: 1px; align-self: stretch;
+    background: var(--hairline);
+    margin: 0 28px;
+    height: 640px;
+  }
+  .tag {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.14em; color: var(--muted);
+    margin-bottom: 10px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .tag .letter {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--ink); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; letter-spacing: 0;
+  }
+
+  /* Rendering frames */
+  .frame {
+    width: 520px; height: 560px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Variant A: Minimalist pricing ─────────────────────── */
+  .va {
+    padding: 44px 36px;
+    font-family: 'Inter', sans-serif;
+    color: #0b0b0d;
+    height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .va .eyebrow {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.18em; color: #7c3aed;
+  }
+  .va h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 34px; font-weight: 500; line-height: 1.1;
+    margin-top: 14px; letter-spacing: -0.02em;
+  }
+  .va .lede {
+    font-size: 13px; color: rgba(11,11,13,0.55); margin-top: 10px;
+    line-height: 1.5; max-width: 340px;
+  }
+  .va .plans {
+    margin-top: 34px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .va .plan {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(11,11,13,0.08);
+  }
+  .va .plan:last-child { border-bottom: none; }
+  .va .plan .name { font-size: 15px; font-weight: 500; }
+  .va .plan .desc { font-size: 11.5px; color: rgba(11,11,13,0.5); margin-top: 2px; }
+  .va .plan .price {
+    font-family: 'Fraunces', serif;
+    font-size: 22px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .va .plan .price .u { font-size: 11px; color: rgba(11,11,13,0.5); font-family: 'Inter'; margin-left: 3px; font-weight: 450; }
+  .va .cta {
+    margin-top: auto;
+    display: inline-flex; align-self: flex-start;
+    padding: 10px 18px;
+    background: #0b0b0d; color: #fff;
+    border-radius: 6px; font-size: 12.5px; font-weight: 500;
+  }
+
+  /* ── Variant B: Dense table pricing ───────────────────── */
+  .vb {
+    padding: 22px 24px;
+    font-family: 'Inter', sans-serif;
+    color: #0b0b0d; height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .vb .hd { display: flex; justify-content: space-between; align-items: center; }
+  .vb .hd .title { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .vb .hd .toggle {
+    display: inline-flex; border: 1px solid rgba(11,11,13,0.12);
+    border-radius: 5px; overflow: hidden; font-size: 10.5px; font-weight: 500;
+  }
+  .vb .hd .toggle span { padding: 4px 9px; color: rgba(11,11,13,0.55); }
+  .vb .hd .toggle .on { background: #0b0b0d; color: #fff; }
+  .vb .sub { font-size: 11.5px; color: rgba(11,11,13,0.55); margin-top: 4px; }
+
+  .vb table {
+    margin-top: 14px;
+    width: 100%; border-collapse: collapse;
+    font-size: 10.5px;
+  }
+  .vb th, .vb td {
+    padding: 6px 6px;
+    text-align: left;
+    border-bottom: 1px solid rgba(11,11,13,0.07);
+    vertical-align: middle;
+  }
+  .vb thead th {
+    font-size: 9.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: rgba(11,11,13,0.45);
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(11,11,13,0.12);
+  }
+  .vb td.name { font-weight: 500; font-size: 11px; width: 34%; }
+  .vb td.col { text-align: center; font-variant-numeric: tabular-nums; width: 22%; }
+  .vb td.col.check { color: #7c3aed; font-weight: 600; }
+  .vb td.col.dash { color: rgba(11,11,13,0.25); }
+  .vb thead .planhd { text-align: center; color: #0b0b0d; }
+  .vb thead .planhd .p { font-size: 11.5px; font-weight: 600; letter-spacing: -0.005em; text-transform: none; }
+  .vb thead .planhd .pr { font-size: 10.5px; font-weight: 500; color: rgba(11,11,13,0.55); margin-top: 2px; letter-spacing: 0; }
+
+  .vb .footrow {
+    margin-top: auto;
+    display: flex; gap: 8px;
+    padding-top: 12px;
+  }
+  .vb .footrow .btn {
+    flex: 1; text-align: center;
+    padding: 8px 0;
+    border: 1px solid rgba(11,11,13,0.12);
+    border-radius: 5px;
+    font-size: 11px; font-weight: 500; color: #0b0b0d;
+  }
+  .vb .footrow .btn.primary {
+    background: #0b0b0d; color: #fff; border-color: #0b0b0d;
+  }
+
+  /* Pick buttons */
+  .pick-row {
+    margin-top: 20px;
+    width: 520px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .pick-btn {
+    width: 100%;
+    height: 58px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.01em;
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 6px 18px -10px rgba(124,58,237,0.55);
+    transition: background 120ms;
+  }
+  .pick-btn:hover { background: var(--accent-hi); }
+  .pick-btn .kbd {
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 10.5px; font-weight: 500;
+    padding: 2px 6px; border-radius: 3px;
+    background: rgba(255,255,255,0.2);
+    letter-spacing: 0.03em;
+  }
+
+  /* Tie link between sides */
+  .tie-link {
+    position: absolute;
+    top: 698px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 11.5px; color: var(--muted);
+    text-decoration: none; font-weight: 450;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    z-index: 5;
+  }
+  .tie-link .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--faint); }
+  .tie-link u { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--faint); }
+
+  /* Bracket indicator */
+  .bracket {
+    position: absolute;
+    bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    font-size: 10px; color: var(--muted);
+    font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .bracket .tree {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .bracket .d {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--surface);
+    border: 1.5px solid var(--faint);
+  }
+  .bracket .d.out { background: transparent; border-color: var(--hairline); opacity: 0.5; }
+  .bracket .d.live { background: var(--ink); border-color: var(--ink); }
+  .bracket .d.next { background: var(--accent-soft); border-color: var(--accent); border-style: dashed; }
+  .bracket .bridge { width: 10px; height: 1px; background: var(--hairline); }
+  .bracket .bridge.active { background: var(--ink); }
+  .bracket .lbl { color: var(--dim); }
+
+</style>
+</head>
+<body>
+
+<!-- Top chrome -->
+<header class="chrome">
+  <span class="logo"></span>
+  <span class="brand">Design Graph <span class="dim">/ canvas</span></span>
+  <span class="chrome-sep"></span>
+  <span class="canvas-name">Pricing page<span class="q">— “landing tier compare”</span></span>
+
+  <div class="match-indicator">
+    <span class="label">Match</span>
+    <span>1 of 4</span>
+    <span class="bar"><span class="fill"></span></span>
+  </div>
+</header>
+
+<div class="stage">
+
+  <!-- Two-up arena -->
+  <div class="arena">
+
+    <!-- Variant A + pick -->
+    <div class="side">
+      <div class="tag"><span class="letter">A</span>Variant A</div>
+      <div class="frame">
+        <div class="va">
+          <span class="eyebrow">Pricing</span>
+          <h1>Simple, honest pricing.</h1>
+          <p class="lede">One product, three tiers. No seats, no per-event fees, no surprise invoices at the end of the quarter.</p>
+
+          <div class="plans">
+            <div class="plan">
+              <div>
+                <div class="name">Starter</div>
+                <div class="desc">For solo founders getting off the ground.</div>
+              </div>
+              <div class="price">$0<span class="u">/mo</span></div>
+            </div>
+            <div class="plan">
+              <div>
+                <div class="name">Studio</div>
+                <div class="desc">For small teams shipping weekly.</div>
+              </div>
+              <div class="price">$29<span class="u">/mo</span></div>
+            </div>
+            <div class="plan">
+              <div>
+                <div class="name">Scale</div>
+                <div class="desc">For companies past product-market fit.</div>
+              </div>
+              <div class="price">$99<span class="u">/mo</span></div>
+            </div>
+          </div>
+
+          <a class="cta" href="#">Start free →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap"></div>
+
+    <!-- Variant B + pick -->
+    <div class="side">
+      <div class="tag"><span class="letter">B</span>Variant B</div>
+      <div class="frame">
+        <div class="vb">
+          <div class="hd">
+            <div>
+              <div class="title">Compare every plan</div>
+              <div class="sub">All prices in USD, billed monthly. Switch anytime.</div>
+            </div>
+            <div class="toggle">
+              <span class="on">Monthly</span>
+              <span>Yearly −20%</span>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34%">&nbsp;</th>
+                <th class="planhd"><div class="p">Starter</div><div class="pr">$0</div></th>
+                <th class="planhd"><div class="p">Studio</div><div class="pr">$29</div></th>
+                <th class="planhd"><div class="p">Scale</div><div class="pr">$99</div></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td class="name">Projects</td><td class="col">1</td><td class="col">10</td><td class="col">Unlimited</td></tr>
+              <tr><td class="name">Team seats</td><td class="col">1</td><td class="col">5</td><td class="col">25</td></tr>
+              <tr><td class="name">Monthly events</td><td class="col">5k</td><td class="col">100k</td><td class="col">2M</td></tr>
+              <tr><td class="name">API access</td><td class="col dash">—</td><td class="col check">✓</td><td class="col check">✓</td></tr>
+              <tr><td class="name">Custom domains</td><td class="col dash">—</td><td class="col check">✓</td><td class="col check">✓</td></tr>
+              <tr><td class="name">SSO / SAML</td><td class="col dash">—</td><td class="col dash">—</td><td class="col check">✓</td></tr>
+              <tr><td class="name">Audit log</td><td class="col dash">—</td><td class="col dash">—</td><td class="col check">✓</td></tr>
+              <tr><td class="name">Priority support</td><td class="col dash">—</td><td class="col">Email</td><td class="col">24/7</td></tr>
+              <tr><td class="name">SLA uptime</td><td class="col dash">—</td><td class="col">99.9%</td><td class="col">99.99%</td></tr>
+              <tr><td class="name">Data retention</td><td class="col">7d</td><td class="col">90d</td><td class="col">2 yr</td></tr>
+            </tbody>
+          </table>
+
+          <div class="footrow">
+            <a class="btn" href="#">Start Starter</a>
+            <a class="btn" href="#">Try Studio</a>
+            <a class="btn primary" href="#">Contact sales</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Pick buttons row -->
+  <div style="position:absolute; top:628px; left:0; right:0; display:flex; justify-content:center; gap:57px;">
+    <div class="pick-row">
+      <button class="pick-btn">Pick A <span class="kbd">←</span></button>
+    </div>
+    <div class="pick-row">
+      <button class="pick-btn">Pick B <span class="kbd">→</span></button>
+    </div>
+  </div>
+
+  <!-- Tie link between -->
+  <a class="tie-link" href="#">
+    <span class="dot"></span>
+    <u>tie / both good</u>
+    <span class="dot"></span>
+  </a>
+
+  <!-- Bracket lineage indicator -->
+  <div class="bracket">
+    <span class="lbl">Remaining</span>
+    <div class="tree">
+      <span class="d out" title="V1 · eliminated"></span>
+      <span class="bridge"></span>
+      <span class="d live" title="V2 · active"></span>
+      <span class="bridge active"></span>
+      <span class="d next" title="next match"></span>
+      <span class="bridge active"></span>
+      <span class="d live" title="V4 · active"></span>
+      <span class="bridge"></span>
+      <span class="d out" title="V3 · eliminated"></span>
+    </div>
+    <span class="lbl">2 of 5 · next: winner vs V4</span>
+  </div>
+
+</div>
+
+</body>
+</html>

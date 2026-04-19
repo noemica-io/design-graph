@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ship — chosen</title>
+<meta name="viewport" content="width=1280" />
+<style>
+  :root {
+    --ink: #0b0b0f;
+    --accent: #8b5cf6;
+    --amber: #fbbf24;
+    --pink: #fb7185;
+    --butter: #fef3c7;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 1280px; height: 800px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    color: var(--ink);
+    background: #fafaf7;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
+    overflow: hidden;
+  }
+
+  /* ─── top nav: minimal, subtle actions top-right ─── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 48px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 500; font-size: 13px; letter-spacing: -0.01em;
+    color: #5a5a60;
+  }
+  nav .brand .dot {
+    width: 11px; height: 11px; border-radius: 2px;
+    background: var(--amber);
+  }
+  nav .actions {
+    display: flex; align-items: center; gap: 18px;
+    font-size: 12px; color: #888;
+  }
+  nav .actions a {
+    color: #666;
+    text-decoration: none;
+    letter-spacing: -0.005em;
+  }
+  nav .actions a:hover { color: var(--ink); }
+  nav .actions .export {
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 1px;
+    color: var(--accent);
+  }
+  nav .actions .sep { color: #d4d4d4; }
+
+  /* ─── main stage layout ─── */
+  .stage {
+    position: absolute;
+    top: 48px; left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    grid-template-rows: 1fr 172px;
+  }
+
+  /* ─── meta column ─── */
+  .meta {
+    grid-row: 1 / 2;
+    padding: 28px 18px 18px 28px;
+    border-right: 1px solid #eae6da;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+  .meta .stamp {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #5a5a60;
+  }
+  .meta .check {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--amber);
+    color: #3a2a0a;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .meta .label {
+    font-size: 12px;
+    line-height: 1.35;
+    color: #3a3a40;
+    letter-spacing: -0.005em;
+  }
+  .meta .label b {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: #9a9a98;
+    margin-bottom: 3px;
+  }
+  .meta .timing {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    color: #6a6a6a;
+    line-height: 1.5;
+  }
+  .meta .timing b {
+    display: block;
+    font-family: 'Inter', sans-serif;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: #9a9a98;
+    margin-bottom: 3px;
+  }
+  .meta .epitaph {
+    font-style: italic;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #7a7a78;
+    letter-spacing: -0.005em;
+    border-top: 1px solid #eae6da;
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+  .meta .jump {
+    margin-top: auto;
+    font-size: 11px;
+    color: #888;
+    text-decoration: none;
+    letter-spacing: -0.005em;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .meta .jump:hover { color: var(--ink); }
+
+  /* ─── chosen variant full-fidelity render ─── */
+  .chosen {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+    padding: 36px 44px 24px 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .chosen::before {
+    content: "";
+    position: absolute;
+    top: 14px; right: 44px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a8a096;
+  }
+
+  .page-frame {
+    background: var(--butter);
+    border-radius: 8px;
+    height: 100%;
+    padding: 46px 58px 42px 58px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 22px 60px -28px rgba(251,113,133,0.25);
+  }
+  .page-frame::before {
+    content: "";
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: var(--pink);
+    opacity: 0.75;
+  }
+  .page-frame::after {
+    content: "";
+    position: absolute;
+    bottom: -110px; left: -60px;
+    width: 210px; height: 210px;
+    border-radius: 50%;
+    background: #60a5fa;
+    opacity: 0.38;
+  }
+
+  .page-frame .topline {
+    position: relative; z-index: 2;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px;
+    color: #3a2a18;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+  .page-frame .topline .brandline {
+    display: flex; align-items: center; gap: 7px;
+  }
+  .page-frame .topline .brandline::before {
+    content: "";
+    width: 8px; height: 8px;
+    background: #1a1a1a;
+  }
+  .page-frame .topline .navlinks {
+    display: flex; gap: 22px;
+    text-transform: none;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    font-size: 12px;
+    color: #2a1a0a;
+  }
+
+  .page-frame h1 {
+    position: relative; z-index: 2;
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    margin: 0 0 18px 0;
+    color: #1a1a1a;
+    max-width: 680px;
+  }
+  .page-frame h1 span.hl {
+    background: #1a1a1a;
+    color: var(--butter);
+    padding: 0 10px;
+    display: inline-block;
+    transform: rotate(-0.6deg);
+  }
+  .page-frame h1 span.hl2 {
+    background: var(--pink);
+    color: #1a1a1a;
+    padding: 0 10px;
+    display: inline-block;
+    transform: rotate(0.8deg);
+  }
+
+  .page-frame .sub {
+    position: relative; z-index: 2;
+    font-size: 15px;
+    color: #3a2a18;
+    max-width: 540px;
+    line-height: 1.5;
+    margin: 0 0 30px 0;
+    font-weight: 500;
+  }
+
+  .page-frame .tiers {
+    position: relative; z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    max-width: 880px;
+  }
+  .tier {
+    background: #fff;
+    border: 2.5px solid #1a1a1a;
+    border-radius: 6px;
+    padding: 18px 18px 20px 18px;
+    position: relative;
+    box-shadow: 5px 5px 0 #1a1a1a;
+  }
+  .tier.pro {
+    background: #1a1a1a;
+    color: var(--butter);
+    transform: translateY(-6px);
+    box-shadow: 5px 5px 0 var(--pink);
+  }
+  .tier .tname {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: inherit;
+  }
+  .tier .price {
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .tier .price sup {
+    font-size: 18px;
+    font-weight: 700;
+    vertical-align: top;
+    margin-right: 2px;
+  }
+  .tier .price span.per {
+    font-size: 11px;
+    font-weight: 600;
+    color: #7a6a4a;
+    margin-left: 4px;
+    letter-spacing: 0;
+  }
+  .tier.pro .price span.per { color: #c8b078; }
+  .tier ul {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 14px 0;
+    font-size: 11.5px;
+    line-height: 1.55;
+    font-weight: 500;
+  }
+  .tier ul li {
+    padding-left: 14px;
+    position: relative;
+  }
+  .tier ul li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    font-weight: 900;
+    color: var(--pink);
+  }
+  .tier.pro ul li::before { color: var(--butter); }
+  .tier .cta {
+    display: block;
+    text-align: center;
+    padding: 9px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 2px solid #1a1a1a;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #1a1a1a;
+    background: var(--butter);
+  }
+  .tier.pro .cta {
+    background: var(--pink);
+    color: #1a1a1a;
+    border-color: var(--pink);
+  }
+  .tier .ribbon {
+    position: absolute;
+    top: -14px; right: 10px;
+    background: var(--pink);
+    color: #1a1a1a;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 2px solid #1a1a1a;
+    transform: rotate(3deg);
+  }
+
+  /* ─── filmstrip of 7 alternates ─── */
+  .alternates {
+    grid-column: 1 / 3;
+    grid-row: 2 / 3;
+    border-top: 1px solid #eae6da;
+    padding: 16px 28px 14px 28px;
+    background: #f5f3ed;
+    display: flex; flex-direction: column;
+    gap: 8px;
+    position: relative;
+  }
+  .alternates .alt-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 10.5px;
+    color: #8a8a84;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .alternates .alt-head .right {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+    text-transform: none;
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #a0a098;
+  }
+  .alternates .strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 10px;
+    height: 94px;
+  }
+  .alternates .strip .mini {
+    background: #fff;
+    border: 1px solid #e4e0d4;
+    border-radius: 4px;
+    padding: 6px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    opacity: 0.78;
+    transition: opacity 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .alternates .strip .mini:hover { opacity: 1; }
+  .alternates .strip .mini .m-body {
+    flex: 1;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+  .alternates .strip .mini .m-foot {
+    font-size: 8px;
+    color: #8a8a84;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: flex; justify-content: space-between;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .alternates .strip .mini .m-foot .id {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+    color: #a0a098;
+    font-weight: 400;
+  }
+
+  /* mini 1: serif editorial */
+  .m1 .m-body { background: #fdf9f0; padding: 5px 5px; }
+  .m1 .m-body .ey { font-family: Georgia, serif; font-size: 5px; letter-spacing: 0.3em; color: #a88a4a; text-transform: uppercase; }
+  .m1 .m-body h5 { font-family: Georgia, serif; font-style: italic; font-size: 8px; margin: 2px 0 3px 0; color: #3a2a18; font-weight: 400; }
+  .m1 .m-body h5 b { font-style: normal; font-weight: 600; }
+  .m1 .m-body .ln { height: 0.5px; background: #d0b878; margin: 3px 0; }
+  .m1 .m-body .r { display: flex; justify-content: space-between; font-family: Georgia, serif; font-size: 5.5px; color: #5a4a28; border-bottom: 0.5px dotted #c8b090; padding-bottom: 1px; margin-bottom: 1px; }
+
+  /* mini 2: dense table */
+  .m2 .m-body { background: #fff; padding: 3px; }
+  .m2 .m-body .row { display: grid; grid-template-columns: 1fr 20px 24px 20px; gap: 2px; font-size: 4.5px; padding: 1px 2px; color: #4a4a4a; border-bottom: 0.5px solid #ececec; }
+  .m2 .m-body .row.head { background: #f4f4f4; font-weight: 700; font-size: 4px; letter-spacing: 0.05em; text-transform: uppercase; color: #6a6a6a; }
+  .m2 .m-body .row .hi { background: #fef9e7; }
+  .m2 .m-body .row .ck { color: #22c55e; font-weight: 700; text-align: center; }
+
+  /* mini 4: dark tech */
+  .m4 .m-body { background: #0a0a14; padding: 5px; color: #d4d4d4; font-family: 'JetBrains Mono', monospace; font-size: 5px; }
+  .m4 .m-body .t { color: #4f46e5; margin-bottom: 3px; font-size: 4.5px; }
+  .m4 .m-body h5 { margin: 0 0 3px 0; font-size: 6.5px; color: #fff; font-weight: 500; }
+  .m4 .m-body h5 span { color: #a5b4fc; }
+  .m4 .m-body .ln { color: #7c7c9e; line-height: 1.4; font-size: 4.5px; }
+  .m4 .m-body .ln .st { color: #10b981; }
+  .m4 .m-body .hi { color: #fbbf24; }
+
+  /* mini 5: minimal */
+  .m5 .m-body { background: #fafafa; padding: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .m5 .m-body .ey { font-size: 4px; letter-spacing: 0.3em; text-transform: uppercase; color: #9a9a9a; }
+  .m5 .m-body .big { font-size: 18px; font-weight: 300; letter-spacing: -0.04em; line-height: 1; color: #0a0a0a; margin: 2px 0 1px 0; }
+  .m5 .m-body .big sup { font-size: 7px; font-weight: 300; color: #8a8a8a; vertical-align: super; }
+  .m5 .m-body .per { font-size: 4.5px; color: #6a6a6a; }
+  .m5 .m-body .ln { width: 20px; height: 0.5px; background: #0a0a0a; margin: 3px 0 2px 0; }
+  .m5 .m-body .btn { font-size: 4.5px; border: 0.5px solid #0a0a0a; padding: 1px 6px; margin-top: 2px; }
+
+  /* mini 6: calculator */
+  .m6 .m-body { background: linear-gradient(180deg,#e0f2fe 0%, #fff 100%); padding: 4px; }
+  .m6 .m-body h5 { font-size: 5px; color: #0c4a6e; margin: 0 0 3px 0; font-weight: 600; }
+  .m6 .m-body .sl { background: #fff; border: 0.5px solid #bae6fd; border-radius: 2px; padding: 2px 3px; margin-bottom: 2px; }
+  .m6 .m-body .sl .l { display: flex; justify-content: space-between; font-size: 4px; color: #64748b; margin-bottom: 1px; }
+  .m6 .m-body .sl .trk { height: 1px; background: #e0f2fe; position: relative; }
+  .m6 .m-body .sl .trk .fl { position: absolute; left: 0; top: 0; bottom: 0; background: #0284c7; }
+  .m6 .m-body .res { background: #0c4a6e; color: #fff; border-radius: 2px; padding: 2px 4px; display: flex; justify-content: space-between; align-items: baseline; margin-top: 2px; }
+  .m6 .m-body .res .lab { font-size: 4px; color: #7dd3fc; letter-spacing: 0.05em; text-transform: uppercase; }
+  .m6 .m-body .res .n { font-size: 8px; font-weight: 700; letter-spacing: -0.03em; }
+
+  /* mini 7: social/testimonial */
+  .m7 .m-body { background: #fef2f8; padding: 4px; font-family: Georgia, serif; }
+  .m7 .m-body .q { font-style: italic; font-size: 5.5px; color: #831843; line-height: 1.3; border-left: 1px solid #ec4899; padding-left: 3px; margin-bottom: 3px; }
+  .m7 .m-body .at { font-size: 4px; color: #9d174d; display: flex; align-items: center; gap: 2px; font-family: 'Inter', sans-serif; }
+  .m7 .m-body .at .av { width: 5px; height: 5px; border-radius: 50%; background: linear-gradient(135deg,#ec4899,#f472b6); }
+  .m7 .m-body .lg { display: flex; justify-content: space-around; font-size: 5px; color: #9d174d; opacity: 0.55; padding: 2px 0; border-top: 0.5px solid #fbcfe8; margin-top: 3px; font-family: Georgia; font-weight: 700; font-style: italic; }
+
+  /* mini 8: brutalist */
+  .m8 .m-body { background: #fff; border: 0.5px solid #0a0a0a; padding: 0; position: relative; overflow: hidden; }
+  .m8 .m-body::before { content: "PRICE."; position: absolute; top: -8px; left: -2px; font-family: 'Arial Black', sans-serif; font-weight: 900; font-size: 30px; color: #0a0a0a; letter-spacing: -0.08em; line-height: 1; }
+  .m8 .m-body::after { content: ""; position: absolute; top: 22px; left: 0; right: 0; height: 1.5px; background: #0a0a0a; }
+  .m8 .m-body .rw { position: absolute; top: 26px; left: 4px; right: 4px; display: flex; flex-direction: column; gap: 1px; }
+  .m8 .m-body .rw .r { display: flex; justify-content: space-between; font-family: Arial; font-size: 4.5px; border-bottom: 0.5px solid #0a0a0a; padding-bottom: 1px; }
+  .m8 .m-body .rw .r .p { font-weight: 900; font-size: 7px; letter-spacing: -0.04em; }
+  .m8 .m-body .rw .r.hi .p { background: #0a0a0a; color: #fff; padding: 0 2px; }
+
+  /* mini 9 extra color variant: confident mono */
+  /* (we actually need exactly 7 alternates: original minus v-03) */
+
+  /* footer epitaph line */
+  .footer {
+    position: absolute;
+    bottom: 4px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    font-style: italic;
+    color: #a8a096;
+    letter-spacing: -0.005em;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span>Design Graph</span>
+  </div>
+  <div class="actions">
+    <a href="#" class="export">Export HTML</a>
+    <span class="sep">·</span>
+    <a href="#">Share URL</a>
+    <span class="sep">·</span>
+    <a href="#">New canvas</a>
+  </div>
+</nav>
+
+<section class="stage">
+
+  <!-- meta column -->
+  <aside class="meta">
+    <div class="stamp">
+      <span class="check">✓</span>
+      Shipped
+    </div>
+
+    <div class="label">
+      <b>Variant 03 · Bold display</b>
+      Pricing page — startup CTO voice, two loud tiers, lets the numbers shout.
+    </div>
+
+    <div class="timing">
+      <b>Time to choose</b>
+      Chosen in 3 min 44 sec
+    </div>
+
+    <div class="epitaph">
+      The old way never got to ask for feedback.
+    </div>
+
+    <a href="#" class="jump">See the 7 alternates ↓</a>
+  </aside>
+
+  <!-- chosen variant — full fidelity -->
+  <div class="chosen">
+    <div class="page-frame">
+      <div class="topline">
+        <div class="brandline">Halftone</div>
+        <div class="navlinks">
+          <span>Product</span>
+          <span>Docs</span>
+          <span>Pricing</span>
+          <span>Sign in</span>
+        </div>
+      </div>
+
+      <h1>Pick a <span class="hl">plan</span>,<br/>or pick <span class="hl2">fights</span>.</h1>
+      <p class="sub">Three tiers. One obvious pick. Zero hidden line items — and yes, the Pro plan is the one your CTO will actually use.</p>
+
+      <div class="tiers">
+        <div class="tier">
+          <div class="tname">Starter</div>
+          <div class="price"><sup>$</sup>19<span class="per">/mo</span></div>
+          <ul>
+            <li>3 seats</li>
+            <li>10 projects</li>
+            <li>Email support</li>
+          </ul>
+          <a href="#" class="cta">Start free</a>
+        </div>
+        <div class="tier pro">
+          <span class="ribbon">Most picked</span>
+          <div class="tname">Pro</div>
+          <div class="price"><sup>$</sup>79<span class="per">/mo</span></div>
+          <ul>
+            <li>15 seats</li>
+            <li>100 projects</li>
+            <li>Priority Slack</li>
+            <li>Audit log</li>
+          </ul>
+          <a href="#" class="cta">Get Pro</a>
+        </div>
+        <div class="tier">
+          <div class="tname">Scale</div>
+          <div class="price"><sup>$</sup>249<span class="per">/mo</span></div>
+          <ul>
+            <li>Unlimited seats</li>
+            <li>SSO / SAML</li>
+            <li>Dedicated SLA</li>
+          </ul>
+          <a href="#" class="cta">Talk to us</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- filmstrip: the 7 alternates -->
+  <div class="alternates">
+    <div class="alt-head">
+      <span>7 unchosen · kept in the canvas record</span>
+      <span class="right">run #041 · pricing-page · 8 variants → 1</span>
+    </div>
+    <div class="strip">
+
+      <div class="mini m1">
+        <div class="m-body">
+          <div class="ey">plans &amp; pricing</div>
+          <h5><b>Price,</b> <i>plainly.</i></h5>
+          <div class="ln"></div>
+          <div class="r"><span>Starter</span><span>$19</span></div>
+          <div class="r"><span>Growth</span><span>$79</span></div>
+          <div class="r"><span>Scale</span><span>$249</span></div>
+        </div>
+        <div class="m-foot"><span>Editorial</span><span class="id">v-01</span></div>
+      </div>
+
+      <div class="mini m2">
+        <div class="m-body">
+          <div class="row head"><span>Feature</span><span>S</span><span>Pro</span><span>Sc</span></div>
+          <div class="row"><span>Price</span><span>19</span><span class="hi">79</span><span>249</span></div>
+          <div class="row"><span>Seats</span><span>3</span><span class="hi">15</span><span>∞</span></div>
+          <div class="row"><span>SSO</span><span>—</span><span class="hi">—</span><span class="ck">✓</span></div>
+          <div class="row"><span>Audit</span><span>—</span><span class="hi ck">✓</span><span class="ck">✓</span></div>
+          <div class="row"><span>API</span><span>5k</span><span class="hi">100k</span><span>1M</span></div>
+        </div>
+        <div class="m-foot"><span>Matrix</span><span class="id">v-02</span></div>
+      </div>
+
+      <div class="mini m4">
+        <div class="m-body">
+          <div class="t">▸ pricing.sh</div>
+          <h5>$ cat <span>plans.json</span></h5>
+          <div class="ln">const plans = [</div>
+          <div class="ln">&nbsp;{ tier: <span class="st">'team'</span>, $: 79 }<span class="hi"> ←</span></div>
+          <div class="ln">&nbsp;{ tier: <span class="st">'scale'</span>, $: 249 }</div>
+        </div>
+        <div class="m-foot"><span>Terminal</span><span class="id">v-04</span></div>
+      </div>
+
+      <div class="mini m5">
+        <div class="m-body">
+          <div class="ey">one price</div>
+          <div class="big"><sup>$</sup>79</div>
+          <div class="per">/ mo · everything</div>
+          <div class="ln"></div>
+          <div class="btn">Start trial</div>
+        </div>
+        <div class="m-foot"><span>Minimal</span><span class="id">v-05</span></div>
+      </div>
+
+      <div class="mini m6">
+        <div class="m-body">
+          <h5>What would you pay?</h5>
+          <div class="sl">
+            <div class="l"><span>seats</span><span>14</span></div>
+            <div class="trk"><div class="fl" style="width:38%"></div></div>
+          </div>
+          <div class="sl">
+            <div class="l"><span>API / mo</span><span>80k</span></div>
+            <div class="trk"><div class="fl" style="width:60%"></div></div>
+          </div>
+          <div class="res"><span class="lab">price</span><span class="n">$142</span></div>
+        </div>
+        <div class="m-foot"><span>Calculator</span><span class="id">v-06</span></div>
+      </div>
+
+      <div class="mini m7">
+        <div class="m-body">
+          <div class="q">"We replaced four tools with this in a weekend."</div>
+          <div class="at"><span class="av"></span><span>Rina O. · Halftone</span></div>
+          <div class="lg"><span>Vellum</span><span>FOLD</span><span>north</span></div>
+        </div>
+        <div class="m-foot"><span>Social</span><span class="id">v-07</span></div>
+      </div>
+
+      <div class="mini m8">
+        <div class="m-body">
+          <div class="rw">
+            <div class="r"><span>Starter</span><span class="p">19</span></div>
+            <div class="r hi"><span>Pro</span><span class="p">79</span></div>
+            <div class="r"><span>Scale</span><span class="p">249</span></div>
+          </div>
+        </div>
+        <div class="m-foot"><span>Brutalist</span><span class="id">v-08</span></div>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+<div class="footer">Design Graph · a canvas of what could have been</div>
+
+</body>
+</html>

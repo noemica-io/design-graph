@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>design-graph — spawn parallel variants from the command line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-2: #0d0d0f;
+    --bg-3: #111114;
+    --line: #1a1a1d;
+    --line-2: #232327;
+    --fg: #e8e8ea;
+    --fg-dim: #8a8a93;
+    --fg-mute: #55555d;
+    --accent: #c084fc;
+    --accent-2: #a855f7;
+    --red: #ff6b6b;
+    --green: #6ee7b7;
+    --blue: #93c5fd;
+    --amber: #fcd34d;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1280px;
+    min-height: 800px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: -1px -1px;
+  }
+
+  .shell { width: 1280px; margin: 0 auto; }
+
+  /* ---- top bar ---- */
+  .topbar {
+    height: 44px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+    background: rgba(10,10,11,0.6);
+    backdrop-filter: blur(6px);
+  }
+  .topbar .brand {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--fg);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand .glyph {
+    width: 14px; height: 14px; display: inline-block;
+    border: 1px solid var(--accent);
+    position: relative;
+  }
+  .brand .glyph::before, .brand .glyph::after {
+    content: ""; position: absolute; background: var(--accent);
+  }
+  .brand .glyph::before { width: 4px; height: 4px; top: -2px; left: -2px; }
+  .brand .glyph::after  { width: 4px; height: 4px; bottom: -2px; right: -2px; }
+  .topbar nav {
+    margin-left: 32px;
+    display: flex; gap: 22px;
+  }
+  .topbar nav a {
+    color: var(--fg-dim);
+    text-decoration: none;
+  }
+  .topbar nav a.active { color: var(--fg); }
+  .topbar .right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .version {
+    color: var(--fg-mute);
+  }
+  .version b { color: var(--accent); font-weight: 500; }
+  .ghstar {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    color: var(--fg);
+  }
+  .ghstar .n { color: var(--fg-dim); }
+
+  /* ---- hero ---- */
+  .hero {
+    padding: 44px 80px 32px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: start;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+    margin-bottom: 18px;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 38px;
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    color: var(--fg);
+  }
+  h1 .hl { color: var(--accent); }
+  .sub {
+    color: var(--fg-dim);
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 460px;
+    margin: 0 0 28px;
+  }
+
+  /* install block */
+  .install {
+    display: flex; align-items: stretch;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 13px;
+    overflow: hidden;
+    max-width: 440px;
+  }
+  .install .prompt {
+    color: var(--fg-mute);
+    padding: 12px 0 12px 14px;
+    user-select: none;
+  }
+  .install .cmd {
+    flex: 1;
+    padding: 12px 12px 12px 8px;
+    color: var(--fg);
+  }
+  .install .cmd .kw { color: var(--accent); }
+  .install .copy {
+    border-left: 1px solid var(--line-2);
+    padding: 0 14px;
+    display: flex; align-items: center;
+    color: var(--fg-dim);
+    cursor: pointer;
+    font-size: 11px;
+    gap: 6px;
+  }
+  .install .copy:hover { color: var(--fg); }
+  .install .copy svg { display: block; }
+
+  .cta-row {
+    display: flex; align-items: center; gap: 18px;
+    margin-top: 16px;
+  }
+  .docs {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .docs:hover { color: var(--fg); }
+  .docs .arr { color: var(--accent); }
+
+  /* ---- terminal ---- */
+  .terminal {
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px -20px rgba(192,132,252,0.12), 0 1px 0 rgba(255,255,255,0.02) inset;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.65;
+  }
+  .term-chrome {
+    height: 32px;
+    background: #0f0f12;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .term-title {
+    margin-left: 14px;
+    color: var(--fg-mute);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+  .term-tabs {
+    margin-left: auto;
+    display: flex; gap: 2px;
+    font-size: 11px;
+    color: var(--fg-mute);
+  }
+  .term-tabs span { padding: 3px 8px; border-radius: 3px; }
+  .term-tabs span.active { background: var(--line-2); color: var(--fg-dim); }
+
+  .term-body {
+    padding: 16px 20px 18px;
+    color: var(--fg);
+    min-height: 300px;
+  }
+  .line { display: flex; gap: 10px; }
+  .line .ln {
+    color: var(--fg-mute);
+    width: 22px;
+    text-align: right;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .line .c { flex: 1; white-space: pre; }
+  .ps1 { color: var(--accent); }
+  .cmd-in .fn { color: #e8e8ea; }
+  .cmd-in .flag { color: var(--blue); }
+  .cmd-in .str { color: var(--green); }
+  .cmd-in .num { color: var(--amber); }
+  .muted { color: var(--fg-mute); }
+  .dim { color: var(--fg-dim); }
+  .ok { color: var(--green); }
+  .warn { color: var(--amber); }
+  .acc { color: var(--accent); }
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 14px;
+    background: var(--accent);
+    vertical-align: -2px;
+    margin-left: 2px;
+    animation: blink 1s steps(2, start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+
+  .agent-row {
+    display: grid;
+    grid-template-columns: 18px 92px 1fr 72px;
+    gap: 10px;
+    align-items: center;
+  }
+  .agent-row .id { color: var(--fg-mute); }
+  .agent-row .name { color: var(--fg); }
+  .agent-row .bar {
+    height: 4px; background: var(--line-2); border-radius: 2px;
+    overflow: hidden; position: relative;
+  }
+  .agent-row .bar i {
+    display: block; height: 100%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .agent-row .state { color: var(--ok); text-align: right; font-size: 11px; }
+  .agent-row.pend .state { color: var(--warn); }
+  .agent-row.pend .bar i { background: var(--amber); box-shadow: none; }
+  .agent-row.queued .state { color: var(--fg-mute); }
+  .agent-row.queued .bar i { background: var(--fg-mute); box-shadow: none; width: 6% !important; }
+
+  /* ---- output panel (rendered result of spawn) ---- */
+  .output {
+    padding: 26px 80px 36px;
+    border-bottom: 1px solid var(--line);
+    background:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+      var(--bg);
+    background-size: 64px 64px;
+    background-position: -1px -1px;
+  }
+  .output-head {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fg-dim);
+    margin-bottom: 14px;
+  }
+  .output-head .arr { color: var(--accent); font-weight: 500; }
+  .output-head .title { color: var(--fg); }
+  .output-head .path { color: var(--fg-mute); }
+  .output-head .rule {
+    flex: 1; height: 1px; background: var(--line);
+  }
+  .output-head .meta {
+    font-size: 10.5px; color: var(--fg-mute);
+    letter-spacing: 0.02em;
+  }
+  .output-head .meta .ok { color: var(--green); }
+
+  .variants {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .vslot {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .vcard {
+    height: 240px;
+    background: #fcfcfa;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+  }
+  .vcard.focus {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent) inset,
+      0 10px 24px -10px rgba(192,132,252,0.35);
+  }
+  .vcard .chrome {
+    height: 12px;
+    background: #f3f2ee;
+    border-bottom: 1px solid rgba(17,17,19,0.08);
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 4px;
+  }
+  .vcard .chrome i {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: rgba(17,17,19,0.25);
+  }
+  .vcard .page {
+    padding: 10px 10px 12px;
+    height: calc(100% - 12px);
+    position: relative;
+    overflow: hidden;
+  }
+  .vmeta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-mute);
+    letter-spacing: 0.01em;
+  }
+  .vmeta .name { color: var(--fg-dim); }
+  .vmeta .focus-name { color: var(--accent); }
+  .vmeta .id { color: var(--fg-mute); }
+
+  /* --- variant 01: minimalist serif hero --- */
+  .v-min { background: #fafaf7; color: #0a0a0b; }
+  .v-min .eye { font-family: var(--mono); font-size: 6.5px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(17,17,19,0.5); }
+  .v-min h4 { font-family: Georgia, "Times New Roman", serif; font-weight: 400; font-size: 15px; line-height: 1.05; letter-spacing: -0.02em; margin: 8px 0 10px; color: #0a0a0b; }
+  .v-min h4 em { font-style: italic; color: #0a0a0b; }
+  .v-min .body { font-family: Georgia, serif; font-size: 6.5px; line-height: 1.5; color: rgba(17,17,19,0.58); max-width: 130px; }
+  .v-min .plans { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; margin-top: 10px; }
+  .v-min .plan { border: 1px solid rgba(17,17,19,0.12); border-radius: 2px; padding: 4px 4px 5px; }
+  .v-min .plan .pn { font-size: 6px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(17,17,19,0.5); font-family: var(--mono); }
+  .v-min .plan .pv { font-size: 10px; font-weight: 500; letter-spacing: -0.02em; margin-top: 2px; font-family: Georgia, serif; }
+  .v-min .plan .pv small { font-size: 6px; color: rgba(17,17,19,0.45); font-weight: 400; }
+  .v-min .cta { margin-top: 10px; font-family: var(--mono); font-size: 6.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #0a0a0b; display: inline-flex; align-items: center; gap: 4px; padding-bottom: 2px; border-bottom: 1px solid #0a0a0b; }
+
+  /* --- variant 02: editorial serif with drop-cap --- */
+  .v-edi { background: #f3ede1; color: #2b1e10; }
+  .v-edi .kick { font-family: var(--mono); font-size: 6px; letter-spacing: 0.2em; text-transform: uppercase; color: #9a6a2e; font-weight: 600; }
+  .v-edi h4 { font-family: "Playfair Display", Georgia, serif; font-weight: 700; font-size: 22px; line-height: 0.92; letter-spacing: -0.025em; margin: 6px 0 8px; color: #1a1209; }
+  .v-edi h4 em { font-style: italic; font-weight: 400; }
+  .v-edi .rule { height: 1px; background: rgba(43,30,16,0.25); margin: 8px 0; }
+  .v-edi .lede { font-family: Georgia, serif; font-size: 7px; line-height: 1.5; color: rgba(43,30,16,0.72); font-style: italic; }
+  .v-edi .lede::first-letter { font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-style: normal; font-weight: 700; float: left; line-height: 0.9; margin: 2px 3px 0 0; color: #7a4a12; }
+  .v-edi .tiers { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; gap: 4px; font-family: var(--mono); font-size: 6px; color: rgba(43,30,16,0.6); letter-spacing: 0.05em; }
+  .v-edi .tiers span { border-top: 1px solid rgba(43,30,16,0.28); padding-top: 3px; flex: 1; }
+  .v-edi .tiers span.on { color: #1a1209; border-color: #1a1209; }
+
+  /* --- variant 03: playful, icon-forward --- */
+  .v-play { background: #fef3c7; color: #3b2b08; }
+  .v-play .row1 { display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 6.5px; color: rgba(59,43,8,0.65); letter-spacing: 0.04em; }
+  .v-play .row1 .pill { background: #fff; border: 1px solid rgba(59,43,8,0.18); border-radius: 99px; padding: 1px 5px; color: #854d0e; font-weight: 600; font-size: 5.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .v-play .glyph {
+    margin: 4px auto 2px;
+    width: 38px; height: 38px; border-radius: 50%;
+    background: #fb923c;
+    position: relative;
+    display: block;
+  }
+  .v-play .glyph::before { content: ""; position: absolute; inset: 8px; background: #fef3c7; border-radius: 50%; }
+  .v-play .glyph::after { content: ""; position: absolute; top: 14px; left: 14px; width: 10px; height: 10px; background: #fb923c; border-radius: 2px; transform: rotate(45deg); }
+  .v-play h4 { font-family: "Inter", sans-serif; font-weight: 800; font-size: 13px; line-height: 1; letter-spacing: -0.025em; margin: 6px 0 6px; text-align: center; color: #451a03; }
+  .v-play h4 em { font-style: normal; color: #c2410c; }
+  .v-play .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 4px; }
+  .v-play .tile { background: #fff; border-radius: 6px; padding: 5px 4px 6px; text-align: center; border: 1px solid rgba(59,43,8,0.08); }
+  .v-play .tile.on { background: #fb923c; color: #fff; }
+  .v-play .tile .t { font-family: var(--mono); font-size: 5.5px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(59,43,8,0.55); }
+  .v-play .tile.on .t { color: rgba(255,255,255,0.78); }
+  .v-play .tile .v { font-size: 11px; font-weight: 800; letter-spacing: -0.02em; margin-top: 1px; color: #451a03; }
+  .v-play .tile.on .v { color: #fff; }
+  .v-play .tile .v small { font-size: 5px; font-weight: 500; opacity: 0.7; }
+  .v-play .btn { margin-top: 8px; background: #451a03; color: #fef3c7; text-align: center; font-size: 7px; font-family: var(--mono); padding: 4px; border-radius: 99px; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; }
+
+  /* --- variant 04: dense comparison table --- */
+  .v-dense { background: #fbfbfb; color: #1a1a1c; }
+  .v-dense .top { display: flex; align-items: center; justify-content: space-between; }
+  .v-dense h4 { font-family: "Inter", sans-serif; font-weight: 600; font-size: 9px; letter-spacing: -0.01em; color: #1a1a1c; }
+  .v-dense .top small { font-family: var(--mono); font-size: 5.5px; color: rgba(17,17,19,0.45); letter-spacing: 0.06em; text-transform: uppercase; }
+  .v-dense table { width: 100%; font-family: var(--mono); font-size: 6px; border-collapse: collapse; margin-top: 6px; }
+  .v-dense thead th { text-align: right; padding: 3px 2px; border-bottom: 1px solid rgba(17,17,19,0.18); color: rgba(17,17,19,0.5); font-weight: 600; font-size: 5.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .v-dense thead th:first-child { text-align: left; }
+  .v-dense td { padding: 3px 2px; border-bottom: 1px solid rgba(17,17,19,0.07); text-align: right; font-variant-numeric: tabular-nums; color: rgba(17,17,19,0.78); }
+  .v-dense td:first-child { text-align: left; color: #1a1a1c; font-weight: 500; }
+  .v-dense td.on { color: #9333ea; font-weight: 600; }
+  .v-dense .mark { display: inline-block; width: 6px; text-align: center; }
+  .v-dense .foot { position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 5.5px; color: rgba(17,17,19,0.45); letter-spacing: 0.04em; }
+  .v-dense .foot b { color: #1a1a1c; font-weight: 600; }
+
+  /* --- variant 05: dark / tech gradient --- */
+  .v-dark { background: #0b0d12; color: #e8e9ed; }
+  .v-dark::before {
+    content: ""; position: absolute; top: -20px; right: -20px;
+    width: 90px; height: 90px;
+    background: radial-gradient(circle, rgba(124,58,237,0.38), transparent 65%);
+    pointer-events: none;
+  }
+  .v-dark .nav { display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 5.5px; color: rgba(232,233,237,0.55); letter-spacing: 0.08em; text-transform: uppercase; }
+  .v-dark .nav b { color: #fff; font-weight: 600; }
+  .v-dark h4 { font-family: "Inter", sans-serif; font-weight: 700; font-size: 16px; line-height: 1; letter-spacing: -0.028em; margin: 10px 0 6px; background: linear-gradient(100deg, #fff 40%, #c084fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .v-dark .sub { font-size: 6.5px; line-height: 1.45; color: rgba(232,233,237,0.62); max-width: 140px; }
+  .v-dark .tiers { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .v-dark .tier { border: 1px solid rgba(232,233,237,0.12); border-radius: 3px; padding: 5px 5px 6px; background: rgba(255,255,255,0.02); }
+  .v-dark .tier.on { border-color: rgba(192,132,252,0.55); background: rgba(192,132,252,0.08); }
+  .v-dark .tier .pn { font-family: var(--mono); font-size: 5.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(232,233,237,0.55); }
+  .v-dark .tier.on .pn { color: #c084fc; }
+  .v-dark .tier .pv { font-family: "Inter", sans-serif; font-size: 12px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; color: #fff; font-variant-numeric: tabular-nums; }
+  .v-dark .tier .pv small { font-size: 5.5px; color: rgba(232,233,237,0.5); font-weight: 400; margin-left: 1px; }
+  .v-dark .btn { position: absolute; bottom: 10px; left: 10px; right: 10px; background: #fff; color: #0b0d12; text-align: center; font-size: 7px; font-weight: 600; padding: 5px; border-radius: 3px; font-family: "Inter", sans-serif; letter-spacing: -0.005em; }
+
+  /* ---- docs row (Spawn / Compare / Iterate) ---- */
+  .docs-row {
+    padding: 36px 80px;
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    position: relative;
+  }
+  .docs-row::before, .docs-row::after {
+    content: ""; position: absolute; top: 36px; bottom: 36px; width: 1px;
+    background: var(--line);
+  }
+  .docs-row::before { left: calc(80px + (100% - 160px)/3); }
+  .docs-row::after  { left: calc(80px + 2*(100% - 160px)/3); }
+
+  .doc {
+    padding: 0 28px;
+  }
+  .doc:first-child { padding-left: 0; }
+  .doc:last-child { padding-right: 0; }
+  .doc .tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .doc h3 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 18px;
+    margin: 0 0 10px;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+  }
+  .doc h3 .hash { color: var(--accent); }
+  .doc p {
+    color: var(--fg-dim);
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 0 0 14px;
+    max-width: 340px;
+  }
+  .doc .snippet {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fg);
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 10px 12px;
+    line-height: 1.6;
+  }
+  .doc .snippet .fn { color: var(--accent); }
+  .doc .snippet .str { color: var(--green); }
+  .doc .snippet .kw { color: var(--blue); }
+  .doc .snippet .muted { color: var(--fg-mute); }
+
+  /* ---- bottom grid: install + api + keys ---- */
+  .bottom {
+    padding: 36px 80px 40px;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 48px;
+  }
+
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .panel-label::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+
+  /* package tabs */
+  .pkg {
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .pkg-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line-2);
+    background: #0c0c0f;
+  }
+  .pkg-tab {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 16px;
+    color: var(--fg-mute);
+    border-right: 1px solid var(--line-2);
+    cursor: pointer;
+    position: relative;
+  }
+  .pkg-tab.active {
+    color: var(--fg);
+    background: var(--bg-2);
+  }
+  .pkg-tab.active::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -1px;
+    height: 1px; background: var(--accent);
+  }
+  .pkg-body {
+    padding: 16px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .pkg-body .cmd { color: var(--fg); }
+  .pkg-body .cmd .kw { color: var(--accent); }
+  .pkg-body .cmd .prompt { color: var(--fg-mute); margin-right: 8px; }
+  .pkg-body .copy-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--fg-dim);
+    padding: 4px 8px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  /* programmatic api */
+  .api {
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  .api-head {
+    display: flex; align-items: center;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line-2);
+    background: #0c0c0f;
+    font-size: 11px;
+    color: var(--fg-mute);
+    gap: 10px;
+  }
+  .api-head .file { color: var(--fg-dim); }
+  .api-head .lang {
+    margin-left: auto; color: var(--accent);
+    font-size: 10.5px; letter-spacing: 0.06em;
+  }
+  .api-body {
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: 22px 1fr;
+  }
+  .api-body .nums {
+    color: var(--fg-mute);
+    text-align: right;
+    padding-right: 12px;
+    user-select: none;
+  }
+  .api-body .code { white-space: pre; color: var(--fg); }
+  .api-body .kw { color: var(--accent); }
+  .api-body .fn { color: #e8e8ea; }
+  .api-body .str { color: var(--green); }
+  .api-body .num { color: var(--amber); }
+  .api-body .cmt { color: var(--fg-mute); font-style: italic; }
+  .api-body .prop { color: var(--blue); }
+
+  /* keyboard cheatsheet */
+  .keys {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .key-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .kbd {
+    display: inline-flex; gap: 3px;
+  }
+  .kbd span {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    padding: 2px 6px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    color: var(--fg);
+    min-width: 16px;
+    text-align: center;
+  }
+  .kbd span.acc { color: var(--accent); border-color: var(--accent); }
+  .key-row .lbl {
+    color: var(--fg-dim);
+    font-size: 11.5px;
+    margin-left: auto;
+  }
+
+  /* footer */
+  .foot {
+    border-top: 1px solid var(--line);
+    padding: 18px 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-mute);
+  }
+  .foot .dots { display: inline-flex; gap: 6px; align-items: center; }
+  .foot .dots i {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--fg-mute);
+    display: inline-block;
+  }
+  .foot .dots i.on { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- top bar -->
+  <div class="topbar">
+    <div class="brand"><span class="glyph"></span> design-graph</div>
+    <nav>
+      <a href="#" class="active">docs</a>
+      <a href="#">api</a>
+      <a href="#">examples</a>
+      <a href="#">changelog</a>
+    </nav>
+    <div class="right">
+      <span class="version">v<b>0.4.2</b> · mit</span>
+      <span class="ghstar">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
+        github <span class="n">4.1k</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- hero -->
+  <section class="hero">
+    <div>
+      <div class="eyebrow">public beta · parallel agents</div>
+      <h1>spawn parallel <span class="hl">variants</span><br/>from the command line.</h1>
+      <p class="sub">design-graph runs N agents in parallel, each generating a full self-contained HTML page. review them side-by-side on a spatial canvas. no shared context, no homogenized output.</p>
+
+      <div class="install">
+        <span class="prompt">$</span>
+        <span class="cmd"><span class="kw">npm</span> i -g design-graph</span>
+        <span class="copy" title="copy">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
+          copy
+        </span>
+      </div>
+      <div class="cta-row">
+        <a class="docs" href="#"><span>read the docs</span> <span class="arr">→</span></a>
+        <a class="docs" href="#"><span>view on github</span> <span class="arr">↗</span></a>
+      </div>
+    </div>
+
+    <!-- terminal -->
+    <div class="terminal">
+      <div class="term-chrome">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="term-title">~/projects/acme-landing — zsh — 98×24</span>
+        <span class="term-tabs"><span class="active">agents</span><span>logs</span><span>canvas</span></span>
+      </div>
+      <div class="term-body">
+        <div class="line"><span class="ln">1</span><span class="c"><span class="ps1">❯</span> <span class="cmd-in"><span class="fn">design-graph</span> spawn <span class="str">"landing page"</span> <span class="flag">--n</span> <span class="num">5</span> <span class="flag">--brief</span> <span class="str">brand.md</span></span></span></div>
+        <div class="line"><span class="ln">2</span><span class="c"><span class="muted">› seeded from brand.md · parent: none · depth: 0</span></span></div>
+        <div class="line"><span class="ln">3</span><span class="c"><span class="muted">› spawning 5 background agents · no shared context</span></span></div>
+        <div class="line"><span class="ln"></span><span class="c">&nbsp;</span></div>
+
+        <div class="line"><span class="ln">4</span><span class="c" style="width:100%"><div class="agent-row"><span class="id">01</span><span class="name">editorial-serif</span><span class="bar"><i style="width:100%"></i></span><span class="state">ready</span></div></span></div>
+        <div class="line"><span class="ln">5</span><span class="c" style="width:100%"><div class="agent-row"><span class="id">02</span><span class="name">brutalist-grid</span><span class="bar"><i style="width:100%"></i></span><span class="state">ready</span></div></span></div>
+        <div class="line"><span class="ln">6</span><span class="c" style="width:100%"><div class="agent-row"><span class="id">03</span><span class="name">command-prompt</span><span class="bar"><i style="width:100%"></i></span><span class="state">ready</span></div></span></div>
+        <div class="line"><span class="ln">7</span><span class="c" style="width:100%"><div class="agent-row pend"><span class="id">04</span><span class="name">marquee-motion</span><span class="bar"><i style="width:72%"></i></span><span class="state">writing…</span></div></span></div>
+        <div class="line"><span class="ln">8</span><span class="c" style="width:100%"><div class="agent-row queued"><span class="id">05</span><span class="name">chat-first</span><span class="bar"><i></i></span><span class="state">queued</span></div></span></div>
+
+        <div class="line"><span class="ln"></span><span class="c">&nbsp;</span></div>
+        <div class="line"><span class="ln">9</span><span class="c"><span class="dim">› 3 of 5 variants written to </span><span class="acc">./data/landing/pages/</span></span></div>
+        <div class="line"><span class="ln">10</span><span class="c"><span class="dim">› elapsed 14.2s · tokens 38.1k · </span><span class="ok">✓ no errors</span></span></div>
+        <div class="line"><span class="ln">11</span><span class="c"><span class="dim">› open canvas: </span><span class="acc">http://localhost:3333/?project=landing</span> <span class="muted">↗</span></span></div>
+        <div class="line"><span class="ln">12</span><span class="c"><span class="ps1">❯</span> <span class="cursor"></span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- output panel: rendered variants produced by the spawn command above -->
+  <section class="output">
+    <div class="output-head">
+      <span class="arr">↗</span>
+      <span class="title">5 variants opened in canvas</span>
+      <span class="path">· ./data/landing/pages/</span>
+      <span class="rule"></span>
+      <span class="meta">depth 0 · parent none · <span class="ok">✓ 14.2s</span></span>
+    </div>
+
+    <div class="variants">
+
+      <!-- 01 minimalist -->
+      <div class="vslot">
+        <div class="vcard">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page v-min">
+            <div class="eye">Mercato · pricing</div>
+            <h4>Priced per<br/>active <em>canvas.</em></h4>
+            <div class="body">No seats, no users, no gotchas. You pay for the boards that are actually open this month.</div>
+            <div class="plans">
+              <div class="plan"><div class="pn">Solo</div><div class="pv">$0</div></div>
+              <div class="plan"><div class="pn">Studio</div><div class="pv">$24<small>/mo</small></div></div>
+              <div class="plan"><div class="pn">Team</div><div class="pv">Call</div></div>
+            </div>
+            <div class="cta">Start a canvas →</div>
+          </div>
+        </div>
+        <div class="vmeta"><span class="name">editorial-serif</span><span class="id">01</span></div>
+      </div>
+
+      <!-- 02 editorial / drop-cap -->
+      <div class="vslot">
+        <div class="vcard">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page v-edi">
+            <div class="kick">Vol.07 · Pricing</div>
+            <h4>Only pay<br/>for what's <em>open.</em></h4>
+            <div class="rule"></div>
+            <div class="lede">Three tiers, one honest idea: a canvas costs what a canvas costs. Nothing more, and nothing hidden behind a sales call.</div>
+            <div class="tiers"><span class="on">Solo</span><span>Studio</span><span>Team</span></div>
+          </div>
+        </div>
+        <div class="vmeta"><span class="name">brutalist-grid</span><span class="id">02</span></div>
+      </div>
+
+      <!-- 03 playful / icon -->
+      <div class="vslot">
+        <div class="vcard focus">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page v-play">
+            <div class="row1"><span>mercato.app</span><span class="pill">new</span></div>
+            <div class="glyph"></div>
+            <h4>Pick a plan.<br/>Ship a <em>canvas.</em></h4>
+            <div class="grid3">
+              <div class="tile"><div class="t">Solo</div><div class="v">$0</div></div>
+              <div class="tile on"><div class="t">Studio</div><div class="v">$24<small>/mo</small></div></div>
+              <div class="tile"><div class="t">Team</div><div class="v">Call</div></div>
+            </div>
+            <div class="btn">Start free</div>
+          </div>
+        </div>
+        <div class="vmeta"><span class="focus-name">command-prompt</span><span class="id">03</span></div>
+      </div>
+
+      <!-- 04 dense comparison -->
+      <div class="vslot">
+        <div class="vcard">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page v-dense">
+            <div class="top">
+              <h4>Compare plans</h4>
+              <small>3 tiers · 7 limits</small>
+            </div>
+            <table>
+              <thead><tr><th>Feature</th><th>Solo</th><th>Studio</th><th>Team</th></tr></thead>
+              <tbody>
+                <tr><td>Canvases</td><td>3</td><td class="on">∞</td><td>∞</td></tr>
+                <tr><td>Seats</td><td>1</td><td class="on">10</td><td>∞</td></tr>
+                <tr><td>Parallel agents</td><td>2</td><td class="on">8</td><td>32</td></tr>
+                <tr><td>Version history</td><td><span class="mark">·</span></td><td class="on">30d</td><td>∞</td></tr>
+                <tr><td>SSO / audit</td><td><span class="mark">·</span></td><td><span class="mark">·</span></td><td>✓</td></tr>
+                <tr><td>Private cloud</td><td><span class="mark">·</span></td><td><span class="mark">·</span></td><td>✓</td></tr>
+                <tr><td>Price / mo</td><td>$0</td><td class="on">$24</td><td>Call</td></tr>
+              </tbody>
+            </table>
+            <div class="foot"><span>updated Apr 18</span><span><b>14</b> questions answered</span></div>
+          </div>
+        </div>
+        <div class="vmeta"><span class="name">marquee-motion</span><span class="id">04</span></div>
+      </div>
+
+      <!-- 05 dark / tech -->
+      <div class="vslot">
+        <div class="vcard">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          <div class="page v-dark">
+            <div class="nav"><b>MERCATO</b><span>Pricing · Docs · Log in</span></div>
+            <h4>Compute<br/>that scales<br/>with the idea.</h4>
+            <div class="sub">Per-canvas pricing with headroom for bursty parallel runs. No seat tax.</div>
+            <div class="tiers">
+              <div class="tier"><div class="pn">Solo</div><div class="pv">$0</div></div>
+              <div class="tier on"><div class="pn">Studio</div><div class="pv">$24<small>/mo</small></div></div>
+            </div>
+            <div class="btn">Open a canvas →</div>
+          </div>
+        </div>
+        <div class="vmeta"><span class="name">chat-first</span><span class="id">05</span></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- docs row: spawn / compare / iterate -->
+  <section class="docs-row">
+    <div class="doc">
+      <div class="tag">01 · SPAWN</div>
+      <h3><span class="hash">#</span> spawn</h3>
+      <p>fan out N isolated agents. each reads the brief independently — no peeking at siblings, so directions actually diverge.</p>
+      <div class="snippet"><span class="muted">$</span> design-graph <span class="fn">spawn</span> <span class="str">"results page"</span> --n <span class="kw">8</span></div>
+    </div>
+    <div class="doc">
+      <div class="tag">02 · COMPARE</div>
+      <h3><span class="hash">#</span> compare</h3>
+      <p>variants land on a zoomable canvas as they finish. drag to cluster. split-view two siblings at 1:1 scale. no pre-commit to a single direction.</p>
+      <div class="snippet"><span class="muted">$</span> design-graph <span class="fn">canvas</span> --live</div>
+    </div>
+    <div class="doc">
+      <div class="tag">03 · ITERATE</div>
+      <h3><span class="hash">#</span> iterate</h3>
+      <p>pick any node, branch deeper. nudge copy, tighten type, swap the hypothesis. the graph keeps the ancestry so you can always rewind.</p>
+      <div class="snippet"><span class="muted">$</span> design-graph <span class="fn">branch</span> editorial-serif --n <span class="kw">4</span></div>
+    </div>
+  </section>
+
+  <!-- bottom grid -->
+  <section class="bottom">
+
+    <!-- left: package tabs + api -->
+    <div>
+      <div class="panel-label">install</div>
+      <div class="pkg">
+        <div class="pkg-tabs">
+          <div class="pkg-tab active">npm</div>
+          <div class="pkg-tab">pnpm</div>
+          <div class="pkg-tab">bun</div>
+          <div class="pkg-tab">brew</div>
+          <div class="pkg-tab">curl</div>
+        </div>
+        <div class="pkg-body">
+          <span class="cmd"><span class="prompt">$</span><span class="kw">npm</span> i -g design-graph</span>
+          <span class="copy-btn">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5a1 1 0 0 1 1-1h10"/></svg>
+            copy
+          </span>
+        </div>
+      </div>
+
+      <div class="panel-label" style="margin-top:28px">programmatic api</div>
+      <div class="api">
+        <div class="api-head">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--fg-mute)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+          <span class="file">spawn.ts</span>
+          <span class="lang">TS</span>
+        </div>
+        <div class="api-body">
+          <div class="nums">1
+2
+3
+4
+5
+6
+7
+8</div>
+<div class="code"><span class="kw">import</span> { spawn } <span class="kw">from</span> <span class="str">'design-graph'</span>
+
+<span class="kw">const</span> graph = <span class="kw">await</span> <span class="fn">spawn</span>({
+  label: <span class="str">'landing'</span>,
+  brief: <span class="str">'./brand.md'</span>,
+  n: <span class="num">5</span>,                  <span class="cmt">// parallel agents</span>
+  <span class="prop">model</span>: <span class="str">'claude-opus-4.7'</span>
+})</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- right: keyboard cheatsheet -->
+    <div>
+      <div class="panel-label">keyboard</div>
+      <div class="keys">
+        <div class="key-row">
+          <span class="kbd"><span class="acc">⌘</span><span class="acc">K</span></span>
+          <span class="lbl">open canvas</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span class="acc">⌘</span><span class="acc">↵</span></span>
+          <span class="lbl">spawn variants</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>⇧</span><span>⌘</span><span>G</span></span>
+          <span class="lbl">jump to variant</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>⌘</span><span>\\</span></span>
+          <span class="lbl">split compare</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>⌘</span><span>B</span></span>
+          <span class="lbl">branch selected</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>⌘</span><span>Z</span></span>
+          <span class="lbl">rewind node</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>/</span></span>
+          <span class="lbl">chat to iterate</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>esc</span></span>
+          <span class="lbl">close variant</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>j</span><span>k</span></span>
+          <span class="lbl">step variants</span>
+        </div>
+        <div class="key-row">
+          <span class="kbd"><span>1</span>–<span>9</span></span>
+          <span class="lbl">focus variant n</span>
+        </div>
+      </div>
+
+      <div class="panel-label" style="margin-top:28px">built with design-graph</div>
+      <div class="api" style="padding:14px 18px; font-family:var(--mono); font-size:12px; line-height:1.6; color:var(--fg-dim);">
+        this page is one of <span class="acc" style="color:var(--accent)">5 variants</span> generated by design-graph itself. the others live in the canvas — <span style="color:var(--fg)">editorial-serif</span>, <span style="color:var(--fg)">brutalist-grid</span>, <span style="color:var(--fg)">marquee-motion</span>, <span style="color:var(--fg)">chat-first</span>. we shipped the one that felt most like the product.
+      </div>
+    </div>
+
+  </section>
+
+  <!-- footer -->
+  <div class="foot">
+    <span>design-graph · v0.4.2 · built in public</span>
+    <span class="dots">
+      <i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i>
+      <span style="margin-left:10px">3 / 5 variants ready</span>
+    </span>
+    <span>mit · made for builders</span>
+  </div>
+
+</div>
+</body>
+</html>

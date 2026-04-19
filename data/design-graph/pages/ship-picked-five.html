@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Design Graph — Ship · Picked from five</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:          #fafaf7;
+    --canvas:      #f5f4ef;
+    --ink:         #111113;
+    --ink-2:       rgba(17,17,19,0.72);
+    --muted:       rgba(17,17,19,0.52);
+    --dim:         rgba(17,17,19,0.34);
+    --faint:       rgba(17,17,19,0.18);
+    --hairline:    rgba(17,17,19,0.10);
+    --hairline-s:  rgba(17,17,19,0.06);
+    --surface:     #ffffff;
+    --accent:      #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+    --accent-line: rgba(124,58,237,0.32);
+    --ready:       #22c55e;
+    --ready-ink:   #15803d;
+    --ready-soft:  rgba(34,197,94,0.12);
+    --ready-line:  rgba(34,197,94,0.32);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.006em;
+  }
+
+  /* ── Top chrome (simplified) ─────────────────────────────────── */
+  .chrome {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 16px;
+    z-index: 20;
+    font-size: 12px;
+  }
+  .logo {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent);
+    position: relative; display: inline-block;
+    margin-right: 10px;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -5px 0 0 #fff; }
+
+  .brand { font-weight: 600; letter-spacing: -0.012em; font-size: 13px; }
+  .brand .dim { color: var(--muted); font-weight: 450; margin-left: 6px; }
+  .chrome-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 14px; }
+
+  .canvas-name {
+    font-size: 12.5px; color: var(--ink-2); font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .canvas-name .shipped {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--ready-ink); font-weight: 500;
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--ready-soft);
+    border: 1px solid var(--ready-line);
+  }
+  .canvas-name .shipped .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ready);
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
+  }
+
+  .chrome-right {
+    margin-left: auto; display: flex; gap: 10px; align-items: center;
+  }
+  .btn-export {
+    height: 28px; padding: 0 12px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 6px;
+    font-size: 12px; font-weight: 550;
+    font-family: inherit;
+    letter-spacing: -0.003em;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer;
+  }
+  .btn-export svg { width: 12px; height: 12px; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    color: #fff; font-size: 10.5px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0;
+  }
+
+  /* ── Layout ──────────────────────────────────────────────────── */
+  .page {
+    position: absolute;
+    top: 44px; left: 0; right: 0; bottom: 28px;
+    display: grid;
+    grid-template-columns: 200px 1fr 240px;
+  }
+
+  /* ── Left rail (lineage) ─────────────────────────────────────── */
+  .rail {
+    background: var(--canvas);
+    border-right: 1px solid var(--hairline);
+    padding: 20px 16px 16px 16px;
+    display: flex; flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+  }
+  .rail-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--dim);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .lineage-item {
+    border-radius: 6px;
+    background: #fff;
+    border: 1px solid var(--hairline);
+    padding: 8px;
+    position: relative;
+  }
+  .lineage-item.picked {
+    border-color: var(--accent-line);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+  }
+  .lineage-item.picked::before {
+    content: '✓ PICKED';
+    position: absolute;
+    top: -8px; left: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 8.5px; font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+  .thumb {
+    width: 100%; height: 68px;
+    border-radius: 3px;
+    background: #fafafa;
+    border: 1px solid var(--hairline-s);
+    padding: 5px 6px;
+    display: flex; flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+  }
+  .picked .thumb { background: #fff; }
+  .thumb .bar { background: var(--faint); border-radius: 1px; }
+  .thumb .bar.t1 { height: 5px; width: 45%; }
+  .thumb .bar.t2 { height: 3px; width: 70%; }
+  .thumb .cols { display: flex; gap: 3px; margin-top: 2px; flex: 1; }
+  .thumb .col {
+    flex: 1; border-radius: 2px;
+    background: #f5f5f2;
+    border: 0.5px solid var(--hairline-s);
+  }
+  .thumb.v1 .col:nth-child(2) { background: #fef3c7; }
+  .thumb.v2 .cols { flex-direction: column; }
+  .thumb.v2 .col { background: #ede9fe; height: 5px; flex: none; }
+  .thumb.v3 .col:nth-child(2) { background: #dcfce7; border-color: var(--ready-line); }
+  .thumb.v4 { background: #111113; }
+  .thumb.v4 .bar { background: rgba(255,255,255,0.3); }
+  .thumb.v4 .col { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+  .thumb.v5 .cols { gap: 1px; }
+  .thumb.v5 .col { background: #fce7f3; }
+
+  .lineage-meta {
+    margin-top: 6px;
+    font-size: 10px; color: var(--muted);
+    font-weight: 500;
+    display: flex; justify-content: space-between;
+    align-items: center;
+  }
+  .lineage-meta .id { font-family: 'JetBrains Mono', monospace; color: var(--dim); font-size: 9.5px; }
+  .lineage-meta .nm { color: var(--ink-2); font-weight: 550; }
+
+  .rail-alt-label {
+    font-size: 10.5px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 8px;
+    margin-bottom: 2px;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .rail-footer {
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--hairline-s);
+    font-size: 10px; color: var(--dim);
+    line-height: 1.4;
+  }
+  .rail-footer strong { color: var(--ink-2); font-weight: 550; }
+
+  /* ── Main stage ──────────────────────────────────────────────── */
+  .stage {
+    background: #f5f4ef;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 22px;
+    overflow: hidden;
+  }
+  .stage-frame {
+    width: 100%;
+    max-width: 760px;
+    height: 100%;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid var(--hairline);
+    box-shadow: 0 1px 2px rgba(17,17,19,0.03), 0 12px 32px -12px rgba(17,17,19,0.08);
+    overflow: hidden;
+    position: relative;
+  }
+  .frame-bar {
+    height: 28px;
+    border-bottom: 1px solid var(--hairline-s);
+    display: flex; align-items: center; padding: 0 12px;
+    gap: 6px;
+    background: #fafaf7;
+  }
+  .dots { display: flex; gap: 4px; }
+  .dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+  .frame-url {
+    margin-left: 12px;
+    font-size: 10.5px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+  .frame-url .path { color: var(--ink-2); }
+
+  /* Minimalist pricing page */
+  .pricing {
+    padding: 48px 56px 36px 56px;
+    height: calc(100% - 28px);
+    overflow: hidden;
+  }
+  .pricing-head {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .pricing-kicker {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    font-weight: 550;
+    margin-bottom: 10px;
+  }
+  .pricing-h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.028em;
+    color: var(--ink);
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+  .pricing-sub {
+    font-size: 13.5px;
+    color: var(--muted);
+    font-weight: 450;
+    max-width: 380px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  .tiers {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  .tier {
+    background: #fff;
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 20px 18px 18px 18px;
+    position: relative;
+    min-height: 300px;
+    display: flex; flex-direction: column;
+  }
+  .tier.featured {
+    border-color: var(--ready);
+    border-width: 1.5px;
+  }
+  .tier-badge {
+    position: absolute;
+    top: -9px; left: 50%; transform: translateX(-50%);
+    background: var(--ready);
+    color: #fff;
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 3px 9px;
+    border-radius: 10px;
+    text-transform: uppercase;
+  }
+  .tier-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .tier-tag {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-weight: 450;
+    margin-bottom: 16px;
+  }
+  .tier-price {
+    display: flex; align-items: baseline; gap: 4px;
+    margin-bottom: 16px;
+  }
+  .tier-price .amt {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+  }
+  .tier-price .per {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .tier-cta {
+    width: 100%;
+    height: 32px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 550;
+    font-family: inherit;
+    border: 1px solid var(--hairline);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+    letter-spacing: -0.003em;
+    margin-bottom: 16px;
+  }
+  .tier.featured .tier-cta {
+    background: var(--ready);
+    color: #fff;
+    border-color: var(--ready);
+  }
+  .tier-feats {
+    list-style: none;
+    display: flex; flex-direction: column;
+    gap: 7px;
+  }
+  .tier-feats li {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    font-weight: 450;
+    line-height: 1.4;
+    display: flex; align-items: flex-start; gap: 6px;
+  }
+  .tier-feats li::before {
+    content: '';
+    flex: none;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--ready-soft);
+    border: 1px solid var(--ready-line);
+    margin-top: 3px;
+    position: relative;
+  }
+
+  /* ── Right inset (metadata) ──────────────────────────────────── */
+  .inset {
+    background: #fff;
+    border-left: 1px solid var(--hairline);
+    padding: 20px 18px;
+    display: flex; flex-direction: column;
+    gap: 14px;
+    overflow: hidden;
+  }
+  .inset-head {
+    display: flex; flex-direction: column; gap: 4px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hairline-s);
+  }
+  .inset-kicker {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    font-weight: 600;
+  }
+  .inset-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .inset-title .mark {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ready);
+    box-shadow: 0 0 0 3px var(--ready-soft);
+  }
+  .timing {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .timing strong {
+    color: var(--ink-2); font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .meta-list {
+    display: flex; flex-direction: column;
+    gap: 9px;
+  }
+  .meta-row {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    font-size: 11.5px;
+    gap: 10px;
+  }
+  .meta-row .k {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .meta-row .v {
+    color: var(--ink);
+    font-weight: 550;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: -0.01em;
+  }
+  .meta-row .v.plain {
+    font-family: inherit;
+    font-size: 11.5px;
+  }
+  .swatch {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    background: var(--ready);
+    margin-right: 5px;
+    vertical-align: -1px;
+    border: 1px solid var(--ready-line);
+  }
+
+  .actions {
+    margin-top: 4px;
+    display: flex; flex-direction: column;
+    gap: 7px;
+  }
+  .actions .primary {
+    height: 36px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 550;
+    font-family: inherit;
+    letter-spacing: -0.003em;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .actions .primary svg { width: 12px; height: 12px; }
+  .actions .secondary {
+    height: 32px;
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .actions .tertiary {
+    height: 28px;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    font-size: 11.5px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 2px;
+  }
+  .actions .tertiary:hover { color: var(--ink); }
+
+  .inset-foot {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--hairline-s);
+    font-size: 10.5px;
+    color: var(--dim);
+    line-height: 1.5;
+  }
+  .inset-foot strong { color: var(--ink-2); font-weight: 550; }
+
+  /* ── Footer ──────────────────────────────────────────────────── */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 28px;
+    border-top: 1px solid var(--hairline);
+    background: var(--surface);
+    display: flex; align-items: center;
+    padding: 0 18px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 450;
+    letter-spacing: -0.002em;
+    gap: 8px;
+  }
+  .footer .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--faint); }
+  .footer .link {
+    color: var(--accent);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .footer .spacer { flex: 1; }
+  .footer .right {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--dim);
+    letter-spacing: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top chrome ─────────────────────────────────────────────── -->
+<div class="chrome">
+  <span class="logo"></span>
+  <span class="brand">Design Graph<span class="dim">· canvas</span></span>
+  <span class="chrome-sep"></span>
+  <span class="canvas-name">
+    pricing-page · five variants
+    <span class="shipped"><span class="dot"></span>Shipped</span>
+  </span>
+  <div class="chrome-right">
+    <button class="btn-export">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 2v8M4 6l4-4 4 4M3 13h10"/>
+      </svg>
+      Export
+    </button>
+    <div class="avatar">SS</div>
+  </div>
+</div>
+
+<!-- ── Page body ──────────────────────────────────────────────── -->
+<div class="page">
+
+  <!-- LEFT RAIL: lineage -->
+  <aside class="rail">
+    <div class="rail-label">Picked</div>
+    <div class="lineage-item picked">
+      <div class="thumb v3">
+        <span class="bar t1"></span>
+        <span class="bar t2"></span>
+        <div class="cols">
+          <span class="col"></span><span class="col"></span><span class="col"></span>
+        </div>
+      </div>
+      <div class="lineage-meta">
+        <span class="nm">03 Minimalist</span>
+        <span class="id">v-03</span>
+      </div>
+    </div>
+
+    <div class="rail-alt-label">← alternates</div>
+
+    <div class="lineage-item">
+      <div class="thumb v1">
+        <span class="bar t1"></span>
+        <span class="bar t2"></span>
+        <div class="cols"><span class="col"></span><span class="col"></span><span class="col"></span></div>
+      </div>
+      <div class="lineage-meta"><span>01 Editorial</span><span class="id">v-01</span></div>
+    </div>
+
+    <div class="lineage-item">
+      <div class="thumb v2">
+        <span class="bar t1"></span>
+        <span class="bar t2"></span>
+        <div class="cols"><span class="col"></span><span class="col"></span><span class="col"></span><span class="col"></span></div>
+      </div>
+      <div class="lineage-meta"><span>02 Comparison</span><span class="id">v-02</span></div>
+    </div>
+
+    <div class="lineage-item">
+      <div class="thumb v4">
+        <span class="bar t1"></span>
+        <span class="bar t2"></span>
+        <div class="cols"><span class="col"></span><span class="col"></span><span class="col"></span></div>
+      </div>
+      <div class="lineage-meta"><span>04 Dark hero</span><span class="id">v-04</span></div>
+    </div>
+
+    <div class="lineage-item">
+      <div class="thumb v5">
+        <span class="bar t1"></span>
+        <span class="bar t2"></span>
+        <div class="cols"><span class="col"></span><span class="col"></span><span class="col"></span><span class="col"></span></div>
+      </div>
+      <div class="lineage-meta"><span>05 Playful</span><span class="id">v-05</span></div>
+    </div>
+
+    <div class="rail-footer">
+      <strong>4 kept in canvas record</strong><br>
+      not deleted — restorable
+    </div>
+  </aside>
+
+  <!-- MAIN STAGE -->
+  <main class="stage">
+    <div class="stage-frame">
+      <div class="frame-bar">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <div class="frame-url">acme.io<span class="path">/pricing</span></div>
+      </div>
+
+      <section class="pricing">
+        <div class="pricing-head">
+          <div class="pricing-kicker">Pricing</div>
+          <h1 class="pricing-h1">Simple plans. Honest prices.</h1>
+          <p class="pricing-sub">Start free. Upgrade when you're ready. No hidden fees, no per-seat surprises.</p>
+        </div>
+
+        <div class="tiers">
+          <div class="tier">
+            <div class="tier-name">Starter</div>
+            <div class="tier-tag">For trying things out</div>
+            <div class="tier-price">
+              <span class="amt">$0</span>
+              <span class="per">forever</span>
+            </div>
+            <button class="tier-cta">Get started</button>
+            <ul class="tier-feats">
+              <li>Up to 3 projects</li>
+              <li>1 workspace member</li>
+              <li>Community support</li>
+            </ul>
+          </div>
+
+          <div class="tier featured">
+            <div class="tier-badge">Popular</div>
+            <div class="tier-name">Team</div>
+            <div class="tier-tag">For growing teams</div>
+            <div class="tier-price">
+              <span class="amt">$24</span>
+              <span class="per">/ month</span>
+            </div>
+            <button class="tier-cta">Start 14-day trial</button>
+            <ul class="tier-feats">
+              <li>Unlimited projects</li>
+              <li>Up to 10 members</li>
+              <li>Priority email support</li>
+              <li>Advanced integrations</li>
+            </ul>
+          </div>
+
+          <div class="tier">
+            <div class="tier-name">Business</div>
+            <div class="tier-tag">For serious work</div>
+            <div class="tier-price">
+              <span class="amt">$79</span>
+              <span class="per">/ month</span>
+            </div>
+            <button class="tier-cta">Contact sales</button>
+            <ul class="tier-feats">
+              <li>Everything in Team</li>
+              <li>SSO + audit logs</li>
+              <li>Dedicated success manager</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- RIGHT INSET: metadata -->
+  <aside class="inset">
+    <div class="inset-head">
+      <div class="inset-kicker">Picked variant</div>
+      <div class="inset-title"><span class="mark"></span>03 Minimalist</div>
+      <div class="timing">Chosen in <strong>2 min 58s</strong></div>
+    </div>
+
+    <div class="meta-list">
+      <div class="meta-row">
+        <span class="k">Typography</span>
+        <span class="v plain">Inter</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Accent</span>
+        <span class="v"><span class="swatch"></span>#22c55e</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Length</span>
+        <span class="v plain">1 screen</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Tiers</span>
+        <span class="v plain">3</span>
+      </div>
+      <div class="meta-row">
+        <span class="k">Columns</span>
+        <span class="v plain">Single hierarchy</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 2v8M4 6l4-4 4 4M3 13h10"/>
+        </svg>
+        Export as HTML
+      </button>
+      <button class="secondary">Copy share URL</button>
+      <button class="tertiary">Spawn again ↻</button>
+    </div>
+
+    <div class="inset-foot">
+      Shipped to <strong>acme.io/pricing</strong><br>
+      <span style="opacity:0.7">Ready · 18 Apr 2026 · 14:12</span>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ── Footer ─────────────────────────────────────────────────── -->
+<div class="footer">
+  <span>4 alternates preserved</span>
+  <span class="dot"></span>
+  <a class="link" href="#">open canvas to revisit</a>
+  <span class="spacer"></span>
+  <span class="right">canvas · five-variant · picked v-03</span>
+</div>
+
+</body>
+</html>

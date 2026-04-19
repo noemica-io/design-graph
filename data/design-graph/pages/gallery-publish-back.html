@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Published · Serif Coffee Revisited — Design Graph</title>
+<style>
+  :root {
+    --ink: #0a0a0b;
+    --ink-2: #1a1a1c;
+    --paper: #fafaf7;
+    --muted: #6b7280;
+    --muted-2: #9ca3af;
+    --line: #e7e5e0;
+    --line-2: #eeece7;
+    --accent: #9333ea;
+    --accent-soft: #c084fc;
+    --accent-tint: #f3f0fb;
+    --green: #22c55e;
+    --green-tint: #ecfdf5;
+    --you: #0891b2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11";
+  }
+  body { width: 1280px; min-height: 800px; position: relative; }
+
+  /* NAV (gallery family) */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px; border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 22px; height: 22px; position: relative; }
+  .brand-mark::before, .brand-mark::after {
+    content: ""; position: absolute; inset: 0; border-radius: 4px;
+  }
+  .brand-mark::before { background: var(--accent); transform: translate(-3px, -3px); opacity: .85; }
+  .brand-mark::after { background: var(--ink); transform: translate(3px, 3px); mix-blend-mode: multiply; opacity: .9; }
+  .brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+  .brand-tag { color: var(--muted); font-size: 13px; letter-spacing: -0.01em; }
+  .brand-tag em { font-style: italic; color: var(--ink); font-weight: 500; }
+  .nav-right { display: flex; align-items: center; gap: 24px; }
+  .nav-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .nav-link:hover { color: var(--ink); }
+  .nav-link.on { color: var(--ink); }
+  .you-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #0891b2, #164e63);
+    color: #fff; font-size: 11px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line);
+  }
+  .cta {
+    background: var(--ink); color: #fff; font-size: 13px; font-weight: 500;
+    padding: 9px 14px; border-radius: 8px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .cta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-soft); }
+
+  /* HERO */
+  .hero {
+    padding: 34px 44px 28px;
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 32px;
+  }
+  .hero .left { flex: 1; max-width: 900px; }
+  .hero .kicker {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    color: var(--green);
+    background: var(--green-tint);
+    border: 1px solid #bbf7d0;
+    padding: 3px 9px 3px 7px; border-radius: 99px;
+    letter-spacing: 0.04em;
+  }
+  .hero .kicker .check {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--green); color: #fff; font-size: 9px; font-weight: 700;
+  }
+  .hero h1 {
+    font-family: "Playfair Display", "Didot", Georgia, serif;
+    font-size: 34px; line-height: 1.1; letter-spacing: -0.02em;
+    font-weight: 600; margin-top: 12px; color: var(--ink);
+  }
+  .hero h1 .url {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 22px; font-weight: 500;
+    color: var(--accent); letter-spacing: -0.01em;
+    background: var(--accent-tint);
+    padding: 1px 8px; border-radius: 6px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+  .hero .byline {
+    margin-top: 14px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero .byline .dot-sep { width: 3px; height: 3px; border-radius: 50%; background: #c9c6be; }
+  .hero .byline a { color: var(--muted); text-decoration: none; border-bottom: 1px dotted #c9c6be; }
+  .hero .byline a:hover { color: var(--accent); border-color: var(--accent); }
+
+  .hero .right {
+    text-align: right;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  .hero .right .count {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 44px; font-weight: 600;
+    color: var(--ink); letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .hero .right .lbl {
+    display: block; margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+
+  /* MAIN CONTENT */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .main .col-l {
+    padding: 24px 32px 24px 44px;
+    border-right: 1px solid var(--line);
+  }
+  .main .col-r {
+    padding: 24px 44px 24px 32px;
+    background: #fdfcf9;
+  }
+  .sec-h {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  /* LEFT: gallery-style card preview */
+  .preview-card {
+    border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+    background: #fff; position: relative;
+    display: flex; flex-direction: column;
+    width: 100%;
+  }
+  .thumb {
+    aspect-ratio: 16 / 10;
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background: #f5ede0;
+  }
+  .thumb .top {
+    position: absolute; top: 14px; left: 18px; right: 18px;
+    display: flex; justify-content: space-between;
+    font-family: Georgia, serif; font-size: 13px; color: #3a2a1a;
+  }
+  .thumb .hero-t {
+    position: absolute; top: 48px; left: 18px; right: 18px;
+    font-family: "Playfair Display", Georgia, serif;
+    color: #2c1d10; font-size: 28px; line-height: 1.08;
+    letter-spacing: -0.02em; font-weight: 600;
+  }
+  .thumb .hero-t em { font-style: italic; font-weight: 500; color: #7c2d12; }
+  .thumb .order {
+    position: absolute; bottom: 14px; left: 18px; right: 18px;
+    background: #fff; border-radius: 8px; padding: 12px;
+    display: flex; flex-direction: column; gap: 5px;
+    font-family: Georgia, serif;
+  }
+  .thumb .order .row { display: flex; justify-content: space-between; font-size: 11px; color: #3a2a1a; }
+  .thumb .order .row b { font-weight: 600; }
+  .thumb .order .tot { border-top: 1px dashed #d6c3a6; padding-top: 4px; font-weight: 700; }
+  .thumb .order .btn { margin-top: 5px; background: #2c1d10; color: #f5ede0; text-align: center; font-size: 10px; padding: 6px; border-radius: 4px; letter-spacing: 0.02em; }
+  .thumb .live-pin {
+    position: absolute; top: 14px; right: 18px;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,.92); border: 1px solid #fff;
+    padding: 3px 9px; border-radius: 99px;
+    font-size: 10px; font-weight: 600;
+    color: var(--green); font-family: Inter, sans-serif;
+    letter-spacing: 0.04em;
+  }
+  .thumb .live-pin::before {
+    content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+  }
+  .trend-badge {
+    position: absolute; bottom: 14px; right: 18px;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--ink); color: #fff;
+    font-size: 10px; font-weight: 600;
+    padding: 4px 9px; border-radius: 99px;
+    letter-spacing: 0.04em;
+    font-family: Inter, sans-serif;
+  }
+  .trend-badge::before { content: "↑"; font-size: 11px; color: var(--accent-soft); }
+
+  .cap {
+    padding: 14px 16px 14px;
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  .cap .t {
+    font-size: 15px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink);
+  }
+  .cap .row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; font-size: 12px; color: var(--muted);
+  }
+  .cap .author { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); font-weight: 500; }
+  .cap .author .av {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(135deg, #0891b2, #164e63);
+    border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line);
+  }
+  .cap .author .handle { color: var(--muted); font-weight: 400; }
+  .cap .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--accent-tint); color: var(--accent);
+    font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .cap .pill::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+
+  .preview-foot {
+    margin-top: 12px;
+    font-size: 11.5px; color: var(--muted);
+    display: flex; align-items: center; gap: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .preview-foot .bullet { width: 3px; height: 3px; border-radius: 50%; background: #c9c6be; }
+
+  /* RIGHT: Share panel */
+  .share-list { display: flex; flex-direction: column; gap: 14px; }
+
+  .url-field {
+    display: flex; align-items: center;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; padding: 2px 2px 2px 12px;
+  }
+  .url-field .u {
+    flex: 1; font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 12px; color: var(--ink);
+    letter-spacing: -0.005em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 9px 0;
+  }
+  .url-field .copy {
+    background: var(--ink); color: #fff;
+    font-size: 11.5px; font-weight: 500;
+    padding: 7px 11px; border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 5px;
+    cursor: pointer; border: none;
+    font-family: inherit;
+  }
+  .url-field .copy svg { width: 11px; height: 11px; }
+
+  .og {
+    display: flex; gap: 10px;
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px; background: #fff;
+  }
+  .og .og-img {
+    width: 96px; height: 54px; flex-shrink: 0;
+    border-radius: 4px; overflow: hidden;
+    background: linear-gradient(135deg,#f5ede0 0%, #e8dfd0 60%, #d4c5aa 100%);
+    position: relative;
+    border: 1px solid var(--line-2);
+  }
+  .og .og-img::before {
+    content: "Serif Coffee";
+    position: absolute; top: 6px; left: 7px;
+    font-family: Georgia, serif; font-size: 7.5px; color: #2c1d10;
+    font-weight: 600;
+  }
+  .og .og-img::after {
+    content: "Revisited";
+    position: absolute; bottom: 6px; right: 7px;
+    font-family: "Playfair Display", Georgia, serif; font-style: italic;
+    font-size: 11px; color: #7c2d12; font-weight: 600;
+  }
+  .og .og-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .og .og-meta small {
+    font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .og .og-meta b { font-size: 12px; font-weight: 500; color: var(--ink); letter-spacing: -0.005em; }
+  .og .og-meta span { font-size: 11px; color: var(--muted); }
+  .og .og-regen {
+    font-size: 10.5px; color: var(--accent);
+    text-decoration: none; margin-top: auto;
+    align-self: flex-start;
+  }
+
+  .embed {
+    background: #0a0a0b; color: #c084fc;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10.5px; line-height: 1.55;
+    padding: 10px 12px; border-radius: 8px;
+    position: relative;
+    white-space: pre;
+    overflow: hidden;
+  }
+  .embed .tag { color: #fbbf24; }
+  .embed .attr { color: #60a5fa; }
+  .embed .str { color: #86efac; }
+  .embed .copy-mini {
+    position: absolute; top: 7px; right: 8px;
+    font-size: 10px; color: #9ca3af;
+    background: rgba(255,255,255,.06);
+    padding: 2px 7px; border-radius: 4px;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+  }
+
+  .row-link {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12.5px; color: var(--ink);
+    padding: 2px 0;
+  }
+  .row-link a { color: var(--accent); text-decoration: none; }
+  .row-link a::after { content: " →"; color: var(--muted-2); }
+
+  /* toggles */
+  .toggle-group {
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 9px;
+  }
+  .toggle {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; font-size: 12.5px; color: var(--ink);
+  }
+  .toggle .lbl { display: flex; flex-direction: column; gap: 1px; }
+  .toggle .lbl small { font-size: 10.5px; color: var(--muted); font-weight: 400; }
+  .seg {
+    display: inline-flex; border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; background: #fafaf7;
+  }
+  .seg span {
+    font-size: 11px; padding: 4px 8px; color: var(--muted);
+    cursor: pointer; letter-spacing: -0.005em;
+  }
+  .seg span.on { background: var(--ink); color: #fff; }
+
+  .attrib {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 12px; color: var(--ink);
+  }
+  .attrib .mav {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: linear-gradient(135deg, #c084fc, #6366f1);
+    border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line);
+  }
+  .attrib .switch {
+    width: 28px; height: 16px; border-radius: 99px;
+    background: var(--green); position: relative; flex-shrink: 0;
+    border: 1px solid #86efac;
+  }
+  .attrib .switch::after {
+    content: ""; position: absolute; top: 1px; right: 1px;
+    width: 12px; height: 12px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15);
+  }
+
+  /* LINEAGE */
+  .lineage {
+    padding: 22px 44px 18px;
+    background: #fdfcf9;
+    border-bottom: 1px solid var(--line);
+  }
+  .lineage .row {
+    margin-top: 14px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .lnode {
+    display: inline-flex; align-items: center; gap: 9px;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 12px 8px 10px;
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  .lnode .av {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line);
+    flex-shrink: 0;
+  }
+  .lnode.you { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
+  .lnode.you .av { background: linear-gradient(135deg, #0891b2, #164e63); }
+  .lnode.orig .av { background: linear-gradient(135deg, #c084fc, #6366f1); }
+  .lnode.future {
+    color: var(--muted); border-style: dashed; background: #fafaf7;
+  }
+  .lnode.future .av {
+    background: #fff; color: var(--muted);
+    font-size: 11px; display: flex; align-items: center; justify-content: center;
+  }
+  .lnode b { font-weight: 600; color: inherit; }
+  .lnode .sub { color: var(--muted); font-weight: 400; font-size: 11px; }
+  .lnode.you .sub { color: var(--accent-soft); }
+  .chevron {
+    color: #bcb7ac; font-size: 14px; letter-spacing: -2px;
+  }
+
+  /* BOTTOM */
+  .bottom {
+    padding: 20px 44px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px;
+  }
+  .bottom .stats-tease {
+    font-size: 12.5px; color: var(--muted);
+  }
+  .bottom .stats-tease b { color: var(--ink); font-weight: 600; }
+  .actions { display: flex; align-items: center; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 500;
+    padding: 9px 14px; border-radius: 8px;
+    text-decoration: none; color: var(--ink);
+    border: 1px solid var(--line); background: #fff;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: #d4d1c9; }
+  .btn.primary-quiet {
+    background: var(--ink); color: #fff; border-color: var(--ink);
+  }
+  .btn.primary-quiet:hover { background: #1a1a1c; }
+  .btn.secondary {
+    background: #fff;
+  }
+
+  .unpublish {
+    position: absolute; bottom: 14px; left: 44px;
+    font-size: 10.5px; color: var(--muted-2);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+  }
+  .unpublish:hover { color: #ef4444; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <span class="brand-name">Design Graph</span>
+    <span class="brand-tag">— where teams think in <em>variants</em>.</span>
+  </div>
+  <div class="nav-right">
+    <a class="nav-link on" href="#">Gallery</a>
+    <a class="nav-link" href="#">Teams</a>
+    <a class="nav-link" href="#">Docs</a>
+    <a class="cta" href="#"><span class="dot"></span>Start a canvas</a>
+    <div class="you-avatar">SS</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="left">
+    <span class="kicker"><span class="check">✓</span> Published</span>
+    <h1>
+      Your Checkout study is live at<br/>
+      <span class="url">dg.design/tova/serif-coffee-revisited</span>
+    </h1>
+    <div class="byline">
+      <span>Published 2 minutes ago</span>
+      <span class="dot-sep"></span>
+      <span>16 variants</span>
+      <span class="dot-sep"></span>
+      <span>forked from <a href="#">maya.ro/serif-coffee-checkout</a></span>
+    </div>
+  </div>
+  <div class="right">
+    <span class="count">16</span>
+    <span class="lbl">Variants shipped</span>
+  </div>
+</section>
+
+<!-- MAIN -->
+<section class="main">
+
+  <!-- LEFT: gallery preview -->
+  <div class="col-l">
+    <div class="sec-h">As it now appears in the gallery</div>
+    <article class="preview-card">
+      <div class="thumb">
+        <div class="top"><span><i>Serif</i> Coffee</span><span>Cart · 2</span></div>
+        <div class="live-pin">Live</div>
+        <div class="hero-t">A <em>second</em><br/>look at slow.</div>
+        <div class="order">
+          <div class="row"><span>Ethiopia Guji — 250g</span><b>$24.00</b></div>
+          <div class="row"><span>House Blend — 1kg</span><b>$56.00</b></div>
+          <div class="row tot"><span>Total</span><b>$80.00</b></div>
+          <div class="btn">Pay $80 — guest checkout</div>
+        </div>
+        <div class="trend-badge">Trending</div>
+      </div>
+      <div class="cap">
+        <div class="t">Serif Coffee, revisited — checkout for returning buyers</div>
+        <div class="row">
+          <span class="author">
+            <span class="av"></span>
+            Tova Sen<span class="handle"> · @tova</span>
+          </span>
+          <span class="pill">16 variants</span>
+        </div>
+      </div>
+    </article>
+    <div class="preview-foot">
+      <span>Featured in <b style="color:var(--ink);font-weight:500;">Trending · this week</b></span>
+      <span class="bullet"></span>
+      <span>34 views in 2 min</span>
+      <span class="bullet"></span>
+      <span>2 forks already</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: Share panel -->
+  <div class="col-r">
+    <div class="sec-h">Share</div>
+    <div class="share-list">
+
+      <!-- URL copy -->
+      <div class="url-field">
+        <span class="u">dg.design/tova/serif-coffee-revisited</span>
+        <button class="copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Copy
+        </button>
+      </div>
+
+      <!-- Social preview -->
+      <div class="og">
+        <div class="og-img"></div>
+        <div class="og-meta">
+          <small>OG preview · 1200×630</small>
+          <b>Serif Coffee, revisited</b>
+          <span>by @tova · 16 variants · Design Graph</span>
+          <a class="og-regen" href="#">Regenerate preview →</a>
+        </div>
+      </div>
+
+      <!-- Embed -->
+      <div class="embed"><span class="copy-mini">Copy</span><span class="tag">&lt;iframe</span> <span class="attr">src</span>=<span class="str">"dg.design/tova/serif-coffee-</span>
+<span class="str">revisited/embed"</span>
+  <span class="attr">width</span>=<span class="str">"960"</span> <span class="attr">height</span>=<span class="str">"600"</span>
+  <span class="attr">loading</span>=<span class="str">"lazy"</span><span class="tag">&gt;&lt;/iframe&gt;</span></div>
+
+      <!-- Suggest to feature -->
+      <div class="row-link">
+        <span>Think this deserves the front page?</span>
+        <a href="#">Suggest to feature</a>
+      </div>
+
+      <!-- Toggles -->
+      <div class="toggle-group">
+        <div class="toggle">
+          <span class="lbl">
+            Visibility
+            <small>Anyone with the URL can fork</small>
+          </span>
+          <span class="seg">
+            <span class="on">Public</span>
+            <span>Unlisted</span>
+            <span>Team</span>
+          </span>
+        </div>
+        <div class="toggle" style="border-top:1px solid var(--line-2); padding-top:9px;">
+          <span class="lbl">
+            <span class="attrib">
+              <span class="mav"></span>
+              <span>Credit forked-from · <b>@maya.ro</b></span>
+            </span>
+            <small style="margin-left:29px;">Shown on your canvas page</small>
+          </span>
+          <span class="switch"></span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+<!-- LINEAGE -->
+<section class="lineage">
+  <div class="sec-h">Fork lineage</div>
+  <div class="row">
+    <div class="lnode orig">
+      <span class="av"></span>
+      <span><b>maya.ro</b> <span class="sub">· original</span></span>
+    </div>
+    <span class="chevron">›››</span>
+    <div class="lnode you">
+      <span class="av"></span>
+      <span><b>@tova</b> <span class="sub">· this canvas</span></span>
+    </div>
+    <span class="chevron" style="color:#dcd7cc;">›››</span>
+    <div class="lnode future">
+      <span class="av">···</span>
+      <span>future forks <span style="color:var(--muted-2);">· 2 already</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- BOTTOM -->
+<section class="bottom">
+  <div class="stats-tease">
+    <b>3,200 designers</b> publishing canvases this week · yours just joined them.
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="#">Start another canvas</a>
+    <a class="btn primary-quiet" href="#">
+      Back to your dashboard
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M5 12h14"/><path d="M13 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</section>
+
+<a class="unpublish" href="#">Unpublish</a>
+
+</body>
+</html>

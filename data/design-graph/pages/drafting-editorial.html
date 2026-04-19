@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — The drafts</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400;1,6..72,500&family=Inter:wght@400;500&family=Caveat:wght@400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #faf8f4;
+    --ink: #1a1714;
+    --ink-soft: #3d3731;
+    --rule: #e8e2d6;
+    --rule-soft: #efeae0;
+    --mute: #8a8176;
+    --accent: #8b5cf6;
+    --accent-soft: #a855f7;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1100px 500px at 90% -10%, rgba(139, 92, 246, 0.04), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(139, 92, 246, 0.025), transparent 60%);
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 40px 72px 36px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Masthead */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .masthead .brand { display: flex; align-items: center; gap: 14px; }
+  .masthead .mark {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink); font-weight: 500;
+  }
+  .masthead .mark .dot {
+    width: 7px; height: 7px; border-radius: 999px;
+    background: var(--accent); display: inline-block;
+    transform: translateY(-1px);
+  }
+  .masthead .title {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic; font-weight: 400;
+    font-size: 13px; letter-spacing: 0.02em;
+    text-transform: none; color: var(--ink-soft);
+  }
+
+  /* Body layout: lede column + spread + marginalia */
+  .body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 48px;
+    padding-top: 20px;
+    min-height: 0;
+  }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Kicker + lede */
+  .kicker {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 10px;
+  }
+  .kicker .roman {
+    color: var(--accent);
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-right: 8px;
+  }
+  .kicker .sep { color: var(--rule); margin: 0 10px; }
+
+  .lede {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0 0 22px;
+    max-width: 720px;
+  }
+  .lede em { color: var(--ink); font-style: italic; }
+
+  /* Magazine-spread grid: 2-up row + 3-up row */
+  .spread {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 18px;
+    flex: 1;
+    min-height: 0;
+  }
+  .row {
+    display: grid;
+    gap: 18px;
+    min-height: 0;
+  }
+  .row.two { grid-template-columns: 1.15fr 1fr; }
+  .row.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* Draft card */
+  .draft {
+    position: relative;
+    border: 1px solid var(--rule);
+    background: transparent;
+    padding: 14px 16px 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+  }
+  .draft-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .draft-num {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 15px;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .draft-num .rn {
+    font-style: italic;
+    font-weight: 300;
+  }
+  .draft-num.highlight .rn { color: var(--accent); }
+  .draft-meta {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+
+  .draft-handwritten {
+    font-family: "Caveat", cursive;
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--ink);
+    margin: 2px 0 4px;
+  }
+  .draft-handwritten.pending { color: var(--mute); }
+
+  .draft-sub {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+  }
+
+  /* Mini rendering — the thumbnail */
+  .mini {
+    flex: 1;
+    min-height: 0;
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mini-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  /* Status footer */
+  .draft-foot {
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid var(--rule-soft);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .draft-foot .timing {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 12px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink-soft);
+  }
+  .draft-foot a.read {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 1px;
+  }
+  .draft-foot a.read::after {
+    content: " \2192";
+    color: var(--accent);
+  }
+
+  /* In-progress skeleton overlay for mini */
+  .skeleton-line {
+    background: var(--rule);
+    height: 4px;
+    border-radius: 1px;
+    margin-bottom: 5px;
+  }
+  .skeleton-block {
+    background: var(--rule-soft);
+    border: 1px dashed var(--rule);
+    border-radius: 1px;
+  }
+
+  .awaiting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    color: var(--mute);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .awaiting .mark {
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 999px;
+    background: var(--rule);
+    margin-right: 10px;
+    transform: translateY(-2px);
+  }
+
+  /* ——— Draft I (Garamond editorial) ——— */
+  .style-editorial {
+    font-family: "EB Garamond", Garamond, serif;
+    color: var(--ink);
+    padding: 4px 10px 4px;
+  }
+  .style-editorial .se-masthead {
+    text-align: center;
+    font-size: 7px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--mute);
+    padding-bottom: 3px;
+    border-bottom: 0.5px solid var(--rule);
+    margin-bottom: 6px;
+  }
+  .style-editorial .se-h {
+    font-family: "EB Garamond", Garamond, serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.05;
+    text-align: center;
+    margin: 0 0 3px;
+    letter-spacing: -0.01em;
+  }
+  .style-editorial .se-h em { font-style: italic; font-weight: 400; }
+  .style-editorial .se-deck {
+    font-style: italic;
+    font-size: 7.5px;
+    text-align: center;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .style-editorial .se-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    font-size: 6px;
+    line-height: 1.3;
+  }
+  .style-editorial .se-tier {
+    border-top: 0.5px solid var(--rule);
+    padding-top: 4px;
+  }
+  .style-editorial .se-tier b {
+    display: block;
+    font-weight: 500;
+    font-size: 7px;
+    margin-bottom: 1px;
+  }
+  .style-editorial .se-tier .price {
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-size: 11px;
+    margin: 2px 0 3px;
+  }
+  .style-editorial .se-tier .price small {
+    font-size: 5.5px;
+    color: var(--mute);
+    font-style: normal;
+  }
+  .style-editorial .se-tier ul {
+    margin: 0; padding: 0; list-style: none;
+    color: var(--ink-soft);
+  }
+  .style-editorial .se-tier li {
+    padding: 1px 0;
+    border-bottom: 0.5px dotted var(--rule);
+  }
+
+  /* ——— Draft II (playful) ——— */
+  .style-playful {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    background: #fef3c7;
+    color: #2a1810;
+    padding: 8px 10px;
+    position: relative;
+  }
+  .style-playful::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border: 1.5px solid #2a1810;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .style-playful .sp-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    padding: 0 4px;
+  }
+  .style-playful .sp-h {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    margin: 2px 4px 4px;
+    letter-spacing: -0.02em;
+  }
+  .style-playful .sp-h .zigzag {
+    color: #ec4899;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .style-playful .sp-tiers {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 3px;
+    padding: 0 4px;
+  }
+  .style-playful .sp-tier {
+    background: var(--paper);
+    border: 1px solid #2a1810;
+    padding: 4px;
+    text-align: center;
+    border-radius: 2px;
+  }
+  .style-playful .sp-tier.pop {
+    background: #ec4899;
+    color: white;
+    transform: rotate(-1.5deg);
+  }
+  .style-playful .sp-tier b {
+    display: block;
+    font-size: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+  .style-playful .sp-tier .p {
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .style-playful .sp-tier .p small {
+    font-size: 5.5px;
+    font-weight: 500;
+  }
+  .style-playful .sp-cta {
+    margin: 5px 4px 0;
+    background: #2a1810;
+    color: #fef3c7;
+    padding: 3px;
+    text-align: center;
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* ——— Draft III (minimalist — in progress) ——— */
+  .style-minimal {
+    font-family: "Inter", system-ui, sans-serif;
+    color: var(--ink);
+    padding: 8px 10px;
+  }
+  .style-minimal .sm-top {
+    font-size: 7px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 10px;
+  }
+  .style-minimal .sm-h {
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: -0.02em;
+    margin-bottom: 2px;
+  }
+  .style-minimal .sm-sub {
+    font-size: 7px;
+    color: var(--mute);
+    margin-bottom: 8px;
+  }
+  .style-minimal .sm-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    border-top: 0.5px solid var(--rule);
+    font-size: 7px;
+  }
+  .style-minimal .sm-row b {
+    font-weight: 500;
+    font-size: 8px;
+  }
+  .style-minimal .sm-row .p {
+    font-weight: 500;
+    font-size: 9px;
+  }
+  .style-minimal .sm-skel {
+    background: var(--rule-soft);
+    height: 5px;
+    margin: 2px 0;
+    border-radius: 1px;
+  }
+  .style-minimal .sm-skel.short { width: 40%; }
+  .style-minimal .sm-skel.mid { width: 65%; }
+
+  /* ——— Draft IV (dense table — in progress) ——— */
+  .style-dense {
+    font-family: "JetBrains Mono", monospace;
+    color: var(--ink);
+    padding: 6px 8px;
+    font-size: 6.5px;
+  }
+  .style-dense .sd-top {
+    font-size: 6px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 4px;
+    border-bottom: 0.5px solid var(--ink);
+    padding-bottom: 2px;
+  }
+  .style-dense .sd-h {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 11px;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .style-dense .sd-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .style-dense .sd-table th,
+  .style-dense .sd-table td {
+    border: 0.5px solid var(--rule);
+    padding: 1.5px 3px;
+    text-align: left;
+    font-weight: 400;
+  }
+  .style-dense .sd-table th {
+    background: transparent;
+    font-size: 5.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mute);
+    font-weight: 500;
+  }
+  .style-dense .sd-table .check { color: var(--accent); text-align: center; }
+  .style-dense .sd-table .dash { color: var(--rule); text-align: center; }
+  .style-dense .sd-skel {
+    background: var(--rule-soft);
+    height: 4px;
+    margin: 1px 0;
+  }
+
+  /* Right marginalia */
+  .margin {
+    padding-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .margin .note {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    padding-left: 14px;
+    border-left: 1px solid var(--accent);
+  }
+  .margin .note .label {
+    display: block;
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 9.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 6px;
+  }
+  .margin .note em { color: var(--ink); font-style: italic; }
+
+  .margin .tally {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.5;
+    padding-left: 14px;
+  }
+  .margin .tally .count {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 24px;
+    color: var(--accent);
+    font-weight: 300;
+    display: block;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .margin .tally .sub {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--mute);
+  }
+
+  .margin .ornament {
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 0.6em;
+    padding-left: 14px;
+    user-select: none;
+  }
+
+  .margin .esc {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--mute);
+    padding-left: 14px;
+    line-height: 1.4;
+  }
+  .margin .esc kbd {
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-right: 4px;
+  }
+
+  /* Close */
+  .close {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .signoff {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .continue {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+    padding: 0 2px 3px;
+  }
+  .continue::after {
+    content: " \2192";
+    color: var(--accent);
+    margin-left: 4px;
+    letter-spacing: 0;
+  }
+
+  /* Colophon */
+  .colophon {
+    position: absolute;
+    left: 72px; right: 72px; bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .colophon .dots { letter-spacing: 0.4em; color: var(--rule); }
+
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="masthead">
+      <div class="brand">
+        <span class="mark"><span class="dot"></span>Design Graph</span>
+        <span class="title">continued &mdash; the drafts are being drawn</span>
+      </div>
+      <div>No. 01 &nbsp;·&nbsp; Chapter III</div>
+    </header>
+
+    <section class="body">
+
+      <div class="main">
+
+        <div class="kicker">
+          <span class="roman">III</span> &middot;&nbsp; The drafts &nbsp;<span class="sep">·</span>&nbsp; Pricing page, five directions
+        </div>
+
+        <p class="lede">
+          Five directions are being <em>drawn</em>. They will arrive in no particular order &mdash; the slowest is not the worst, and the fastest is not the most sure. You can read them as they land.
+        </p>
+
+        <div class="spread">
+
+          <!-- Row 1 — two up (both complete) -->
+          <div class="row two">
+
+            <!-- Draft I — Editorial / Garamond -->
+            <div class="draft">
+              <div class="draft-head">
+                <div class="draft-num highlight"><span class="rn">Draft I.</span></div>
+                <div class="draft-meta">Complete</div>
+              </div>
+              <div class="draft-handwritten">The editorial one</div>
+              <div class="draft-sub">A single-page pricing table set in Garamond, with dotted leaders and a quiet dense comparison grid.</div>
+
+              <div class="mini">
+                <div class="mini-frame style-editorial">
+                  <div class="se-masthead">Pricing &mdash; No. 01</div>
+                  <div class="se-h">Three <em>editions</em>, fairly priced.</div>
+                  <div class="se-deck">For readers, for studios, for the house.</div>
+                  <div class="se-grid">
+                    <div class="se-tier">
+                      <b>Reader</b>
+                      <div class="price">$9<small>/mo</small></div>
+                      <ul>
+                        <li>Solo canvas</li>
+                        <li>Three drafts</li>
+                        <li>Email</li>
+                      </ul>
+                    </div>
+                    <div class="se-tier">
+                      <b>Studio</b>
+                      <div class="price">$39<small>/mo</small></div>
+                      <ul>
+                        <li>Shared canvas</li>
+                        <li>Ten drafts</li>
+                        <li>Annotations</li>
+                      </ul>
+                    </div>
+                    <div class="se-tier">
+                      <b>House</b>
+                      <div class="price"><em>Ask</em></div>
+                      <ul>
+                        <li>Team archive</li>
+                        <li>Unlimited</li>
+                        <li>Concierge</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="draft-foot">
+                <span>drafted in 54s</span>
+                <a class="read" href="#">Read</a>
+              </div>
+            </div>
+
+            <!-- Draft II — Playful / Warm / Rotated -->
+            <div class="draft">
+              <div class="draft-head">
+                <div class="draft-num"><span class="rn">Draft II.</span></div>
+                <div class="draft-meta">Complete</div>
+              </div>
+              <div class="draft-handwritten">The playful one</div>
+              <div class="draft-sub">A warm, almost-risograph pricing card set with a rotated mid-tier and a fat slab for the call-to-action.</div>
+
+              <div class="mini">
+                <div class="mini-frame style-playful">
+                  <div class="sp-top"><span>Pricing</span><span>03 tiers</span></div>
+                  <div class="sp-h">Pick <span class="zigzag">the one that fits.</span></div>
+                  <div class="sp-tiers">
+                    <div class="sp-tier">
+                      <b>Solo</b>
+                      <div class="p">$9<small>/mo</small></div>
+                    </div>
+                    <div class="sp-tier pop">
+                      <b>Team</b>
+                      <div class="p">$39<small>/mo</small></div>
+                    </div>
+                    <div class="sp-tier">
+                      <b>Studio</b>
+                      <div class="p">$129<small>/mo</small></div>
+                    </div>
+                  </div>
+                  <div class="sp-cta">Start free &rarr;</div>
+                </div>
+              </div>
+
+              <div class="draft-foot">
+                <span>drafted in 1m 12s</span>
+                <a class="read" href="#">Read</a>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Row 2 — three up -->
+          <div class="row three">
+
+            <!-- Draft III — Minimalist (in progress) -->
+            <div class="draft">
+              <div class="draft-head">
+                <div class="draft-num"><span class="rn">Draft III.</span></div>
+                <div class="draft-meta">Drafting</div>
+              </div>
+              <div class="draft-handwritten">The minimalist one</div>
+              <div class="draft-sub">Swiss, spartan. A single column of plans separated only by hairlines and generous air.</div>
+
+              <div class="mini">
+                <div class="mini-frame style-minimal">
+                  <div class="sm-top">Pricing /&nbsp;01</div>
+                  <div class="sm-h">Plans.</div>
+                  <div class="sm-sub">Everything you need, nothing else.</div>
+                  <div class="sm-row"><b>Solo</b><span class="p">$9</span></div>
+                  <div class="sm-row"><b>Team</b><span class="p">$39</span></div>
+                  <div class="sm-skel mid"></div>
+                  <div class="sm-skel short"></div>
+                  <div class="sm-skel mid"></div>
+                </div>
+              </div>
+
+              <div class="draft-foot">
+                <span class="timing"><em>drafting&hellip; 32s</em></span>
+                <span>3 of 4 blocks</span>
+              </div>
+            </div>
+
+            <!-- Draft IV — Dense comparison table (in progress) -->
+            <div class="draft">
+              <div class="draft-head">
+                <div class="draft-num"><span class="rn">Draft IV.</span></div>
+                <div class="draft-meta">Drafting</div>
+              </div>
+              <div class="draft-handwritten">The dense one</div>
+              <div class="draft-sub">A monospaced comparison matrix &mdash; every feature, every tier, every checkmark visible at once.</div>
+
+              <div class="mini">
+                <div class="mini-frame style-dense">
+                  <div class="sd-top">// pricing.compare &mdash; v3</div>
+                  <div class="sd-h">Feature comparison.</div>
+                  <table class="sd-table">
+                    <tr><th>Feature</th><th>Solo</th><th>Team</th><th>Ent.</th></tr>
+                    <tr><td>Canvas</td><td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+                    <tr><td>Drafts</td><td>3</td><td>10</td><td>&infin;</td></tr>
+                    <tr><td>Share</td><td class="dash">&ndash;</td><td class="check">&#10003;</td><td class="check">&#10003;</td></tr>
+                    <tr><td>SSO</td><td class="dash">&ndash;</td><td class="dash">&ndash;</td><td class="check">&#10003;</td></tr>
+                  </table>
+                  <div class="sd-skel" style="width:80%"></div>
+                  <div class="sd-skel" style="width:55%"></div>
+                </div>
+              </div>
+
+              <div class="draft-foot">
+                <span class="timing"><em>drafting&hellip; 1m 04s</em></span>
+                <span>rows 4&#8211;8</span>
+              </div>
+            </div>
+
+            <!-- Draft V — Unscheduled / awaiting -->
+            <div class="draft">
+              <div class="draft-head">
+                <div class="draft-num"><span class="rn">Draft V.</span></div>
+                <div class="draft-meta">Awaiting</div>
+              </div>
+              <div class="draft-handwritten pending">The unexpected one</div>
+              <div class="draft-sub">Held back &mdash; the writer is still deciding what this one ought to say. Its direction has not yet been chosen.</div>
+
+              <div class="mini">
+                <div class="mini-frame">
+                  <div class="awaiting"><span class="mark"></span>awaiting a direction</div>
+                </div>
+              </div>
+
+              <div class="draft-foot">
+                <span class="timing"><em>&mdash; not yet begun</em></span>
+                <span>queued</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="close">
+          <span class="signoff">&mdash; They will land when they are ready.</span>
+          <a class="continue" href="#">Read all</a>
+        </div>
+
+      </div>
+
+      <aside class="margin">
+        <div class="tally">
+          <span class="count">4 <span style="font-size:18px;color:var(--mute);">/ 5</span></span>
+          <span class="sub"><em>drawn &mdash; an estimate.</em></span>
+        </div>
+
+        <div class="note">
+          <span class="label">A note on waiting</span>
+          The drafts arrive in <em>no particular order</em>. The slowest is not the worst. You are free to read one while the others finish.
+        </div>
+
+        <div class="ornament">&sect; &nbsp; &sect; &nbsp; &sect;</div>
+
+        <div class="esc">
+          <kbd>Esc</kbd> <em>to pause</em><br/>
+          <kbd>&#8984; R</kbd> <em>to redraw</em>
+        </div>
+      </aside>
+
+    </section>
+
+    <footer class="colophon">
+      <span>Set in Newsreader &amp; Inter</span>
+      <span class="dots">· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·</span>
+      <span>Design Graph · Chapter III</span>
+    </footer>
+
+  </div>
+</body>
+</html>

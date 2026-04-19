@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Spawning · quiet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: #fafaf7;
+    color: #1a1a1a;
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── minimap, top-right ─────────────────────────────── */
+  .minimap {
+    position: absolute;
+    top: 40px; right: 40px;
+    width: 60px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px;
+  }
+  .minimap .grid {
+    width: 60px; height: 60px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 10px;
+    align-items: center;
+    justify-items: center;
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(26,26,26,0.28);
+    background: transparent;
+    transition: background 600ms ease;
+  }
+  .dot.filled {
+    background: #a855f7;
+    border-color: #a855f7;
+    animation: soft-pulse 3.6s ease-in-out infinite;
+  }
+  .dot.just {
+    animation: fill-in 1.4s ease-out;
+  }
+  @keyframes fill-in {
+    0%   { transform: scale(0.8); opacity: 0.5; }
+    50%  { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes soft-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.82; }
+  }
+  .empty-slot { /* placeholder to balance 2x3 with 5 dots */
+    width: 10px; height: 10px;
+    visibility: hidden;
+  }
+  .minimap .count {
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(26,26,26,0.42);
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
+
+  /* ── center: the sentence ───────────────────────────── */
+  .center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 620px;
+  }
+  .sentence {
+    font-family: 'Newsreader', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: -0.012em;
+    color: #1a1a1a;
+    line-height: 1.25;
+  }
+  .sub {
+    margin-top: 18px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: rgba(26,26,26,0.40);
+    letter-spacing: 0.005em;
+  }
+  .sub .mid {
+    display: inline-block;
+    margin: 0 6px;
+    color: rgba(26,26,26,0.28);
+  }
+
+  /* ── bottom hairline + ready link ───────────────────── */
+  .hairline {
+    position: absolute;
+    left: 96px; right: 96px;
+    bottom: 96px;
+    height: 1px;
+    background: rgba(26,26,26,0.12);
+  }
+  .ready {
+    position: absolute;
+    left: 50%;
+    bottom: 60px;
+    transform: translateX(-50%);
+    font-family: 'Newsreader', Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    color: rgba(26,26,26,0.26);
+    letter-spacing: 0.005em;
+    user-select: none;
+  }
+  .ready .arrow {
+    font-family: 'Inter', sans-serif;
+    font-style: normal;
+    margin-left: 4px;
+  }
+
+  /* ── footer margin: esc to pause ────────────────────── */
+  .esc {
+    position: absolute;
+    left: 40px; bottom: 28px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: rgba(26,26,26,0.30);
+    letter-spacing: 0.04em;
+  }
+  .esc kbd {
+    font-family: 'Inter', sans-serif;
+    font-size: 9.5px;
+    padding: 1px 5px;
+    border: 1px solid rgba(26,26,26,0.18);
+    border-radius: 3px;
+    margin-right: 4px;
+    color: rgba(26,26,26,0.46);
+  }
+</style>
+</head>
+<body>
+
+  <!-- top-right minimap: 2 cols × 3 rows, 5 dots (3 filled, 2 hollow, 1 empty slot) -->
+  <div class="minimap" aria-label="spawn progress">
+    <div class="grid">
+      <div class="dot filled"></div>
+      <div class="dot filled"></div>
+      <div class="dot filled just"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="empty-slot"></div>
+    </div>
+    <div class="count">3 / 5</div>
+  </div>
+
+  <!-- center: the sentence + sub -->
+  <div class="center">
+    <div class="sentence">spawning five variants.</div>
+    <div class="sub">estimated 60 seconds<span class="mid">·</span>your canvas will be ready shortly.</div>
+  </div>
+
+  <!-- hairline + inactive ready link -->
+  <div class="hairline"></div>
+  <div class="ready">ready<span class="arrow">→</span></div>
+
+  <!-- footer margin affordance -->
+  <div class="esc"><kbd>esc</kbd>to pause</div>
+
+</body>
+</html>

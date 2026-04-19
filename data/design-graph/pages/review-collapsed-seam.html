@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Review — 8 variants ready</title>
+<meta name="viewport" content="width=1280" />
+<style>
+  :root {
+    --ink: #0b0b0f;
+    --accent: #8b5cf6;
+    --accent-soft: #a78bfa;
+    --accent-deep: #7c3aed;
+    --accent-wash: #f3eeff;
+    --ok: #22c55e;
+    --ok-deep: #15803d;
+    --ok-soft: #dcfce7;
+    --grey-bg: #ececec;
+    --grey-line: #c4c4c4;
+    --grey-ink: #4a4a4a;
+    --grey-mute: #8a8a8a;
+    --canvas-bg: #faf9ff;
+    --canvas-dot: #d9d2f0;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 1280px; height: 800px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    color: var(--ink);
+    background: #fff;
+    font-feature-settings: 'ss01', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
+    overflow: hidden;
+  }
+
+  /* ───────── Top nav ───────── */
+  nav {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 52px; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    background: #fff;
+    border-bottom: 1px solid #ececec;
+    pointer-events: none;
+  }
+  nav .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-weight: 600; font-size: 13.5px; letter-spacing: -0.01em;
+    pointer-events: auto;
+  }
+  nav .brand .dot {
+    width: 14px; height: 14px; border-radius: 3px;
+    background: linear-gradient(135deg, #c8c8c8 0 50%, var(--accent) 50% 100%);
+  }
+  nav .crumbs {
+    font-size: 12.5px; color: #888;
+    display: flex; align-items: center; gap: 10px;
+    pointer-events: auto;
+  }
+  nav .crumbs .sep { color: #ccc; }
+  nav .crumbs .here { color: var(--accent); font-weight: 500; }
+  nav .nav-right {
+    font-size: 11.5px;
+    pointer-events: auto;
+    display: flex; align-items: center; gap: 14px;
+    color: #888;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  nav .nav-right .kbd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    background: #f5f5f5;
+    border: 1px solid #e4e4e4;
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 2px 6px;
+    color: #666;
+  }
+
+  /* ───────── Split — seam has collapsed to the left ───────── */
+  .split {
+    position: relative;
+    top: 52px;
+    height: 748px;
+    display: grid;
+    grid-template-columns: 200px 1fr; /* ~15% left, ~85% right */
+  }
+
+  /* The seam — now a tiny vertical hairline between memorial and main */
+  .seam {
+    position: absolute; top: 0; bottom: 0;
+    left: 200px;
+    width: 0;
+    z-index: 4;
+    transform: rotate(-0.5deg);
+    transform-origin: top center;
+  }
+  .seam::before {
+    content: "";
+    position: absolute; top: 0; bottom: 0; left: 0;
+    width: 1px;
+    background: linear-gradient(180deg,
+      rgba(200,200,200,0) 0%,
+      rgba(200,200,200,0.5) 10%,
+      rgba(139,92,246,0.22) 50%,
+      rgba(200,200,200,0.5) 90%,
+      rgba(200,200,200,0) 100%);
+  }
+
+  /* ═══════════ LEFT — memorial sidebar ═══════════ */
+  .memorial {
+    background: #f2f2f2;
+    color: var(--grey-ink);
+    padding: 24px 18px 24px 22px;
+    position: relative;
+    overflow: hidden;
+    filter: saturate(0.25);
+    opacity: 0.82;
+    border-right: 1px solid #dcdcdc;
+  }
+  .memorial::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, transparent 72%, rgba(236,236,236,0.7) 100%);
+    pointer-events: none;
+  }
+
+  .memorial .eyebrow {
+    font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--grey-mute); margin-bottom: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .memorial .eyebrow::before {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: #b0b0b0;
+  }
+
+  /* tiny thumbnail */
+  .memthumb {
+    background: #fff;
+    border: 1px solid #c8c8c8;
+    border-radius: 3px;
+    padding: 7px;
+    position: relative;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+  }
+  .memthumb .mtop {
+    height: 10px;
+    background: #f4f4f4;
+    border-bottom: 1px solid #e4e4e4;
+    display: flex; align-items: center;
+    gap: 3px;
+    margin: -7px -7px 6px -7px;
+    padding: 0 6px;
+  }
+  .memthumb .mtop span {
+    width: 4px; height: 4px; border-radius: 50%; background: #d0d0d0;
+  }
+  .memthumb .mtop .fn {
+    font-size: 7px;
+    color: #a0a0a0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    margin-left: 3px;
+  }
+  .memthumb .hero {
+    height: 5px; background: #cfcfcf; border-radius: 1px; width: 72%;
+    margin-bottom: 3px;
+  }
+  .memthumb .hero.b { width: 54%; background: #d8d8d8; }
+  .memthumb .tiers {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px; margin-top: 7px;
+  }
+  .memthumb .tiers .t {
+    height: 32px;
+    border: 1px solid #e4e4e4;
+    background: #fafafa;
+    border-radius: 1px;
+    position: relative;
+  }
+  .memthumb .tiers .t.mid {
+    background: #eee6f5;
+    border-color: #ded0ee;
+  }
+  .memthumb .tiers .t::before {
+    content: "";
+    position: absolute; top: 3px; left: 3px;
+    width: 55%; height: 1.5px;
+    background: #c8c8c8;
+    border-radius: 1px;
+  }
+  .memthumb .tiers .t::after {
+    content: "";
+    position: absolute; top: 7px; left: 3px;
+    width: 40%; height: 3px;
+    background: #b5b5b5;
+    border-radius: 1px;
+  }
+
+  /* strikethrough label across the thumbnail */
+  .memthumb .strike {
+    position: absolute;
+    top: 50%; left: 4px; right: 4px;
+    height: 1px;
+    background: #b0b0b0;
+    transform: rotate(-3deg);
+    opacity: 0.7;
+  }
+
+  .memthumb .memlabel {
+    font-size: 9px;
+    color: #7a7a7a;
+    margin-top: 8px;
+    letter-spacing: -0.005em;
+    line-height: 1.3;
+  }
+  .memthumb .memlabel b {
+    font-weight: 500; color: #5a5a5a;
+    text-decoration: line-through;
+    text-decoration-color: #b0b0b0;
+  }
+
+  /* frozen timer */
+  .frozen-timer {
+    display: flex; align-items: center; gap: 6px;
+    background: #e8e8e8;
+    border: 1px solid #cfcfcf;
+    border-radius: 3px;
+    padding: 5px 7px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    color: #6a6a6a;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .frozen-timer::before {
+    content: "⏸";
+    font-size: 9px;
+    color: #8a8a8a;
+  }
+  .frozen-timer .num {
+    color: #5a5a5a;
+    font-weight: 600;
+  }
+  .frozen-timer .paused {
+    color: #9a9a9a;
+    font-size: 8px;
+    margin-left: auto;
+  }
+
+  .memorial .epitaph {
+    font-size: 10.5px;
+    font-style: italic;
+    color: #8a8a8a;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    letter-spacing: -0.005em;
+  }
+
+  .memorial .viewlink {
+    font-size: 10px;
+    color: #9a9a9a;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 3px;
+    border-bottom: 1px dashed #cfcfcf;
+    padding-bottom: 1px;
+    letter-spacing: -0.005em;
+  }
+  .memorial .viewlink:hover { color: #6a6a6a; }
+
+  .memorial .foot {
+    position: absolute;
+    bottom: 18px; left: 22px; right: 18px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 8px;
+    color: #b5b5b5;
+    line-height: 1.4;
+    letter-spacing: 0;
+  }
+  .memorial .foot .fn {
+    text-decoration: line-through;
+    text-decoration-color: #cfcfcf;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* ═══════════ RIGHT — alive, 85% of viewport ═══════════ */
+  .main {
+    background: #fff;
+    padding: 22px 32px 22px 34px;
+    position: relative;
+    overflow: hidden;
+  }
+  .main::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: 12px 12px;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+  .main > * { position: relative; z-index: 1; }
+
+  /* header row */
+  .head-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 12px;
+  }
+  .head-left .eyebrow {
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600;
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 6px;
+  }
+  .head-left .eyebrow .pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(139,92,246,0.18);
+  }
+  .head-left h1 {
+    font-size: 22px; line-height: 1.15; margin: 0;
+    font-weight: 600; letter-spacing: -0.022em;
+  }
+  .head-left h1 .meta {
+    color: #999;
+    font-weight: 400;
+    font-size: 15px;
+    margin-left: 4px;
+    letter-spacing: -0.01em;
+  }
+  .head-left h1 .meta b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .head-left h1 .meta .sep { color: #ccc; margin: 0 6px; }
+
+  /* ready strip */
+  .ready-strip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ok-soft);
+    border: 1px solid #bbf0c8;
+    color: var(--ok-deep);
+    padding: 5px 11px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: -0.005em;
+  }
+  .ready-strip::before {
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.22);
+  }
+  .ready-strip .bar {
+    height: 3px;
+    width: 48px;
+    background: rgba(34,197,94,0.25);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .ready-strip .bar::after {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 100%;
+    background: var(--ok);
+    border-radius: 2px;
+  }
+
+  /* action bar */
+  .actionbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px;
+  }
+  .actionbar .primary {
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 20px;
+    border-radius: 7px;
+    font-weight: 500;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    letter-spacing: -0.005em;
+  }
+  .actionbar .primary .arrow { font-size: 14px; }
+  .actionbar .secondary {
+    background: #fff;
+    color: var(--ink);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid #dcdcdc;
+    cursor: pointer;
+    letter-spacing: -0.005em;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .actionbar .secondary::before {
+    content: "";
+    width: 11px; height: 11px;
+    border: 1.5px solid #8a8a8a;
+    border-radius: 2px;
+    position: relative;
+  }
+  .actionbar .tertiary {
+    color: var(--accent);
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(139,92,246,0.4);
+    padding-bottom: 1px;
+    cursor: pointer;
+    letter-spacing: -0.005em;
+  }
+  .actionbar .spacer { flex: 1; }
+  .actionbar .shortcuts {
+    font-size: 10.5px;
+    color: #a0a0a0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    display: flex; gap: 12px;
+  }
+  .actionbar .shortcuts .kbd {
+    background: #f5f5f5;
+    border: 1px solid #e4e4e4;
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    padding: 1px 4px;
+    color: #666;
+    margin: 0 3px;
+  }
+
+  /* ─── the 8-variant grid ─── */
+  .vgrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: auto auto;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .vcard {
+    background: #fff;
+    border: 1px solid #e4ddf3;
+    border-radius: 6px;
+    padding: 7px;
+    display: flex; flex-direction: column;
+    gap: 5px;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 300px;
+  }
+  .vcard:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(139,92,246,0.1);
+  }
+  .vcard .thumb {
+    height: 148px;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #eee;
+  }
+  .vcard .title {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-top: 2px;
+  }
+  .vcard .title .id {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    color: #999;
+    font-weight: 400;
+  }
+  .vcard .note {
+    font-size: 10.5px;
+    color: #666;
+    line-height: 1.38;
+    font-style: italic;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .vcard .metarow {
+    display: flex; gap: 5px;
+    font-size: 8.5px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: #888;
+    letter-spacing: 0;
+    flex-wrap: wrap;
+  }
+  .vcard .metarow .tag {
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: #f5f2fb;
+    color: #6a5a8a;
+    border: 1px solid #ece5f7;
+  }
+  .vcard .metarow .tag.type { background: #f5f2fb; color: #6a5a8a; }
+  .vcard .metarow .tag.color {
+    padding-left: 15px;
+    position: relative;
+  }
+  .vcard .metarow .tag.color::before {
+    content: "";
+    position: absolute;
+    left: 5px; top: 50%;
+    transform: translateY(-50%);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+  }
+
+  /* ONE highlighted card */
+  .vcard.pick {
+    border: 1.5px solid var(--accent);
+    box-shadow: 0 0 0 4px rgba(139,92,246,0.12);
+  }
+  .vcard.pick .pick-chip {
+    position: absolute;
+    top: -9px; left: 8px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 4px;
+    box-shadow: 0 1px 3px rgba(139,92,246,0.3);
+  }
+  .vcard.pick .pick-chip::before {
+    content: "★";
+    font-size: 9px;
+  }
+
+  /* ─── DISTINCT thumbnail treatments ─── */
+
+  /* 01: serif editorial */
+  .thumb-editorial {
+    background: #fdf9f0;
+    padding: 10px;
+  }
+  .thumb-editorial .eyebrow {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 7px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #a88a4a;
+    margin-bottom: 4px;
+  }
+  .thumb-editorial h3 {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: #3a2a18;
+    margin: 0 0 2px 0;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  .thumb-editorial h3 b {
+    font-style: normal;
+    font-weight: 600;
+  }
+  .thumb-editorial hr {
+    border: none;
+    border-top: 1px solid #d0b878;
+    margin: 6px 0;
+  }
+  .thumb-editorial .rows {
+    display: flex; flex-direction: column; gap: 3px;
+    font-family: 'Georgia', serif;
+    font-size: 8px;
+    color: #5a4a28;
+  }
+  .thumb-editorial .rows .r {
+    display: flex; justify-content: space-between;
+    border-bottom: 0.5px dotted #c8b090;
+    padding-bottom: 2px;
+  }
+  .thumb-editorial .rows .r span:last-child {
+    font-weight: 600;
+    color: #4a3218;
+  }
+
+  /* 02: dense table */
+  .thumb-table {
+    background: #fff;
+    padding: 6px;
+  }
+  .thumb-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 6.5px;
+    font-family: 'Inter', sans-serif;
+    color: #4a4a4a;
+  }
+  .thumb-table thead tr {
+    background: #f8f8f8;
+    border-bottom: 1px solid #d4d4d4;
+  }
+  .thumb-table thead th {
+    text-align: left;
+    padding: 3px 4px;
+    font-weight: 600;
+    font-size: 6px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6a6a6a;
+  }
+  .thumb-table thead th:not(:first-child) { text-align: center; }
+  .thumb-table tbody td {
+    padding: 2.5px 4px;
+    border-bottom: 0.5px solid #ececec;
+    font-size: 6.5px;
+  }
+  .thumb-table tbody td:not(:first-child) { text-align: center; color: #888; }
+  .thumb-table .check { color: #22c55e; font-weight: 700; }
+  .thumb-table .dash { color: #c4c4c4; }
+  .thumb-table .hi-col {
+    background: #fef9e7;
+  }
+  .thumb-table .prow {
+    background: #fafafa;
+    font-weight: 600;
+    font-size: 7.5px !important;
+    color: #222;
+  }
+
+  /* 03: bold playful */
+  .thumb-bold {
+    background: #fef3c7;
+    padding: 8px;
+    position: relative;
+  }
+  .thumb-bold::before {
+    content: "";
+    position: absolute;
+    top: -8px; right: -10px;
+    width: 46px; height: 46px;
+    background: #fb7185;
+    border-radius: 50%;
+    opacity: 0.75;
+  }
+  .thumb-bold::after {
+    content: "";
+    position: absolute;
+    bottom: -12px; left: -6px;
+    width: 30px; height: 30px;
+    background: #60a5fa;
+    border-radius: 50%;
+    opacity: 0.55;
+  }
+  .thumb-bold h3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    color: #1a1a1a;
+    margin: 0 0 4px 0;
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    position: relative;
+    z-index: 1;
+  }
+  .thumb-bold h3 span {
+    background: #1a1a1a;
+    color: #fef3c7;
+    padding: 0 3px;
+  }
+  .thumb-bold .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-top: 7px;
+    position: relative;
+    z-index: 1;
+  }
+  .thumb-bold .cards .c {
+    background: #fff;
+    border: 2px solid #1a1a1a;
+    border-radius: 4px;
+    height: 54px;
+    padding: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 7px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .thumb-bold .cards .c.hi {
+    background: #1a1a1a;
+    color: #fef3c7;
+  }
+  .thumb-bold .cards .c .price {
+    font-size: 12px;
+    font-weight: 900;
+    margin-top: 4px;
+    letter-spacing: -0.03em;
+  }
+
+  /* 04: dark tech */
+  .thumb-darktech {
+    background: #0a0a14;
+    padding: 8px;
+    color: #d4d4d4;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .thumb-darktech::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px) 0 0 / 100% 8px,
+      radial-gradient(circle at 50% 0%, rgba(99,102,241,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .thumb-darktech .term-top {
+    font-size: 7px;
+    color: #4f46e5;
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .thumb-darktech .term-top::before {
+    content: "▸";
+    color: #10b981;
+  }
+  .thumb-darktech h3 {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    color: #fff;
+    margin: 0 0 4px 0;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    position: relative; z-index: 1;
+  }
+  .thumb-darktech h3 .amp { color: #a5b4fc; }
+  .thumb-darktech .code {
+    font-size: 6.5px;
+    color: #7c7c9e;
+    line-height: 1.5;
+    margin-bottom: 5px;
+    position: relative; z-index: 1;
+  }
+  .thumb-darktech .code .tk { color: #a5b4fc; }
+  .thumb-darktech .code .st { color: #10b981; }
+  .thumb-darktech .cli {
+    background: rgba(99,102,241,0.08);
+    border: 1px solid #2a2a3a;
+    border-radius: 3px;
+    padding: 4px 5px;
+    font-size: 6.5px;
+    color: #d4d4d4;
+    display: flex; flex-direction: column; gap: 3px;
+    position: relative; z-index: 1;
+  }
+  .thumb-darktech .cli .line { display: flex; gap: 4px; }
+  .thumb-darktech .cli .line .pr { color: #10b981; }
+  .thumb-darktech .cli .line .pr.hi { color: #fbbf24; }
+
+  /* 05: minimal single plan */
+  .thumb-minimal {
+    background: #fafafa;
+    padding: 10px;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .thumb-minimal .label {
+    font-size: 7px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #9a9a9a;
+    margin-bottom: 6px;
+  }
+  .thumb-minimal .big {
+    font-family: 'Inter', sans-serif;
+    font-size: 28px;
+    font-weight: 300;
+    color: #0a0a0a;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .thumb-minimal .big b {
+    font-weight: 400;
+  }
+  .thumb-minimal .big sup {
+    font-size: 10px;
+    color: #8a8a8a;
+    font-weight: 300;
+    vertical-align: super;
+  }
+  .thumb-minimal .per {
+    font-size: 7.5px;
+    color: #6a6a6a;
+    margin-bottom: 10px;
+  }
+  .thumb-minimal .line {
+    width: 30px; height: 1px; background: #0a0a0a;
+    margin-bottom: 7px;
+  }
+  .thumb-minimal .feat {
+    font-size: 6.5px;
+    color: #4a4a4a;
+    line-height: 1.6;
+  }
+  .thumb-minimal .cta {
+    margin-top: 7px;
+    font-size: 7.5px;
+    border: 1px solid #0a0a0a;
+    padding: 3px 12px;
+    color: #0a0a0a;
+  }
+
+  /* 06: interactive calculator */
+  .thumb-calc {
+    background: linear-gradient(180deg, #e0f2fe 0%, #ffffff 100%);
+    padding: 8px;
+    position: relative;
+  }
+  .thumb-calc h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    color: #0c4a6e;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.01em;
+  }
+  .thumb-calc .slide {
+    background: #fff;
+    border: 1px solid #bae6fd;
+    border-radius: 4px;
+    padding: 5px 6px;
+    margin-bottom: 5px;
+  }
+  .thumb-calc .slide .l1 {
+    display: flex; justify-content: space-between;
+    font-size: 6.5px;
+    color: #64748b;
+    margin-bottom: 3px;
+  }
+  .thumb-calc .slide .l1 b {
+    color: #0c4a6e;
+    font-weight: 600;
+    font-size: 7px;
+  }
+  .thumb-calc .slide .track {
+    height: 2px;
+    background: #e0f2fe;
+    border-radius: 2px;
+    position: relative;
+  }
+  .thumb-calc .slide .track .fill {
+    position: absolute; top: 0; left: 0; height: 100%;
+    background: #0284c7;
+    border-radius: 2px;
+  }
+  .thumb-calc .slide .track .knob {
+    position: absolute;
+    top: 50%;
+    width: 7px; height: 7px;
+    background: #fff;
+    border: 2px solid #0284c7;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .thumb-calc .result {
+    background: #0c4a6e;
+    color: #fff;
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-top: 5px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .thumb-calc .result .lab {
+    font-size: 6.5px;
+    color: #7dd3fc;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .thumb-calc .result .num {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+  }
+  .thumb-calc .result .num span {
+    color: #bae6fd;
+    font-size: 8px;
+    font-weight: 400;
+    margin-left: 2px;
+  }
+
+  /* 07: testimonial-forward */
+  .thumb-social {
+    background: #fef2f8;
+    padding: 8px;
+    display: flex; flex-direction: column;
+  }
+  .thumb-social .quote {
+    font-family: 'Georgia', serif;
+    font-size: 9px;
+    font-style: italic;
+    color: #831843;
+    line-height: 1.35;
+    position: relative;
+    padding-left: 8px;
+    border-left: 2px solid #ec4899;
+    margin-bottom: 6px;
+  }
+  .thumb-social .attrib {
+    font-size: 6.5px;
+    color: #9d174d;
+    display: flex; align-items: center; gap: 4px;
+    margin-bottom: 7px;
+  }
+  .thumb-social .attrib .av {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ec4899, #f472b6);
+  }
+  .thumb-social .attrib b { font-weight: 600; color: #831843; }
+  .thumb-social .logos {
+    display: flex; gap: 6px;
+    padding: 5px 0;
+    border-top: 0.5px solid #fbcfe8;
+    border-bottom: 0.5px solid #fbcfe8;
+    margin-bottom: 6px;
+    justify-content: space-around;
+    align-items: center;
+  }
+  .thumb-social .logos span {
+    font-family: 'Georgia', serif;
+    font-weight: 700;
+    font-size: 8px;
+    color: #9d174d;
+    opacity: 0.55;
+    font-style: italic;
+  }
+  .thumb-social .logos span:nth-child(2) { font-family: 'Inter'; font-style: normal; font-weight: 900; letter-spacing: -0.03em; }
+  .thumb-social .logos span:nth-child(3) { font-family: 'Inter'; font-style: normal; font-weight: 300; letter-spacing: 0.1em; text-transform: uppercase; font-size: 7px; }
+  .thumb-social .logos span:nth-child(4) { font-family: 'Georgia'; font-style: normal; }
+  .thumb-social .pricelite {
+    display: flex; justify-content: space-between;
+    font-size: 7px;
+    color: #831843;
+  }
+  .thumb-social .pricelite .plan {
+    background: #fff;
+    border: 1px solid #fbcfe8;
+    border-radius: 3px;
+    padding: 3px 6px;
+    flex: 1;
+    text-align: center;
+  }
+  .thumb-social .pricelite .plan + .plan { margin-left: 4px; }
+  .thumb-social .pricelite .plan b {
+    display: block;
+    font-size: 9px;
+    color: #831843;
+    font-weight: 600;
+  }
+
+  /* 08: typographic brutalist */
+  .thumb-brutal {
+    background: #fff;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #0a0a0a;
+  }
+  .thumb-brutal::before {
+    content: "PRICE.";
+    position: absolute;
+    top: -20px; left: -4px;
+    font-family: 'Arial Black', 'Helvetica', sans-serif;
+    font-weight: 900;
+    font-size: 68px;
+    color: #0a0a0a;
+    letter-spacing: -0.08em;
+    line-height: 1;
+  }
+  .thumb-brutal::after {
+    content: "";
+    position: absolute;
+    top: 52px; left: 0; right: 0;
+    height: 4px;
+    background: #0a0a0a;
+  }
+  .thumb-brutal .ratio {
+    position: absolute;
+    top: 4px; right: 6px;
+    font-family: 'Arial', sans-serif;
+    font-size: 7px;
+    font-weight: 700;
+    color: #0a0a0a;
+    letter-spacing: 0.1em;
+    transform: rotate(90deg);
+    transform-origin: right top;
+  }
+  .thumb-brutal .rows {
+    position: absolute;
+    top: 62px; left: 8px; right: 8px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .thumb-brutal .rows .r {
+    display: flex; justify-content: space-between;
+    align-items: baseline;
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    border-bottom: 1px solid #0a0a0a;
+    padding-bottom: 2px;
+  }
+  .thumb-brutal .rows .r .n {
+    font-size: 8px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .thumb-brutal .rows .r .p {
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+  }
+  .thumb-brutal .rows .r.hi .p {
+    background: #0a0a0a;
+    color: #fff;
+    padding: 0 3px;
+  }
+  .thumb-brutal .foot-word {
+    position: absolute;
+    bottom: 4px; left: 8px;
+    font-family: 'Arial Black', sans-serif;
+    font-weight: 900;
+    font-size: 7px;
+    letter-spacing: 0.15em;
+    color: #0a0a0a;
+  }
+
+  /* ─── explanation for pick ─── */
+  .pick-explanation {
+    background: #f7f3fd;
+    border: 1px solid #e4d8f7;
+    border-left: 2.5px solid var(--accent);
+    border-radius: 5px;
+    padding: 10px 14px;
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-top: 4px;
+  }
+  .pick-explanation .av {
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+  }
+  .pick-explanation .body {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: #3a2a5a;
+    letter-spacing: -0.005em;
+  }
+  .pick-explanation .body .who {
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+  .pick-explanation .body b {
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .pick-explanation .body .id-inline {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    background: #fff;
+    border: 1px solid #e4d8f7;
+    border-radius: 3px;
+    padding: 0 4px;
+    color: var(--accent-deep);
+  }
+  .pick-explanation .dismiss {
+    font-size: 10px;
+    color: #9a8aba;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0;
+    margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">
+    <span class="dot"></span>
+    <span>Design Graph</span>
+  </div>
+  <div class="crumbs">
+    <span>New canvas</span>
+    <span class="sep">/</span>
+    <span>Setup</span>
+    <span class="sep">/</span>
+    <span>Spawning</span>
+    <span class="sep">/</span>
+    <span class="here">Review</span>
+  </div>
+  <div class="nav-right">
+    <span>pricing-page · run #041</span>
+    <span class="kbd">⌘K</span>
+  </div>
+</nav>
+
+<section class="split">
+  <div class="seam"></div>
+
+  <!-- ═══════════ LEFT: memorial ═══════════ -->
+  <aside class="memorial">
+    <div class="eyebrow">your v1</div>
+
+    <div class="memthumb">
+      <div class="mtop"><span></span><span></span><span></span><span class="fn">v3.fig</span></div>
+      <div class="hero"></div>
+      <div class="hero b"></div>
+      <div class="tiers">
+        <div class="t"></div>
+        <div class="t mid"></div>
+        <div class="t"></div>
+      </div>
+      <div class="strike"></div>
+      <div class="memlabel">
+        <b>your v1 · never shipped</b>
+      </div>
+    </div>
+
+    <div class="frozen-timer">
+      <div>
+        <div>frozen at</div>
+        <div class="num">2d 11h</div>
+      </div>
+      <span class="paused">(paused)</span>
+    </div>
+
+    <div class="epitaph">
+      "this is what you<br/>would have had."
+    </div>
+
+    <a href="#" class="viewlink">view anyway →</a>
+
+    <div class="foot">
+      <span class="fn">Pricing_v3_legal-review_USE-THIS.fig</span>
+      <span>archived · read-only</span>
+    </div>
+  </aside>
+
+  <!-- ═══════════ RIGHT: main review ═══════════ -->
+  <div class="main">
+
+    <div class="head-row">
+      <div class="head-left">
+        <div class="eyebrow"><span class="pip"></span>ready to review</div>
+        <h1>Review
+          <span class="meta">
+            <span class="sep">·</span><b>8 variants</b>
+            <span class="sep">·</span><b>3 min 12 sec</b>
+          </span>
+        </h1>
+      </div>
+      <div class="ready-strip">
+        8 of 8 ready
+        <div class="bar"></div>
+      </div>
+    </div>
+
+    <div class="actionbar">
+      <button class="primary">Choose 1 <span class="arrow">→</span></button>
+      <button class="secondary">Compare any 2 side by side</button>
+      <a href="#" class="tertiary">Spawn more ↗</a>
+      <div class="spacer"></div>
+      <div class="shortcuts">
+        <span>pick <span class="kbd">1</span>–<span class="kbd">8</span></span>
+        <span>compare <span class="kbd">C</span></span>
+        <span>spawn <span class="kbd">⌘N</span></span>
+      </div>
+    </div>
+
+    <!-- ═══════════ The 8-variant grid ═══════════ -->
+    <div class="vgrid">
+
+      <!-- 01: serif editorial -->
+      <div class="vcard">
+        <div class="thumb thumb-editorial">
+          <div class="eyebrow">plans &amp; pricing</div>
+          <h3><b>Price,</b><br/><i>plainly.</i></h3>
+          <hr/>
+          <div class="rows">
+            <div class="r"><span>Starter</span><span>$19</span></div>
+            <div class="r"><span>Growth</span><span>$79</span></div>
+            <div class="r"><span>Scale</span><span>$249</span></div>
+            <div class="r"><span>Enterprise</span><span>call</span></div>
+          </div>
+        </div>
+        <div class="title">Price, plainly. <span class="id">v-01</span></div>
+        <div class="note">A New Yorker-style table. Lets the numbers, not the UI, do the talking.</div>
+        <div class="metarow">
+          <span class="tag type">serif</span>
+          <span class="tag">editorial</span>
+          <span class="tag color" style="--c:#c2410c">cream</span>
+        </div>
+      </div>
+
+      <!-- 02: dense table -->
+      <div class="vcard">
+        <div class="thumb thumb-table">
+          <table>
+            <thead>
+              <tr><th>Feature</th><th>Starter</th><th class="hi-col">Pro</th><th>Scale</th></tr>
+            </thead>
+            <tbody>
+              <tr class="prow"><td>Price</td><td>$19</td><td class="hi-col">$79</td><td>$249</td></tr>
+              <tr><td>Seats</td><td>3</td><td class="hi-col">15</td><td>unlim</td></tr>
+              <tr><td>Projects</td><td>10</td><td class="hi-col">100</td><td>∞</td></tr>
+              <tr><td>SSO/SAML</td><td class="dash">—</td><td class="hi-col dash">—</td><td class="check">✓</td></tr>
+              <tr><td>Audit log</td><td class="dash">—</td><td class="hi-col check">✓</td><td class="check">✓</td></tr>
+              <tr><td>Custom SLA</td><td class="dash">—</td><td class="hi-col dash">—</td><td class="check">✓</td></tr>
+              <tr><td>API calls/mo</td><td>5k</td><td class="hi-col">100k</td><td>1M</td></tr>
+              <tr><td>Support</td><td>email</td><td class="hi-col">priority</td><td>dedicated</td></tr>
+              <tr><td>Sandbox</td><td class="check">✓</td><td class="hi-col check">✓</td><td class="check">✓</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="title">The Compare Matrix <span class="id">v-02</span></div>
+        <div class="note">Dense feature grid for buyers who need to defend the call to procurement.</div>
+        <div class="metarow">
+          <span class="tag type">sans</span>
+          <span class="tag">dense</span>
+          <span class="tag color" style="--c:#0a0a0a">monochrome</span>
+        </div>
+      </div>
+
+      <!-- 03: bold playful (DESIGNER'S PICK) -->
+      <div class="vcard pick">
+        <div class="pick-chip">Designer's pick</div>
+        <div class="thumb thumb-bold">
+          <h3>Pick a <span>plan</span>,<br/>or pick <span>fights</span>.</h3>
+          <div class="cards">
+            <div class="c">
+              STARTER
+              <div class="price">$19</div>
+            </div>
+            <div class="c hi">
+              PRO
+              <div class="price">$79</div>
+            </div>
+          </div>
+        </div>
+        <div class="title">Pick a plan, or pick fights. <span class="id">v-03</span></div>
+        <div class="note">Oversized type, punchy copy, two loud tiers. The one your founder will actually feel.</div>
+        <div class="metarow">
+          <span class="tag type">display</span>
+          <span class="tag">playful</span>
+          <span class="tag color" style="--c:#fef3c7">butter</span>
+        </div>
+      </div>
+
+      <!-- 04: dark tech -->
+      <div class="vcard">
+        <div class="thumb thumb-darktech">
+          <div class="term-top">pricing.sh</div>
+          <h3>$ cat <span class="amp">plans.json</span></h3>
+          <div class="code">
+            <span class="tk">const</span> plans = [<br/>
+            &nbsp;&nbsp;{ tier: <span class="st">'hobby'</span>, $: 0 },<br/>
+            &nbsp;&nbsp;{ tier: <span class="st">'team'</span>, $: 79 },
+          </div>
+          <div class="cli">
+            <div class="line"><span class="pr">$</span> deploy --plan hobby</div>
+            <div class="line"><span class="pr hi">$</span> deploy --plan team<span style="color:#fbbf24"> ←</span></div>
+            <div class="line"><span class="pr">$</span> deploy --plan scale</div>
+          </div>
+        </div>
+        <div class="title">Pricing for people who grep. <span class="id">v-04</span></div>
+        <div class="note">A dark terminal mock. Speaks directly to the CTO who hates marketing pages.</div>
+        <div class="metarow">
+          <span class="tag type">mono</span>
+          <span class="tag">developer</span>
+          <span class="tag color" style="--c:#0a0a14">midnight</span>
+        </div>
+      </div>
+
+      <!-- 05: minimal single plan -->
+      <div class="vcard">
+        <div class="thumb thumb-minimal">
+          <div class="label">one price</div>
+          <div class="big"><sup>$</sup><b>79</b></div>
+          <div class="per">per month · everything</div>
+          <div class="line"></div>
+          <div class="feat">Unlimited seats<br/>Unlimited projects<br/>All integrations</div>
+          <div class="cta">Start free trial</div>
+        </div>
+        <div class="title">One price. Everything. <span class="id">v-05</span></div>
+        <div class="note">The anti-pricing-page. One number, one button, one promise — kills the matrix debate.</div>
+        <div class="metarow">
+          <span class="tag type">light</span>
+          <span class="tag">minimal</span>
+          <span class="tag color" style="--c:#fafafa">pearl</span>
+        </div>
+      </div>
+
+      <!-- 06: interactive calculator -->
+      <div class="vcard">
+        <div class="thumb thumb-calc">
+          <h3>What would you pay?</h3>
+          <div class="slide">
+            <div class="l1"><span>seats</span><b>14</b></div>
+            <div class="track">
+              <div class="fill" style="width: 38%"></div>
+              <div class="knob" style="left: 38%"></div>
+            </div>
+          </div>
+          <div class="slide">
+            <div class="l1"><span>API calls / mo</span><b>80k</b></div>
+            <div class="track">
+              <div class="fill" style="width: 60%"></div>
+              <div class="knob" style="left: 60%"></div>
+            </div>
+          </div>
+          <div class="result">
+            <span class="lab">your price</span>
+            <span class="num">$142<span>/mo</span></span>
+          </div>
+        </div>
+        <div class="title">Size it yourself. <span class="id">v-06</span></div>
+        <div class="note">Two sliders, a live number. Removes "which tier am I?" friction before it becomes a support ticket.</div>
+        <div class="metarow">
+          <span class="tag type">sans</span>
+          <span class="tag">interactive</span>
+          <span class="tag color" style="--c:#0284c7">sky</span>
+        </div>
+      </div>
+
+      <!-- 07: testimonial-forward -->
+      <div class="vcard">
+        <div class="thumb thumb-social">
+          <div class="quote">"We replaced four tools with this in a weekend."</div>
+          <div class="attrib">
+            <span class="av"></span>
+            <span><b>Rina O.</b> · Head of Eng, <i>Halftone</i></span>
+          </div>
+          <div class="logos">
+            <span>Vellum</span>
+            <span>FOLD</span>
+            <span>north</span>
+            <span>Marg.</span>
+          </div>
+          <div class="pricelite">
+            <div class="plan">Starter<b>$19</b></div>
+            <div class="plan">Pro<b>$79</b></div>
+          </div>
+        </div>
+        <div class="title">The room agrees. <span class="id">v-07</span></div>
+        <div class="note">Opens with a quote; tiers come second. Leans on social proof before asking for the card.</div>
+        <div class="metarow">
+          <span class="tag type">serif</span>
+          <span class="tag">trust</span>
+          <span class="tag color" style="--c:#ec4899">rose</span>
+        </div>
+      </div>
+
+      <!-- 08: typographic brutalist -->
+      <div class="vcard">
+        <div class="thumb thumb-brutal">
+          <span class="ratio">PRICING · 01</span>
+          <div class="rows">
+            <div class="r"><span class="n">Starter</span><span class="p">19</span></div>
+            <div class="r hi"><span class="n">Pro</span><span class="p">79</span></div>
+            <div class="r"><span class="n">Scale</span><span class="p">249</span></div>
+          </div>
+          <div class="foot-word">NO · NONSENSE</div>
+        </div>
+        <div class="title">PRICE. (brutal) <span class="id">v-08</span></div>
+        <div class="note">All type, no chrome. Reads like a Wim Crouwel poster — confrontational in the best way.</div>
+        <div class="metarow">
+          <span class="tag type">display</span>
+          <span class="tag">brutalist</span>
+          <span class="tag color" style="--c:#0a0a0a">ink</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── explanation for designer's pick ─── -->
+    <div class="pick-explanation">
+      <div class="av">DG</div>
+      <div class="body">
+        <span class="who">Design Graph</span> picked <span class="id-inline">v-03</span> because your brief mentioned "startup CTOs" and "doesn't sound like a pricing page" — <b>bold playful</b> scored highest on distinctiveness and matched the voice of your last two shipped pages. <span class="who">v-02</span> is the safe runner-up if you want procurement-ready.
+      </div>
+      <div class="dismiss">not convinced? · <span style="text-decoration: underline;">explain</span></div>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

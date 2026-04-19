@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>Terminal — design-graph spawn (live)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-2: #0d0d0f;
+    --bg-3: #111114;
+    --bg-4: #0c0c0f;
+    --term: #0f0f12;
+    --term-2: #131318;
+    --line: #1a1a1d;
+    --line-2: #232327;
+    --line-3: #2a2a30;
+    --fg: #e8e8ea;
+    --fg-dim: #8a8a93;
+    --fg-mute: #55555d;
+    --fg-faint: #3a3a42;
+    --accent: #c084fc;
+    --accent-2: #a855f7;
+    --accent-bg: rgba(192,132,252,0.10);
+    --red: #ff6b6b;
+    --green: #6ee7b7;
+    --green-2: #4ade80;
+    --blue: #93c5fd;
+    --blue-2: #7dd3fc;
+    --amber: #fcd34d;
+    --orange: #fb923c;
+    --pink: #f9a8d4;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1280px;
+    min-height: 800px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  .shell { width: 1280px; margin: 0 auto; }
+
+  /* ---- top bar (shared) ---- */
+  .topbar {
+    height: 44px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--fg-dim);
+    background: rgba(10,10,11,0.85);
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--fg);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand .glyph {
+    width: 14px; height: 14px; display: inline-block;
+    border: 1px solid var(--accent);
+    position: relative;
+  }
+  .brand .glyph::before, .brand .glyph::after {
+    content: ""; position: absolute; background: var(--accent);
+  }
+  .brand .glyph::before { width: 4px; height: 4px; top: -2px; left: -2px; }
+  .brand .glyph::after  { width: 4px; height: 4px; bottom: -2px; right: -2px; }
+  .topbar nav {
+    margin-left: 32px;
+    display: flex; gap: 22px;
+  }
+  .topbar nav a { color: var(--fg-dim); text-decoration: none; }
+  .topbar nav a.active { color: var(--fg); }
+  .topbar .right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 18px;
+  }
+  .version { color: var(--fg-mute); }
+  .version b { color: var(--accent); font-weight: 500; }
+  .ghstar {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    color: var(--fg);
+  }
+  .ghstar .n { color: var(--fg-dim); }
+
+  /* ---- layout ---- */
+  .layout {
+    display: grid;
+    grid-template-columns: 248px 1fr;
+    min-height: calc(800px - 44px);
+  }
+
+  /* ---- LEFT NAV (inherits from quickstart) ---- */
+  .sidenav {
+    border-right: 1px solid var(--line);
+    padding: 22px 18px 40px 24px;
+    font-size: 12.5px;
+  }
+  .search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 5px;
+    padding: 7px 10px;
+    margin-bottom: 22px;
+  }
+  .search svg { color: var(--fg-mute); flex-shrink: 0; }
+  .search .placeholder {
+    flex: 1;
+    color: var(--fg-dim);
+    font-family: var(--sans);
+    font-size: 12px;
+  }
+  .search .kbd {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    padding: 1px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    background: var(--bg-2);
+  }
+  .nav-section { margin-bottom: 18px; }
+  .nav-title {
+    display: flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 8px;
+  }
+  .nav-title .chev {
+    color: var(--fg-mute);
+    font-size: 9px;
+  }
+  .nav-title.open .chev { color: var(--accent); }
+  .nav-items { display: flex; flex-direction: column; }
+  .nav-items a {
+    padding: 5px 10px 5px 18px;
+    margin-left: 8px;
+    color: var(--fg-dim);
+    text-decoration: none;
+    font-size: 12.5px;
+    border-left: 1px solid var(--line);
+    line-height: 1.4;
+  }
+  .nav-items a:hover { color: var(--fg); }
+  .nav-items a.active {
+    color: var(--accent);
+    background: var(--accent-bg);
+    border-left: 1px solid var(--accent);
+    border-radius: 0 3px 3px 0;
+  }
+  .nav-section.collapsed .nav-items { display: none; }
+
+  /* ---- MAIN ---- */
+  .main {
+    padding: 20px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .crumbs {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-mute);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .crumbs a { color: var(--fg-mute); text-decoration: none; }
+  .crumbs .sep { color: var(--fg-faint); }
+  .crumbs .here { color: var(--fg-dim); }
+  .crumbs .live {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--green);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .crumbs .live .pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ---- terminal + inset grid ---- */
+  .work {
+    display: grid;
+    grid-template-columns: 1fr 244px;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  .terminal {
+    background: var(--term);
+    border: 1px solid var(--line-3);
+    border-radius: 7px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(192,132,252,0.18), 0 1px 0 rgba(255,255,255,0.02) inset;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .term-chrome {
+    height: 30px;
+    background: var(--term-2);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #febc2e; }
+  .dot.g { background: #28c840; }
+  .term-title {
+    margin: 0 auto;
+    color: var(--fg-mute);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding-right: 50px;
+  }
+
+  .term-body {
+    padding: 14px 18px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--fg);
+    overflow: hidden;
+    flex: 1;
+  }
+  .ps1 { color: var(--accent); }
+  .muted { color: var(--fg-mute); }
+  .dim { color: var(--fg-dim); }
+  .ok { color: var(--green); }
+  .warn { color: var(--amber); }
+  .err { color: var(--red); }
+  .acc { color: var(--accent); }
+  .blu { color: var(--blue); }
+  .orn { color: var(--orange); }
+  .pnk { color: var(--pink); }
+  .str { color: var(--green); }
+  .num { color: var(--amber); }
+  .flag { color: var(--blue); }
+
+  /* agent tags — ANSI-ish colored bracket prefixes */
+  .tag {
+    display: inline-block;
+    padding: 0;
+    font-weight: 500;
+  }
+  .tag.a01 { color: #fcd34d; }   /* agent-01 amber */
+  .tag.a02 { color: #86efac; }   /* agent-02 green */
+  .tag.a03 { color: #93c5fd; }   /* agent-03 blue */
+  .tag.a04 { color: #f9a8d4; }   /* agent-04 pink */
+  .tag.a05 { color: #c4b5fd; }   /* agent-05 violet */
+
+  .box-line { white-space: pre; color: var(--fg-mute); }
+  .box-line.a01 { color: #fcd34d; }
+  .box-line.a02 { color: #86efac; }
+  .box-line.a03 { color: #93c5fd; }
+  .box-line.a04 { color: #f9a8d4; }
+  .box-line.a05 { color: #c4b5fd; }
+
+  .row { white-space: pre; }
+  .row + .row { margin-top: 0; }
+  .spacer { height: 4px; }
+
+  /* progress bar row */
+  .progbar {
+    display: inline-block;
+    letter-spacing: -0.5px;
+  }
+  .progbar .done { color: var(--accent); }
+  .progbar .pending { color: var(--line-3); }
+
+  /* file path hyperlink */
+  .flink {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(192,132,252,0.5);
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .flink:hover { text-decoration-color: var(--accent); color: #e0bcff; }
+
+  /* file row with inline thumbnail */
+  .file-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    vertical-align: middle;
+  }
+  .file-row .label { min-width: 0; }
+  .thumb {
+    display: inline-block;
+    width: 128px;
+    height: 72px;
+    border: 1px solid var(--line-3);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    vertical-align: middle;
+    background: #0e0e10;
+  }
+  .thumb-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-mute);
+    letter-spacing: 0.04em;
+  }
+
+  /* thumb 1 — editorial serif (cream) */
+  .t-edi { background: #f3ede1; color: #2b1e10; padding: 6px 7px; }
+  .t-edi .kick { font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #9a6a2e; }
+  .t-edi h5 { font-family: "Playfair Display", Georgia, serif; font-weight: 700; font-size: 11px; line-height: 0.95; letter-spacing: -0.02em; margin: 2px 0 3px; color: #1a1209; }
+  .t-edi h5 em { font-style: italic; font-weight: 400; }
+  .t-edi .rule { height: 1px; background: rgba(43,30,16,0.28); margin: 2px 0; }
+  .t-edi .tiers { display: flex; gap: 3px; font-family: var(--mono); font-size: 4px; color: rgba(43,30,16,0.65); letter-spacing: 0.06em; margin-top: 3px; }
+  .t-edi .tiers span { flex: 1; border-top: 1px solid rgba(43,30,16,0.3); padding-top: 2px; }
+  .t-edi .tiers span.on { color: #1a1209; border-color: #1a1209; }
+
+  /* thumb 2 — minimal teal-cream (IBM Plex vibe) */
+  .t-min { background: #f7f5ef; color: #0f2e2a; padding: 6px 7px; position: relative; }
+  .t-min .eye { font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #0d6b63; }
+  .t-min h5 { font-family: Georgia, serif; font-weight: 400; font-size: 10px; line-height: 1.02; letter-spacing: -0.018em; margin: 2px 0 3px; color: #0f2e2a; }
+  .t-min .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; margin-top: 3px; }
+  .t-min .cell { border: 1px solid rgba(15,46,42,0.2); padding: 2px 3px; }
+  .t-min .cell .pn { font-family: var(--mono); font-size: 4px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(15,46,42,0.55); }
+  .t-min .cell .pv { font-family: Georgia, serif; font-size: 7px; font-weight: 500; margin-top: 1px; color: #0f2e2a; }
+  .t-min .cta { position: absolute; left: 7px; bottom: 4px; font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #0d6b63; border-bottom: 1px solid #0d6b63; padding-bottom: 1px; }
+
+  /* thumb 3 — dark dev-tool */
+  .t-dark { background: #0b0d12; color: #e8e9ed; padding: 6px 7px; position: relative; overflow: hidden; }
+  .t-dark::before { content: ""; position: absolute; top: -14px; right: -14px; width: 60px; height: 60px; background: radial-gradient(circle, rgba(124,58,237,0.45), transparent 65%); }
+  .t-dark .nav { font-family: var(--mono); font-size: 4px; letter-spacing: 0.12em; color: rgba(232,233,237,0.55); }
+  .t-dark .nav b { color: #fff; }
+  .t-dark h5 { font-family: "Inter", sans-serif; font-weight: 700; font-size: 8.5px; line-height: 1; letter-spacing: -0.025em; margin: 3px 0 2px; background: linear-gradient(100deg, #fff 40%, #c084fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .t-dark .tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 3px; }
+  .t-dark .tier { border: 1px solid rgba(232,233,237,0.15); border-radius: 2px; padding: 2px 3px; background: rgba(255,255,255,0.02); }
+  .t-dark .tier.on { border-color: rgba(192,132,252,0.55); background: rgba(192,132,252,0.1); }
+  .t-dark .tier .pn { font-family: var(--mono); font-size: 3.8px; letter-spacing: 0.1em; color: rgba(232,233,237,0.55); text-transform: uppercase; }
+  .t-dark .tier.on .pn { color: #c084fc; }
+  .t-dark .tier .pv { font-family: "Inter", sans-serif; font-weight: 700; font-size: 7px; color: #fff; }
+
+  .cursor {
+    display: inline-block;
+    width: 7px; height: 13px;
+    background: var(--accent);
+    vertical-align: -2px;
+    margin-left: 2px;
+    animation: blink 1s steps(2, start) infinite;
+  }
+  @keyframes blink { to { visibility: hidden; } }
+
+  /* ---- right inset ---- */
+  .inset {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-self: start;
+    position: sticky;
+    top: 60px;
+  }
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .panel-label::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+
+  .explain {
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-left: 2px solid var(--accent);
+    border-radius: 4px;
+    padding: 14px 14px 14px 13px;
+    font-family: var(--sans);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--fg-dim);
+  }
+  .explain h4 {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--fg);
+    margin: 0 0 8px;
+    letter-spacing: -0.005em;
+  }
+  .explain p { margin: 0 0 8px; }
+  .explain p:last-child { margin-bottom: 0; }
+  .explain b { color: var(--fg); font-weight: 500; }
+  .explain code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 0 4px;
+    border-radius: 2px;
+  }
+
+  .stats {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-dim);
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    padding: 12px 14px;
+  }
+  .stats .srow {
+    display: flex; justify-content: space-between;
+    padding: 3px 0;
+  }
+  .stats .srow + .srow { border-top: 1px dashed var(--line); }
+  .stats .srow span:first-child { color: var(--fg-mute); }
+  .stats .srow b { color: var(--fg); font-weight: 500; }
+  .stats .srow b.ok { color: var(--green); }
+  .stats .srow b.warn { color: var(--amber); }
+
+  .legend {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    background: var(--bg-2);
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    padding: 10px 14px;
+    line-height: 1.75;
+  }
+  .legend .lr { display: flex; align-items: center; gap: 8px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ---- bottom meta bar ---- */
+  .metabar {
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-mute);
+    padding: 10px 2px 0;
+  }
+  .metabar a { color: var(--fg-dim); text-decoration: none; }
+  .metabar a:hover { color: var(--fg); }
+  .metabar .kbd-inline {
+    padding: 1px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    font-size: 10px;
+    color: var(--fg-dim);
+    background: var(--bg-2);
+  }
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- top bar -->
+  <div class="topbar">
+    <div class="brand"><span class="glyph"></span> design-graph</div>
+    <nav>
+      <a href="#" class="active">docs</a>
+      <a href="#">api</a>
+      <a href="#">examples</a>
+      <a href="#">changelog</a>
+    </nav>
+    <div class="right">
+      <span class="version">v<b>0.4.2</b> · mit</span>
+      <span class="ghstar">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/></svg>
+        github <span class="n">4.1k</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- layout -->
+  <div class="layout">
+
+    <!-- LEFT NAV -->
+    <aside class="sidenav">
+      <div class="search">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span class="placeholder">Search docs…</span>
+        <span class="kbd">⌘K</span>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-title open"><span class="chev">▾</span> Getting started</div>
+        <div class="nav-items">
+          <a href="#">Quickstart</a>
+          <a href="#" class="active">Terminal · live run</a>
+          <a href="#">First canvas</a>
+          <a href="#">Project structure</a>
+        </div>
+      </div>
+
+      <div class="nav-section collapsed">
+        <div class="nav-title"><span class="chev">▸</span> CLI reference</div>
+      </div>
+      <div class="nav-section collapsed">
+        <div class="nav-title"><span class="chev">▸</span> Programmatic API</div>
+      </div>
+      <div class="nav-section collapsed">
+        <div class="nav-title"><span class="chev">▸</span> Configuration</div>
+      </div>
+      <div class="nav-section collapsed">
+        <div class="nav-title"><span class="chev">▸</span> Examples</div>
+      </div>
+      <div class="nav-section collapsed">
+        <div class="nav-title"><span class="chev">▸</span> Deployment</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <div class="crumbs">
+        <a href="#">Docs</a>
+        <span class="sep">›</span>
+        <a href="#">Getting started</a>
+        <span class="sep">›</span>
+        <a href="#">Quickstart</a>
+        <span class="sep">›</span>
+        <span class="here">Terminal · live run</span>
+        <span class="live"><span class="pulse"></span>streaming</span>
+      </div>
+
+      <div class="work">
+
+        <!-- TERMINAL -->
+        <div class="terminal">
+          <div class="term-chrome">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="term-title">design-graph — my-pricing-canvas — 80×40</span>
+          </div>
+          <div class="term-body">
+
+<div class="row"><span class="ps1">❯</span> <span class="fg" style="color:var(--fg)">design-graph</span> spawn <span class="str">"pricing page for a startup accounting app"</span> <span class="flag">--n</span> <span class="num">5</span></div>
+<div class="spacer"></div>
+<div class="row"><span class="muted">design-graph</span> <span class="acc">v0.4.2</span> <span class="muted">· node v20.11.0 · darwin arm64</span></div>
+<div class="row"><span class="muted">project</span>  <span class="blu">~/work/my-pricing-canvas</span>  <span class="muted">(branch: main · clean)</span></div>
+<div class="row"><span class="muted">brief</span>    <span class="blu">./brief.md</span>  <span class="muted">(1.4kb · sha 3fe0c2a)</span></div>
+<div class="row"><span class="muted">model</span>    <span class="acc">claude-opus-4.7</span>  <span class="muted">· temperature 0.85 · max_tokens 8192</span></div>
+<div class="row"><span class="muted">› spawning </span><span class="acc">5</span><span class="muted"> parallel agents · isolated contexts · no shared memory</span></div>
+<div class="spacer"></div>
+
+<!-- agent-01 box header + stream -->
+<div class="box-line a01">┌─ agent-01 ──────────────────────────────────────────────</div>
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="dim">reading skill: design-graph-authoring/SKILL.md</span></div>
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="dim">parsing brief.md · extracted 4 constraints, 2 must-haves</span></div>
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="dim">choosing direction: </span><span class="fg" style="color:var(--fg)">editorial-serif</span> <span class="muted">· lens: peak-end rule</span></div>
+
+<div class="box-line a02">┌─ agent-02 ──────────────────────────────────────────────</div>
+<div class="row"><span class="tag a02">[agent-02]</span> <span class="dim">reading skill: design-graph-authoring/SKILL.md</span></div>
+<div class="row"><span class="tag a02">[agent-02]</span> <span class="dim">choosing direction: </span><span class="fg" style="color:var(--fg)">minimal-teal</span> <span class="muted">· lens: cognitive load</span></div>
+
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="dim">typography: IBM Plex Serif + Inter · weights 400/700</span></div>
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="dim">color palette: muted ochre on parchment (#f3ede1 / #1a1209)</span></div>
+
+<div class="box-line a03">┌─ agent-03 ──────────────────────────────────────────────</div>
+<div class="row"><span class="tag a03">[agent-03]</span> <span class="dim">reading skill: design-graph-authoring/SKILL.md</span></div>
+<div class="row"><span class="tag a03">[agent-03]</span> <span class="dim">choosing direction: </span><span class="fg" style="color:var(--fg)">dev-tool-dark</span> <span class="muted">· lens: jakob's law (linear/stripe)</span></div>
+<div class="row"><span class="tag a02">[agent-02]</span> <span class="dim">writing pages/pricing-minimal.html</span> <span class="muted">(est. 2.1kb)</span></div>
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="dim">writing pages/pricing-editorial.html</span> <span class="muted">(est. 3.4kb)</span></div>
+
+<div class="box-line a04">┌─ agent-04 ──────────────────────────────────────────────</div>
+<div class="row"><span class="tag a04">[agent-04]</span> <span class="dim">reading skill · parsing brief · choosing direction</span></div>
+<div class="row"><span class="tag a04">[agent-04]</span> <span class="dim">direction: </span><span class="fg" style="color:var(--fg)">slider-calculator</span> <span class="muted">· lens: progressive disclosure</span></div>
+
+<div class="row"><span class="tag a03">[agent-03]</span> <span class="dim">typography: Inter 700 + JetBrains Mono · gradient headline</span></div>
+<div class="row"><span class="tag a01">[agent-01]</span> <span class="ok">✓ done in 54s</span> <span class="muted">· 3.2kb · 0 warnings</span></div>
+
+<div class="box-line a05">┌─ agent-05 ──────────────────────────────────────────────</div>
+<div class="row"><span class="tag a05">[agent-05]</span> <span class="dim">queued · waiting for slot (3/3 in flight)</span></div>
+<div class="row"><span class="tag a02">[agent-02]</span> <span class="ok">✓ done in 61s</span> <span class="muted">· 2.8kb · 0 warnings</span></div>
+<div class="row"><span class="tag a05">[agent-05]</span> <span class="dim">slot acquired · starting</span></div>
+
+<div class="row"><span class="tag a03">[agent-03]</span> <span class="dim">writing pages/pricing-devdark.html</span> <span class="muted">(est. 4.1kb)</span></div>
+<div class="row"><span class="tag a03">[agent-03]</span> <span class="ok">✓ done in 68s</span> <span class="muted">· 4.0kb · 0 warnings</span></div>
+<div class="row"><span class="tag a04">[agent-04]</span> <span class="dim">typography: Söhne + tabular-nums · interactive slider</span></div>
+<div class="spacer"></div>
+
+<!-- progress bar -->
+<div class="row"><span class="muted">spawning</span> <span class="progbar"><span class="done">█████████</span><span class="pending">░░</span></span> <span class="acc">3/5</span> <span class="muted">· elapsed 1m 12s · ~18s remaining</span></div>
+<div class="spacer"></div>
+
+<!-- completed variants with clickable file paths + thumbnails -->
+<div class="row"><span class="muted">› written to</span> <span class="blu">./pages/</span></div>
+
+<div class="row" style="display:flex; align-items:center; gap:14px; padding:3px 0;">
+  <span style="min-width:320px;"><span class="muted">  ↗</span> <a class="flink">pages/pricing-editorial.html</a> <span class="muted">· agent-01 · 3.2kb</span></span>
+  <span class="thumb">
+    <div class="t-edi">
+      <div class="kick">Vol.01 · Pricing</div>
+      <h5>Books you'll<br/>actually <em>open.</em></h5>
+      <div class="rule"></div>
+      <div class="tiers"><span class="on">Solo</span><span>Studio</span><span>Firm</span></div>
+    </div>
+  </span>
+</div>
+
+<div class="row" style="display:flex; align-items:center; gap:14px; padding:3px 0;">
+  <span style="min-width:320px;"><span class="muted">  ↗</span> <a class="flink">pages/pricing-minimal.html</a> <span class="muted">· agent-02 · 2.8kb</span></span>
+  <span class="thumb">
+    <div class="t-min">
+      <div class="eye">LEDGER · PRICING</div>
+      <h5>Flat fee. No<br/>seat tax.</h5>
+      <div class="grid">
+        <div class="cell"><div class="pn">Solo</div><div class="pv">$0</div></div>
+        <div class="cell"><div class="pn">Team</div><div class="pv">$29</div></div>
+        <div class="cell"><div class="pn">Firm</div><div class="pv">Call</div></div>
+      </div>
+      <div class="cta">Start free →</div>
+    </div>
+  </span>
+</div>
+
+<div class="row" style="display:flex; align-items:center; gap:14px; padding:3px 0;">
+  <span style="min-width:320px;"><span class="muted">  ↗</span> <a class="flink">pages/pricing-devdark.html</a> <span class="muted">· agent-03 · 4.0kb</span></span>
+  <span class="thumb">
+    <div class="t-dark">
+      <div class="nav"><b>LEDGER</b> &nbsp; PRICING · DOCS</div>
+      <h5>Books that<br/>scale with<br/>the firm.</h5>
+      <div class="tiers">
+        <div class="tier"><div class="pn">Solo</div><div class="pv">$0</div></div>
+        <div class="tier on"><div class="pn">Team</div><div class="pv">$29</div></div>
+      </div>
+    </div>
+  </span>
+</div>
+
+<div class="spacer"></div>
+<div class="row"><span class="muted">  · agent-04, agent-05 still in flight · canvas will auto-refresh on write</span></div>
+<div class="spacer"></div>
+<div class="row"><span class="ps1">❯</span> <span class="cursor"></span></div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT INSET -->
+        <aside class="inset">
+
+          <div>
+            <div class="panel-label">what's happening</div>
+            <div class="explain">
+              <h4>Five agents, five directions</h4>
+              <p>Each agent reads the brief <b>independently</b> and picks its own lens — so the outputs actually diverge.</p>
+              <p>Every finished variant writes a self-contained file to <code>pages/</code> and appends to <code>graph-data.js</code>. The canvas polls every 2s and pops the card in live.</p>
+              <p>Typical wall-clock: <b>~60s per agent</b>, all in parallel.</p>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-label">this run</div>
+            <div class="stats">
+              <div class="srow"><span>project</span><b>my-pricing-canvas</b></div>
+              <div class="srow"><span>agents</span><b>5 parallel</b></div>
+              <div class="srow"><span>depth</span><b>0 · root</b></div>
+              <div class="srow"><span>elapsed</span><b>1m 12s</b></div>
+              <div class="srow"><span>tokens</span><b>42.8k</b></div>
+              <div class="srow"><span>done</span><b class="ok">3 / 5</b></div>
+              <div class="srow"><span>errors</span><b class="ok">0</b></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-label">agent legend</div>
+            <div class="legend">
+              <div class="lr"><span class="sw" style="background:#fcd34d"></span><span>agent-01 · editorial</span></div>
+              <div class="lr"><span class="sw" style="background:#86efac"></span><span>agent-02 · minimal</span></div>
+              <div class="lr"><span class="sw" style="background:#93c5fd"></span><span>agent-03 · dev-dark</span></div>
+              <div class="lr"><span class="sw" style="background:#f9a8d4"></span><span>agent-04 · slider</span></div>
+              <div class="lr"><span class="sw" style="background:#c4b5fd"></span><span>agent-05 · queued</span></div>
+            </div>
+          </div>
+
+        </aside>
+      </div>
+
+      <div class="metabar">
+        <span><span class="kbd-inline">Ctrl+C</span> cancel run · <span class="kbd-inline">Ctrl+\\</span> detach &amp; follow · <span class="kbd-inline">o</span> open canvas</span>
+        <span><a href="#">docs › spawn</a> · <a href="#">troubleshoot ↗</a></span>
+      </div>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>

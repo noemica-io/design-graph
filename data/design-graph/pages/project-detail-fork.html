@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Checkout flow for Serif Coffee — Design Graph</title>
+<style>
+  :root {
+    --ink: #0a0a0b;
+    --ink-2: #1a1a1c;
+    --paper: #fafaf7;
+    --muted: #6b7280;
+    --muted-2: #9ca3af;
+    --line: #e7e5e0;
+    --line-2: #eeece7;
+    --accent: #9333ea;
+    --accent-soft: #c084fc;
+    --accent-tint: #f3f0fb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--paper); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; font-feature-settings: "ss01", "cv11";
+  }
+  body { width: 1280px; min-height: 800px; }
+
+  /* NAV (inherited from gallery) */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px; border-bottom: 1px solid var(--line);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark { width: 22px; height: 22px; position: relative; }
+  .brand-mark::before, .brand-mark::after {
+    content: ""; position: absolute; inset: 0; border-radius: 4px;
+  }
+  .brand-mark::before { background: var(--accent); transform: translate(-3px, -3px); opacity: .85; }
+  .brand-mark::after { background: var(--ink); transform: translate(3px, 3px); mix-blend-mode: multiply; opacity: .9; }
+  .brand-name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
+  .brand-tag { color: var(--muted); font-size: 13px; letter-spacing: -0.01em; }
+  .brand-tag em { font-style: italic; color: var(--ink); font-weight: 500; }
+  .nav-right { display: flex; align-items: center; gap: 24px; }
+  .nav-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .nav-link:hover { color: var(--ink); }
+  .nav-link.on { color: var(--ink); }
+  .cta {
+    background: var(--ink); color: #fff; font-size: 13px; font-weight: 500;
+    padding: 9px 14px; border-radius: 8px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .cta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-soft); }
+
+  /* BREADCRUMB */
+  .crumb-row {
+    padding: 10px 32px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .crumb-row a { color: var(--muted); text-decoration: none; }
+  .crumb-row a:hover { color: var(--ink); }
+  .crumb-row .sep { color: #c9c6be; }
+  .crumb-row .here { color: var(--ink); }
+  .crumb-row .spacer { flex: 1; }
+  .crumb-row .meta-tag { display: inline-flex; align-items: center; gap: 5px; }
+  .crumb-row .meta-tag::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: #10b981; }
+
+  /* PAGE LAYOUT */
+  .page {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 0;
+  }
+  .main-col { border-right: 1px solid var(--line); }
+  .side-col { padding: 20px 24px 24px; }
+
+  /* HERO PANEL */
+  .hero {
+    padding: 22px 28px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero .kicker {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--accent); font-weight: 600;
+  }
+  .hero h1 {
+    font-family: "Playfair Display", "Didot", Georgia, serif;
+    font-size: 32px; line-height: 1.05; letter-spacing: -0.02em;
+    font-weight: 600; margin-top: 6px; color: var(--ink);
+  }
+  .hero h1 em { font-style: italic; font-weight: 500; color: var(--accent); }
+  .hero .meta-line {
+    margin-top: 12px;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 12.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero .meta-line .dot-sep { width: 3px; height: 3px; border-radius: 50%; background: #c9c6be; }
+  .hero .author-big {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink); font-weight: 500;
+  }
+  .hero .author-big .av {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #c084fc, #6366f1);
+    border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line);
+  }
+  .hero .author-big .handle { color: var(--muted); font-weight: 400; }
+
+  .hero .blurb {
+    margin-top: 14px;
+    font-family: "Georgia", serif; font-size: 15px; line-height: 1.55;
+    color: var(--ink-2); max-width: 720px;
+    font-style: italic;
+  }
+  .hero .blurb::before {
+    content: "“"; font-size: 28px; color: var(--accent-soft);
+    line-height: 0; vertical-align: -8px; margin-right: 2px;
+  }
+
+  /* ACTION ROW */
+  .actions {
+    margin-top: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 500;
+    padding: 9px 14px; border-radius: 8px;
+    text-decoration: none; color: var(--ink);
+    border: 1px solid var(--line); background: #fff;
+    letter-spacing: -0.005em;
+  }
+  .btn:hover { border-color: #d4d1c9; }
+  .btn svg { width: 13px; height: 13px; }
+  .btn.primary {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  .btn.primary:hover { background: #7e22ce; border-color: #7e22ce; }
+  .btn .count {
+    background: #f5f3ee; color: var(--ink);
+    padding: 1px 7px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-left: 3px;
+    border: 1px solid var(--line);
+  }
+  .btn-group { display: inline-flex; }
+  .btn-group .btn { border-radius: 8px 0 0 8px; }
+  .btn-group .btn + .btn { border-radius: 0 8px 8px 0; border-left: none; padding-left: 10px; padding-right: 10px; }
+
+  .tag-row {
+    margin-left: auto; display: flex; gap: 6px;
+  }
+  .tag {
+    font-size: 11px; font-weight: 500;
+    padding: 4px 9px; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent);
+    letter-spacing: -0.005em;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .tag::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+  .tag.neutral { background: #f5f3ee; color: var(--ink); }
+  .tag.neutral::before { background: #9ca3af; }
+
+  /* EMBEDDED CANVAS */
+  .canvas-wrap {
+    position: relative;
+    height: 440px;
+    background: #fafaf7;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .canvas-grid {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 1px 1px, #d6d3c9 1px, transparent 0);
+    background-size: 16px 16px;
+    opacity: 0.55;
+  }
+  .canvas-header {
+    position: absolute; top: 10px; left: 12px; right: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--muted);
+    pointer-events: none;
+    z-index: 5;
+  }
+  .canvas-header .left { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.85); padding: 4px 9px; border-radius: 6px; border: 1px solid var(--line); backdrop-filter: blur(4px); }
+  .canvas-header .left::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  .canvas-header .left b { color: var(--ink); font-weight: 600; }
+  .canvas-header .right { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.85); padding: 4px 9px; border-radius: 6px; border: 1px solid var(--line); backdrop-filter: blur(4px); font-variant-numeric: tabular-nums; }
+
+  /* edges svg */
+  .canvas-edges {
+    position: absolute; inset: 0; pointer-events: none;
+    z-index: 1;
+  }
+  .canvas-edges path { fill: none; stroke: #bcb7ac; stroke-width: 1.1; stroke-dasharray: 3 3; }
+  .canvas-edges .elabel {
+    font-size: 9px; fill: var(--muted); font-family: "Inter", sans-serif;
+  }
+  .canvas-edges .elabel-bg { fill: #fafaf7; }
+  .canvas-edges .chosen { stroke: var(--accent); stroke-dasharray: none; stroke-width: 1.5; }
+
+  /* variant mini-card */
+  .vcard {
+    position: absolute;
+    width: 132px; height: 96px;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px -3px rgba(0,0,0,.08);
+    z-index: 2;
+    display: flex; flex-direction: column;
+  }
+  .vcard .vtop {
+    height: 62px; position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .vcard .vfoot {
+    padding: 4px 6px 5px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 8.5px;
+    gap: 4px;
+  }
+  .vcard .vtitle {
+    font-weight: 600; color: var(--ink); letter-spacing: -0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1;
+  }
+  .vcard .vstat {
+    font-size: 7.5px; color: var(--muted); font-variant-numeric: tabular-nums; flex-shrink: 0;
+  }
+  .vcard.chosen {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    z-index: 3;
+  }
+  .vbadge {
+    position: absolute; top: 4px; right: 4px;
+    font-size: 7px; font-weight: 600;
+    padding: 2px 5px; border-radius: 99px;
+    background: var(--accent); color: #fff;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    z-index: 4;
+  }
+  .vbadge.study { background: #0a0a0b; }
+  .vbadge.soft { background: #fff; color: var(--accent); border: 1px solid var(--accent); }
+
+  /* mini UI atoms inside variant cards */
+  .mini { position: absolute; inset: 0; font-size: 6px; }
+
+  /* variant A: one-screen cream */
+  .v-one { background: #f5ede0; }
+  .v-one .stack { position: absolute; top: 6px; left: 6px; right: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .v-one .row { display: flex; justify-content: space-between; font-family: Georgia, serif; font-size: 6px; color: #3a2a1a; }
+  .v-one .tot { border-top: 1px dashed #d6c3a6; padding-top: 2px; font-weight: 700; }
+  .v-one .btn { margin-top: 3px; background: #2c1d10; color: #f5ede0; text-align: center; font-size: 6px; padding: 2px; border-radius: 2px; font-family: Georgia, serif; }
+
+  /* variant B: three-step */
+  .v-steps { background: #fff; }
+  .v-steps .steps { position: absolute; top: 6px; left: 6px; right: 6px; display: flex; gap: 3px; }
+  .v-steps .steps i { flex: 1; height: 3px; background: #e7e5e0; border-radius: 2px; }
+  .v-steps .steps i.on { background: #2c1d10; }
+  .v-steps .body { position: absolute; top: 14px; left: 6px; right: 6px; }
+  .v-steps .body b { font-size: 6.5px; font-family: Georgia, serif; color: #2c1d10; display: block; }
+  .v-steps .body .fld { height: 8px; background: #f5ede0; border-radius: 2px; margin-top: 3px; }
+  .v-steps .body .btn { margin-top: 4px; background: #2c1d10; color: #f5ede0; text-align: center; font-size: 6px; padding: 2px; border-radius: 2px; }
+
+  /* variant C: drawer */
+  .v-draw { background: #e8dfd0; }
+  .v-draw .page-bg { position: absolute; inset: 0; background: linear-gradient(180deg,#e8dfd0,#d4c5aa); }
+  .v-draw .drawer { position: absolute; right: 0; top: 4px; bottom: 4px; width: 62%; background: #fff; border-left: 2px solid #2c1d10; border-radius: 3px 0 0 3px; padding: 4px; }
+  .v-draw .drawer b { font-family: Georgia, serif; font-size: 7px; color: #2c1d10; }
+  .v-draw .drawer .ln { height: 2px; background: #e7e5e0; border-radius: 1px; margin-top: 3px; }
+  .v-draw .drawer .btn { margin-top: 4px; background: #2c1d10; color: #fff; font-size: 5.5px; text-align: center; padding: 2px; border-radius: 2px; }
+
+  /* variant D: minimal */
+  .v-min { background: #fafaf7; }
+  .v-min .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+  .v-min .amount { font-family: Georgia, serif; font-size: 13px; color: #2c1d10; letter-spacing: -0.02em; }
+  .v-min small { font-size: 5.5px; color: #6b7280; text-transform: uppercase; letter-spacing: .1em; }
+  .v-min .btn { background: #2c1d10; color: #f5ede0; font-size: 6px; padding: 2px 10px; border-radius: 99px; }
+
+  /* variant E: dark */
+  .v-dark { background: #1a120a; color: #e8d9c0; }
+  .v-dark .top { position: absolute; top: 5px; left: 6px; right: 6px; font-family: Georgia, serif; font-size: 6px; color: #c9a878; display: flex; justify-content: space-between; }
+  .v-dark .body { position: absolute; top: 14px; left: 6px; right: 6px; background: #0e0805; border: 1px solid #3a2a1a; border-radius: 3px; padding: 4px; }
+  .v-dark .body .row { display: flex; justify-content: space-between; font-size: 5.5px; color: #e8d9c0; }
+  .v-dark .body .btn { margin-top: 3px; background: #c9a878; color: #1a120a; text-align: center; font-size: 6px; padding: 2px; border-radius: 2px; font-weight: 700; }
+
+  /* variant F: apple pay express */
+  .v-apple { background: #fff; }
+  .v-apple .logo { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-family: Georgia, serif; font-size: 9px; color: #2c1d10; font-weight: 700; letter-spacing: -0.02em; }
+  .v-apple .applebtn { position: absolute; bottom: 8px; left: 8px; right: 8px; background: #000; color: #fff; border-radius: 99px; font-size: 7px; text-align: center; padding: 5px; font-weight: 600; }
+  .v-apple .or { position: absolute; bottom: 24px; left: 0; right: 0; text-align: center; font-size: 5.5px; color: #aaa; }
+  .v-apple .sum { position: absolute; top: 24px; left: 8px; right: 8px; font-family: Georgia, serif; font-size: 6px; color: #3a2a1a; text-align: center; }
+  .v-apple .sum b { font-size: 10px; display: block; margin-top: 2px; color: #2c1d10; }
+
+  /* variant G: subscription */
+  .v-sub { background: #f5ede0; }
+  .v-sub .head { position: absolute; top: 5px; left: 6px; right: 6px; text-align: center; font-family: Georgia, serif; font-size: 7px; color: #2c1d10; }
+  .v-sub .opts { position: absolute; top: 18px; left: 6px; right: 6px; display: flex; flex-direction: column; gap: 2px; }
+  .v-sub .opt { background: #fff; border: 1px solid #d6c3a6; border-radius: 2px; padding: 3px 4px; display: flex; justify-content: space-between; font-size: 6px; color: #3a2a1a; }
+  .v-sub .opt.pick { border-color: #2c1d10; background: #2c1d10; color: #f5ede0; }
+  .v-sub .opt b { font-weight: 700; }
+
+  /* variant H: split pane */
+  .v-split { background: #fff; display: flex; }
+  .v-split .l { width: 50%; background: #f5ede0; padding: 5px; }
+  .v-split .r { width: 50%; padding: 5px; background: #fff; border-left: 1px solid #e7e5e0; }
+  .v-split .l b { font-family: Georgia, serif; font-size: 6.5px; color: #2c1d10; }
+  .v-split .l .ln { height: 2px; background: rgba(0,0,0,.1); margin-top: 3px; border-radius: 1px; }
+  .v-split .r .ttl { font-size: 5.5px; color: #6b7280; text-transform: uppercase; letter-spacing: .08em; }
+  .v-split .r .amt { font-family: Georgia, serif; font-size: 11px; color: #2c1d10; margin-top: 2px; }
+  .v-split .r .btn { margin-top: 4px; background: #2c1d10; color: #f5ede0; font-size: 5.5px; padding: 2px; text-align: center; border-radius: 2px; }
+
+  /* variant I: guest-first */
+  .v-guest { background: #fefcf7; }
+  .v-guest .head { position: absolute; top: 6px; left: 6px; right: 6px; font-family: Georgia, serif; font-size: 7px; color: #2c1d10; }
+  .v-guest .email { position: absolute; top: 18px; left: 6px; right: 6px; height: 11px; border: 1px solid #d6c3a6; border-radius: 2px; background: #fff; }
+  .v-guest .btn { position: absolute; bottom: 22px; left: 6px; right: 6px; background: #2c1d10; color: #f5ede0; font-size: 6px; text-align: center; padding: 3px; border-radius: 2px; }
+  .v-guest .alt { position: absolute; bottom: 6px; left: 6px; right: 6px; font-size: 5.5px; color: #6b7280; text-align: center; }
+
+  /* variant J: map pickup */
+  .v-map { background: linear-gradient(160deg,#e8dfd0,#cbb99a); }
+  .v-map .pin { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #2c1d10; border: 1px solid #fff; box-shadow: 0 0 0 2px rgba(44,29,16,.2); }
+  .v-map .pin.p1 { top: 30%; left: 35%; }
+  .v-map .pin.p2 { top: 55%; left: 60%; background: #c9a878; }
+  .v-map .card { position: absolute; bottom: 4px; left: 4px; right: 4px; background: #fff; border-radius: 3px; padding: 3px 5px; font-size: 5.5px; color: #2c1d10; font-family: Georgia, serif; }
+  .v-map .card b { font-size: 7px; display: block; }
+
+  /* variant K: tips & add-ons */
+  .v-tip { background: #fff; }
+  .v-tip .t { position: absolute; top: 5px; left: 6px; font-family: Georgia, serif; font-size: 7px; color: #2c1d10; }
+  .v-tip .tips { position: absolute; top: 18px; left: 6px; right: 6px; display: flex; gap: 2px; }
+  .v-tip .tips i { flex: 1; text-align: center; font-size: 6px; padding: 3px 0; border: 1px solid #d6c3a6; border-radius: 2px; color: #2c1d10; }
+  .v-tip .tips i.on { background: #2c1d10; color: #f5ede0; border-color: #2c1d10; }
+  .v-tip .addon { position: absolute; top: 36px; left: 6px; right: 6px; font-size: 5.5px; color: #6b7280; }
+  .v-tip .addon div { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #f0ede6; }
+  .v-tip .btn { position: absolute; bottom: 4px; left: 6px; right: 6px; background: #2c1d10; color: #f5ede0; text-align: center; font-size: 6px; padding: 2px; border-radius: 2px; }
+
+  /* variant L: receipt-first */
+  .v-rec { background: #fafaf7; }
+  .v-rec .rcpt { position: absolute; inset: 4px 8px; background: #fff; border: 1px dashed #d6c3a6; padding: 4px; }
+  .v-rec .rcpt b { font-family: Georgia, serif; font-size: 7px; color: #2c1d10; display: block; text-align: center; }
+  .v-rec .rcpt .ln { display: flex; justify-content: space-between; font-size: 5.5px; color: #3a2a1a; border-bottom: 1px dotted #e7e5e0; padding: 1px 0; margin-top: 2px; }
+  .v-rec .rcpt .tot { display: flex; justify-content: space-between; font-size: 6.5px; font-weight: 700; color: #2c1d10; margin-top: 3px; border-top: 1px solid #2c1d10; padding-top: 2px; }
+
+  /* CANVAS ZOOM CHROME */
+  .canvas-zoom {
+    position: absolute; bottom: 12px; left: 12px;
+    display: flex; align-items: center; gap: 4px;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 8px; padding: 3px;
+    box-shadow: 0 3px 10px -4px rgba(0,0,0,.08);
+    z-index: 6;
+  }
+  .canvas-zoom button {
+    width: 24px; height: 24px; border-radius: 5px;
+    border: none; background: transparent; color: var(--muted);
+    font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .canvas-zoom button:hover { background: #f5f3ee; color: var(--ink); }
+  .canvas-zoom .pct { font-size: 11px; color: var(--muted); padding: 0 8px; font-variant-numeric: tabular-nums; min-width: 40px; text-align: center; }
+
+  .canvas-legend {
+    position: absolute; bottom: 12px; right: 12px;
+    background: rgba(255,255,255,.9); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 10px;
+    font-size: 10.5px; color: var(--muted);
+    display: flex; align-items: center; gap: 10px;
+    backdrop-filter: blur(6px);
+    z-index: 6;
+  }
+  .canvas-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .canvas-legend .sw { width: 8px; height: 8px; border-radius: 2px; }
+  .canvas-legend .sw.chosen { background: var(--accent); }
+  .canvas-legend .sw.study { background: #0a0a0b; }
+  .canvas-legend .sw.draft { background: #c9c6be; }
+
+  /* ABOUT block */
+  .about {
+    padding: 22px 28px 28px;
+    background: #fdfcf9;
+  }
+  .about h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600;
+  }
+  .about-grid {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 28px;
+  }
+  .about .prompt {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11.5px; line-height: 1.6;
+    color: var(--ink-2);
+    position: relative;
+  }
+  .about .prompt::before {
+    content: "prompt.md";
+    position: absolute; top: -9px; left: 12px;
+    background: #fff; color: var(--muted);
+    font-size: 10px; padding: 0 6px;
+    border: 1px solid var(--line); border-radius: 3px;
+    font-family: "Inter", sans-serif;
+  }
+  .about .prompt span.k { color: var(--accent); font-weight: 600; }
+  .about .prompt span.c { color: #9ca3af; }
+
+  .about .side-data { display: flex; flex-direction: column; gap: 12px; }
+  .about .dl {
+    display: grid; grid-template-columns: 100px 1fr;
+    font-size: 12.5px; gap: 4px 10px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+  .about .dl dt { color: var(--muted); font-weight: 400; }
+  .about .dl dd { color: var(--ink); }
+  .about .dl dd a { color: var(--accent); text-decoration: none; }
+  .about .dl dd a:hover { text-decoration: underline; }
+  .about .tools { display: flex; flex-wrap: wrap; gap: 5px; }
+  .about .tool-pill {
+    font-size: 11px; padding: 3px 8px;
+    border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink); background: #fff;
+  }
+
+  /* SIDEBAR (right) */
+  .panel {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    padding: 14px 14px 12px;
+  }
+  .panel + .panel { margin-top: 14px; }
+  .panel h4 {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--muted); font-weight: 600;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel h4 .more { text-transform: none; letter-spacing: 0; font-size: 11px; color: var(--accent); font-weight: 500; text-decoration: none; }
+
+  .stats {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 2px;
+  }
+  .stats .s {
+    padding: 8px 0;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .stats .s b {
+    font-size: 20px; font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .stats .s small {
+    font-size: 11px; color: var(--muted);
+  }
+  .stats .s em {
+    font-size: 10.5px; color: #10b981; font-style: normal;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .forks { display: flex; flex-direction: column; gap: 10px; }
+  .fork {
+    display: flex; align-items: flex-start; gap: 9px;
+    font-size: 12px; color: var(--ink-2);
+    line-height: 1.4;
+  }
+  .fork .fav {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid var(--line);
+  }
+  .fork .f1 { background: linear-gradient(135deg,#fb7185,#be185d); }
+  .fork .f2 { background: linear-gradient(135deg,#34d399,#059669); }
+  .fork .f3 { background: linear-gradient(135deg,#60a5fa,#1d4ed8); }
+  .fork .f4 { background: linear-gradient(135deg,#fbbf24,#b45309); }
+  .fork .f5 { background: linear-gradient(135deg,#a78bfa,#6d28d9); }
+  .fork .ft { flex: 1; }
+  .fork .ft b { font-weight: 600; color: var(--ink); }
+  .fork .ft .when { color: var(--muted); font-size: 11px; display: block; margin-top: 1px; }
+  .fork .ft .vname { color: var(--accent); font-weight: 500; }
+
+  .disc { display: flex; flex-direction: column; gap: 10px; }
+  .comment {
+    background: #fafaf7; border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 10px;
+    font-size: 12px; line-height: 1.45; color: var(--ink-2);
+  }
+  .comment .head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .comment .head .who { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 500; }
+  .comment .head .av {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: linear-gradient(135deg,#a78bfa,#3b82f6);
+  }
+  .comment .av.g { background: linear-gradient(135deg,#22d3ee,#0ea5e9); }
+  .comment .foot {
+    margin-top: 5px; display: flex; gap: 10px;
+    color: var(--muted); font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .comment .foot span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 3px; vertical-align: -1px; background: currentColor; mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M12 21s-7-4.5-7-11a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 6.5-7 11-7 11z'/></svg>") center/contain no-repeat; }
+  .comment .foot .reply::before { mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z' fill='none' stroke='%236b7280' stroke-width='2'/></svg>") center/contain no-repeat; background: none; }
+
+  .related { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .rel {
+    display: flex; flex-direction: column; gap: 4px;
+    text-decoration: none; color: inherit;
+  }
+  .rel .rt {
+    aspect-ratio: 1 / 1; border-radius: 5px;
+    border: 1px solid var(--line); overflow: hidden;
+    position: relative;
+  }
+  .rel .rn { font-size: 10.5px; color: var(--ink); letter-spacing: -0.005em; line-height: 1.25; }
+  .rel .ra { font-size: 10px; color: var(--muted); }
+
+  .rel .rt.r-sub { background: #eef2ff; }
+  .rel .rt.r-sub::after { content: ""; position: absolute; inset: 18% 22%; background: #6366f1; border-radius: 3px; }
+  .rel .rt.r-pay { background: #f5ede0; }
+  .rel .rt.r-pay::after { content: "$"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: Georgia, serif; font-size: 24px; color: #2c1d10; }
+  .rel .rt.r-onb { background: linear-gradient(135deg,#fef3c7,#fde68a); }
+  .rel .rt.r-onb::after { content: ""; position: absolute; inset: 25%; background: #fff; border-radius: 4px; border: 2px solid #92400e; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <span class="brand-name">Design Graph</span>
+    <span class="brand-tag">— where teams think in <em>variants</em>.</span>
+  </div>
+  <div class="nav-right">
+    <a class="nav-link on" href="#">Gallery</a>
+    <a class="nav-link" href="#">Teams</a>
+    <a class="nav-link" href="#">Docs</a>
+    <a class="cta" href="#"><span class="dot"></span>Start a canvas</a>
+  </div>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="crumb-row">
+  <a href="#">Gallery</a>
+  <span class="sep">/</span>
+  <a href="#">Featured</a>
+  <span class="sep">/</span>
+  <span class="here">Checkout flow for Serif Coffee</span>
+  <span class="spacer"></span>
+  <span class="meta-tag">Public canvas · updated 2 hours ago</span>
+</div>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- MAIN COLUMN -->
+  <div class="main-col">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="kicker">Case Study · Checkout</div>
+      <h1>Checkout flow for <em>Serif Coffee</em></h1>
+
+      <div class="meta-line">
+        <span class="author-big">
+          <span class="av"></span>
+          Maya Rodríguez <span class="handle">· @maya.ro</span>
+        </span>
+        <span class="dot-sep"></span>
+        <span>Started Apr 11, 2026</span>
+        <span class="dot-sep"></span>
+        <span>12 variants</span>
+        <span class="dot-sep"></span>
+        <span>5 contributors</span>
+      </div>
+
+      <p class="blurb">
+        Testing whether a one-screen checkout beats a three-step for specialty coffee —
+        where the average cart is two bags and the buyer usually knows what they want.
+        Five of us on the team weighed in; one variant won a five-day traffic study.”
+      </p>
+
+      <div class="actions">
+        <div class="btn-group">
+          <a class="btn primary" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3v12"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v3a4 4 0 0 1-4 4H9"/></svg>
+            Fork this canvas
+          </a>
+          <a class="btn primary" href="#" style="padding: 9px 10px;">
+            <span class="count" style="background: rgba(255,255,255,.22); color:#fff; border-color: rgba(255,255,255,.25);">48</span>
+          </a>
+        </div>
+        <a class="btn" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9 17 14 19 22 12 17 5 22 7 14 2 9 9 9 12 2"/></svg>
+          Star
+          <span class="count">2,184</span>
+        </a>
+        <a class="btn" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Open in viewer
+        </a>
+        <div class="tag-row">
+          <span class="tag">e-commerce</span>
+          <span class="tag neutral">1 study won</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- EMBEDDED CANVAS -->
+    <section class="canvas-wrap">
+      <div class="canvas-grid"></div>
+
+      <div class="canvas-header">
+        <span class="left"><b>checkout-serif.canvas</b> · 12 nodes · 14 edges</span>
+        <span class="right">maya.ro / serif-coffee / main</span>
+      </div>
+
+      <!-- EDGES -->
+      <svg class="canvas-edges" viewBox="0 0 952 440" preserveAspectRatio="none">
+        <!-- from root (v1) out to branches -->
+        <path d="M 110 110 C 180 110, 200 55, 270 55" />
+        <path d="M 110 110 C 180 110, 200 110, 270 110" class="chosen" />
+        <path d="M 110 110 C 180 110, 200 170, 270 170" />
+        <path d="M 110 110 C 180 110, 200 230, 270 230" />
+        <path d="M 110 110 C 180 290, 200 290, 270 290" />
+        <!-- middle column connections -->
+        <path d="M 402 55 C 460 55, 480 80, 540 80" />
+        <path d="M 402 110 C 460 110, 480 110, 540 110" class="chosen" />
+        <path d="M 402 170 C 460 170, 480 180, 540 180" />
+        <path d="M 402 230 C 460 230, 480 250, 540 250" />
+        <path d="M 402 290 C 460 290, 480 290, 540 290" />
+        <path d="M 402 350 C 460 350, 480 350, 540 350" />
+        <!-- to far right winner -->
+        <path d="M 672 110 C 740 110, 750 110, 810 110" class="chosen" />
+        <path d="M 672 180 C 740 180, 760 160, 810 160" />
+        <path d="M 672 290 C 740 290, 750 260, 810 260" />
+
+        <!-- edge labels -->
+        <g>
+          <rect class="elabel-bg" x="200" y="80" width="54" height="11" />
+          <text class="elabel" x="204" y="89">one-screen</text>
+        </g>
+        <g>
+          <rect class="elabel-bg" x="200" y="200" width="46" height="11" />
+          <text class="elabel" x="204" y="209">3-step</text>
+        </g>
+        <g>
+          <rect class="elabel-bg" x="468" y="80" width="46" height="11" />
+          <text class="elabel" x="472" y="89">+ wallet</text>
+        </g>
+        <g>
+          <rect class="elabel-bg" x="468" y="200" width="56" height="11" />
+          <text class="elabel" x="472" y="209">drawer v2</text>
+        </g>
+        <g>
+          <rect class="elabel-bg" x="732" y="100" width="54" height="11" />
+          <text class="elabel" x="736" y="109" style="fill:#9333ea; font-weight:600;">won study</text>
+        </g>
+      </svg>
+
+      <!-- VARIANT CARDS (12) -->
+
+      <!-- 1 Root: current (live site) -->
+      <div class="vcard" style="left: 20px; top: 72px;">
+        <div class="vtop">
+          <div class="mini v-one">
+            <div class="stack">
+              <div class="row"><span>Ethiopia Guji</span><span>$24</span></div>
+              <div class="row"><span>House Blend</span><span>$56</span></div>
+              <div class="row tot"><span>Total</span><span>$80</span></div>
+              <div class="btn">Continue to payment</div>
+            </div>
+          </div>
+          <span class="vbadge soft">root</span>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">v0 · current live</span>
+          <span class="vstat">baseline</span>
+        </div>
+      </div>
+
+      <!-- 2 one-screen simplified -->
+      <div class="vcard chosen" style="left: 180px; top: 16px;">
+        <div class="vtop">
+          <div class="mini v-one" style="background:#f5ede0;">
+            <div class="stack">
+              <div class="row"><span>2 items</span><span>$80</span></div>
+              <div class="row"><span>Shipping</span><span>$0</span></div>
+              <div class="row tot"><span>Total</span><span>$80</span></div>
+              <div class="btn">Pay $80</div>
+            </div>
+          </div>
+          <span class="vbadge">chosen</span>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">A · one-screen lean</span>
+          <span class="vstat">+14% CVR</span>
+        </div>
+      </div>
+
+      <!-- 3 three-step classic -->
+      <div class="vcard" style="left: 180px; top: 128px;">
+        <div class="vtop">
+          <div class="mini v-steps">
+            <div class="steps"><i class="on"></i><i></i><i></i></div>
+            <div class="body">
+              <b>Your email</b>
+              <div class="fld"></div>
+              <div class="fld"></div>
+              <div class="btn">Next step</div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">B · three-step</span>
+          <span class="vstat">control</span>
+        </div>
+      </div>
+
+      <!-- 4 drawer overlay -->
+      <div class="vcard" style="left: 180px; top: 240px;">
+        <div class="vtop">
+          <div class="mini v-draw">
+            <div class="page-bg"></div>
+            <div class="drawer">
+              <b>Cart (2)</b>
+              <div class="ln"></div>
+              <div class="ln"></div>
+              <div class="ln" style="width:60%"></div>
+              <div class="btn">Checkout</div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">C · side drawer</span>
+          <span class="vstat">mobile-first</span>
+        </div>
+      </div>
+
+      <!-- 5 minimal single-field -->
+      <div class="vcard" style="left: 180px; top: 352px;">
+        <div class="vtop">
+          <div class="mini v-min">
+            <div class="center">
+              <small>Your order</small>
+              <div class="amount">$80</div>
+              <div class="btn">Pay with link</div>
+            </div>
+          </div>
+          <span class="vbadge study">ran study</span>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">D · one-tap minimal</span>
+          <span class="vstat">−8% CVR</span>
+        </div>
+      </div>
+
+      <!-- 6 dark editorial -->
+      <div class="vcard" style="left: 408px; top: 16px;">
+        <div class="vtop">
+          <div class="mini v-dark">
+            <div class="top"><span>Serif</span><span>Cart 2</span></div>
+            <div class="body">
+              <div class="row"><span>Ethiopia</span><span>$24</span></div>
+              <div class="row"><span>Blend</span><span>$56</span></div>
+              <div class="btn">Complete</div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">E · dark roast</span>
+          <span class="vstat">brand test</span>
+        </div>
+      </div>
+
+      <!-- 7 Apple/Google pay express -->
+      <div class="vcard" style="left: 408px; top: 128px;">
+        <div class="vtop">
+          <div class="mini v-apple">
+            <div class="logo">Serif</div>
+            <div class="sum">Order total<br/><b>$80.00</b></div>
+            <div class="or">— or pay card —</div>
+            <div class="applebtn">󰀷 Pay</div>
+          </div>
+          <span class="vbadge study">ran study</span>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">F · wallet-first</span>
+          <span class="vstat">+11% CVR</span>
+        </div>
+      </div>
+
+      <!-- 8 subscription prompt -->
+      <div class="vcard" style="left: 408px; top: 240px;">
+        <div class="vtop">
+          <div class="mini v-sub">
+            <div class="head">Subscribe &amp; save 10%</div>
+            <div class="opts">
+              <div class="opt">One-time <b>$80</b></div>
+              <div class="opt pick">Every 2 wks <b>$72</b></div>
+              <div class="opt">Monthly <b>$72</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">G · subscribe upsell</span>
+          <span class="vstat">+$4 AOV</span>
+        </div>
+      </div>
+
+      <!-- 9 split pane summary -->
+      <div class="vcard" style="left: 408px; top: 352px;">
+        <div class="vtop">
+          <div class="mini v-split">
+            <div class="l">
+              <b>Your coffee</b>
+              <div class="ln"></div>
+              <div class="ln" style="width:70%"></div>
+              <div class="ln" style="width:80%"></div>
+            </div>
+            <div class="r">
+              <div class="ttl">Total</div>
+              <div class="amt">$80</div>
+              <div class="btn">Pay</div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">H · split-pane</span>
+          <span class="vstat">desktop</span>
+        </div>
+      </div>
+
+      <!-- 10 guest-first (winner) -->
+      <div class="vcard chosen" style="left: 676px; top: 72px;">
+        <div class="vtop">
+          <div class="mini v-guest">
+            <div class="head">Just your email.</div>
+            <div class="email"></div>
+            <div class="btn">Continue to pay</div>
+            <div class="alt">or sign in</div>
+          </div>
+          <span class="vbadge">winner</span>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">I · guest-first</span>
+          <span class="vstat">+22% CVR</span>
+        </div>
+      </div>
+
+      <!-- 11 map / local pickup -->
+      <div class="vcard" style="left: 676px; top: 144px;">
+        <div class="vtop">
+          <div class="mini v-map">
+            <div class="pin p1"></div>
+            <div class="pin p2"></div>
+            <div class="card"><b>Cobble Hill roastery</b>ready in 18m</div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">J · local pickup</span>
+          <span class="vstat">NYC only</span>
+        </div>
+      </div>
+
+      <!-- 12 tips + add-ons -->
+      <div class="vcard" style="left: 676px; top: 256px;">
+        <div class="vtop">
+          <div class="mini v-tip">
+            <div class="t">Add a tip?</div>
+            <div class="tips"><i>0%</i><i class="on">10%</i><i>15%</i><i>20%</i></div>
+            <div class="addon">
+              <div><span>+ Kettle</span><span>$48</span></div>
+              <div><span>+ Filters</span><span>$6</span></div>
+            </div>
+            <div class="btn">Review</div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">K · tips &amp; add-ons</span>
+          <span class="vstat">draft</span>
+        </div>
+      </div>
+
+      <!-- 13 receipt-first -->
+      <div class="vcard" style="left: 824px; top: 318px;">
+        <div class="vtop">
+          <div class="mini v-rec">
+            <div class="rcpt">
+              <b>Serif Coffee</b>
+              <div class="ln"><span>Ethiopia</span><span>24.00</span></div>
+              <div class="ln"><span>House</span><span>56.00</span></div>
+              <div class="tot"><span>TOTAL</span><span>80.00</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="vfoot">
+          <span class="vtitle">L · receipt-first</span>
+          <span class="vstat">editorial</span>
+        </div>
+      </div>
+
+      <!-- ZOOM CHROME -->
+      <div class="canvas-zoom">
+        <button>−</button>
+        <span class="pct">64%</span>
+        <button>+</button>
+        <button style="font-size:11px;">⛶</button>
+      </div>
+
+      <div class="canvas-legend">
+        <span><span class="sw chosen"></span>Chosen / shipped</span>
+        <span><span class="sw study"></span>Ran traffic study</span>
+        <span><span class="sw draft"></span>Draft / exploratory</span>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="about">
+      <h3>About this canvas</h3>
+      <div class="about-grid">
+        <div class="prompt">
+<span class="c"># original prompt</span><br/>
+Design a checkout flow for <span class="k">Serif Coffee</span>,
+a specialty roaster in Brooklyn.<br/>
+Average cart: <span class="k">2 bags ($80)</span>. Audience: knows what<br/>
+they want, impatient with account creation.<br/><br/>
+<span class="c"># constraints</span><br/>
+— Guest checkout is mandatory.<br/>
+— Must support <span class="k">Apple Pay</span>, <span class="k">Shop Pay</span>, card.<br/>
+— Editorial feel; serif type; cream palette.<br/><br/>
+<span class="c"># explore</span><br/>
+One-screen vs three-step. Drawer vs dedicated page.<br/>
+Wallet-first vs email-first. Subscribe-&amp;-save upsell<br/>
+(test but don't force).
+        </div>
+        <div class="side-data">
+          <dl class="dl">
+            <dt>Client</dt><dd>Serif Coffee Roasters</dd>
+            <dt>Project URL</dt><dd><a href="#">serifcoffee.com/checkout</a></dd>
+            <dt>Status</dt><dd>Shipped Apr 16 · variant I live</dd>
+            <dt>License</dt><dd>CC-BY · fork freely</dd>
+          </dl>
+          <div>
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 600; margin-bottom: 8px;">Tools</div>
+            <div class="tools">
+              <span class="tool-pill">Design Graph</span>
+              <span class="tool-pill">Figma (import)</span>
+              <span class="tool-pill">Shopify Hydrogen</span>
+              <span class="tool-pill">Vercel OG</span>
+              <span class="tool-pill">Fraunces + Inter</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+  <!-- /MAIN COLUMN -->
+
+  <!-- SIDEBAR -->
+  <aside class="side-col">
+
+    <div class="panel">
+      <h4>Stats</h4>
+      <div class="stats">
+        <div class="s"><b>2,184</b><small>Stars <em>+86 this wk</em></small></div>
+        <div class="s"><b>347</b><small>Forks <em>+22 this wk</em></small></div>
+        <div class="s"><b>48</b><small>Discussions</small></div>
+        <div class="s"><b>18.4k</b><small>Views</small></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4>Recent forks <a class="more" href="#">all 347 →</a></h4>
+      <div class="forks">
+        <div class="fork">
+          <div class="fav f1"></div>
+          <div class="ft"><b>Anika Shah</b> forked as <span class="vname">anika/checkout-serif-mobile</span>
+            <span class="when">3 days ago · added 4 mobile variants</span>
+          </div>
+        </div>
+        <div class="fork">
+          <div class="fav f2"></div>
+          <div class="ft"><b>Hyun Park</b> forked as <span class="vname">hyun/checkout-wholesale</span>
+            <span class="when">5 days ago · branched for B2B tier</span>
+          </div>
+        </div>
+        <div class="fork">
+          <div class="fav f3"></div>
+          <div class="ft"><b>Studio Piper</b> forked as <span class="vname">piper/slow-coffee</span>
+            <span class="when">1 week ago</span>
+          </div>
+        </div>
+        <div class="fork">
+          <div class="fav f4"></div>
+          <div class="ft"><b>Dani Okafor</b> forked this canvas
+            <span class="when">1 week ago · working in private</span>
+          </div>
+        </div>
+        <div class="fork">
+          <div class="fav f5"></div>
+          <div class="ft"><b>Luca Ferretti</b> forked as <span class="vname">luca/roastery-v2</span>
+            <span class="when">2 weeks ago · 6 new variants</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4>Discussion <a class="more" href="#">48 threads →</a></h4>
+      <div class="disc">
+        <div class="comment">
+          <div class="head">
+            <span class="who"><span class="av"></span>jules.tran</span>
+            <span>2 days ago</span>
+          </div>
+          Variant I winning is wild — I would have bet on F (wallet-first).
+          Did the 22% hold across returning users too, or mostly first-time?
+          <div class="foot"><span>14</span><span class="reply">3 replies</span></div>
+        </div>
+        <div class="comment">
+          <div class="head">
+            <span class="who"><span class="av g"></span>maya.ro</span>
+            <span>1 day ago</span>
+          </div>
+          @jules — held for first-time (+28%). Returning was flat. We think
+          returning already have Shop Pay tokens so the "just email" framing is
+          redundant for them. Writing it up as a followup canvas.
+          <div class="foot"><span>31</span><span class="reply">author</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h4>Related canvases</h4>
+      <div class="related">
+        <a class="rel" href="#">
+          <div class="rt r-sub"></div>
+          <div class="rn">Subscription box flow</div>
+          <div class="ra">@wildwood</div>
+        </a>
+        <a class="rel" href="#">
+          <div class="rt r-pay"></div>
+          <div class="rn">Tip screen variants</div>
+          <div class="ra">@diner.club</div>
+        </a>
+        <a class="rel" href="#">
+          <div class="rt r-onb"></div>
+          <div class="rn">Guest → account nudge</div>
+          <div class="ra">@parcel.app</div>
+        </a>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+</body>
+</html>

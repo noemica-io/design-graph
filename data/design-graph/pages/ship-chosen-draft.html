@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — Ship: Draft II</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #faf8f4;
+    --ink: #1a1714;
+    --ink-soft: #3d3731;
+    --rule: #e8e2d6;
+    --rule-soft: #efeae0;
+    --mute: #8a8176;
+    --accent: #8b5cf6;
+
+    /* Draft II palette — playful/bold */
+    --pl-paper: #f7f1de;
+    --pl-ink:   #1c140c;
+    --pl-pink:  #ec4899;
+    --pl-pink-deep: #db2777;
+    --pl-cream: #fef3c7;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1100px 500px at 92% -6%, rgba(139, 92, 246, 0.03), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(139, 92, 246, 0.022), transparent 60%);
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 34px 64px 34px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ——— Masthead ——— */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .masthead .brand { display: flex; align-items: center; gap: 14px; }
+  .masthead .mark {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink); font-weight: 500;
+  }
+  .masthead .mark .dot {
+    width: 7px; height: 7px; border-radius: 999px;
+    background: var(--accent); display: inline-block;
+    transform: translateY(-1px);
+  }
+  .masthead .title {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic; font-weight: 400;
+    font-size: 13px; letter-spacing: 0.02em;
+    text-transform: none; color: var(--ink-soft);
+  }
+  .masthead .export {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3px;
+  }
+  .masthead .export::before {
+    content: "⌸ ";
+    color: var(--accent);
+    margin-right: 4px;
+    letter-spacing: 0;
+  }
+
+  /* ——— Body: the hand-off spread ——— */
+  .body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 48px;
+    padding-top: 22px;
+    min-height: 0;
+  }
+
+  /* ——— Left: title + plate ——— */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .kicker {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 10px;
+  }
+  .kicker .roman {
+    color: var(--accent);
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-right: 8px;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 1px;
+  }
+  .kicker .sep { color: var(--rule); margin: 0 10px; }
+
+  .title-block {
+    margin-bottom: 14px;
+  }
+  .title-block h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 40px;
+    line-height: 1.04;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .title-block h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-soft);
+  }
+  .title-block .sub {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 15px;
+    line-height: 1.4;
+    color: var(--mute);
+    margin: 0;
+    max-width: 560px;
+  }
+  .title-block .sub b {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  /* Framed plate (the chosen draft at fidelity) */
+  .plate-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-top: 6px;
+  }
+
+  .plate {
+    position: relative;
+    width: 600px;
+    height: 388px;
+    background: var(--pl-paper);
+    border: 1px solid var(--rule);
+    box-shadow:
+      0 1px 0 rgba(26,23,20,0.04),
+      0 22px 40px -22px rgba(26,23,20,0.22),
+      0 2px 6px -2px rgba(26,23,20,0.06);
+    overflow: hidden;
+  }
+
+  .plate::after {
+    /* tipped-in plate label */
+    content: "Plate II — the playful one";
+    position: absolute;
+    bottom: -22px;
+    left: 0;
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--mute);
+    letter-spacing: 0.04em;
+  }
+  .plate::before {
+    /* page-number bottom center, inside */
+    content: "— ii —";
+    position: absolute;
+    bottom: 7px; left: 50%;
+    transform: translateX(-50%);
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 9px;
+    color: rgba(28,20,12,0.4);
+    letter-spacing: 0.3em;
+    z-index: 5;
+  }
+
+  /* ——— The Playful pricing page (Draft II) at fidelity ——— */
+  .pv {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    color: var(--pl-ink);
+    padding: 20px 24px 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .pv-mast {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--pl-ink);
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid var(--pl-ink);
+    margin-bottom: 14px;
+  }
+  .pv-mast .star {
+    color: var(--pl-pink);
+    letter-spacing: 0.3em;
+  }
+
+  .pv-title {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    color: var(--pl-ink);
+    margin: 2px 0 4px;
+  }
+  .pv-title .pink {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--pl-pink);
+  }
+
+  .pv-deck {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--pl-ink);
+    margin: 0 0 14px;
+    max-width: 380px;
+    opacity: 0.85;
+  }
+
+  .pv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 2px;
+  }
+
+  .pv-tier {
+    background: var(--paper);
+    border: 1.5px solid var(--pl-ink);
+    border-radius: 3px;
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+  }
+  .pv-tier.pop {
+    background: var(--pl-pink);
+    color: white;
+    transform: rotate(-1.6deg);
+    box-shadow: 3px 3px 0 var(--pl-ink);
+    z-index: 2;
+  }
+  .pv-tier.pop::before {
+    /* starburst badge */
+    content: "★ fit";
+    position: absolute;
+    top: -10px; right: -8px;
+    background: var(--pl-ink);
+    color: var(--pl-cream);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 2px;
+    transform: rotate(6deg);
+  }
+
+  .pv-tier .tn {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 4px;
+  }
+  .pv-tier .tt {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 9.5px;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    min-height: 24px;
+    opacity: 0.78;
+  }
+  .pv-tier.pop .tt { opacity: 0.92; }
+
+  .pv-tier .price {
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-bottom: 2px;
+  }
+  .pv-tier .price small {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0;
+    opacity: 0.7;
+  }
+  .pv-tier .per {
+    font-size: 8px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-bottom: 8px;
+    opacity: 0.6;
+  }
+  .pv-tier ul {
+    list-style: none;
+    margin: 0 0 10px; padding: 0;
+    font-size: 9.5px;
+    line-height: 1.45;
+    flex: 1;
+  }
+  .pv-tier li {
+    padding: 1px 0;
+    display: flex;
+    gap: 5px;
+    align-items: baseline;
+  }
+  .pv-tier li::before {
+    content: "→";
+    color: var(--pl-pink);
+    font-weight: 700;
+    flex: 0 0 auto;
+  }
+  .pv-tier.pop li::before { color: var(--pl-cream); }
+
+  .pv-tier .cta {
+    background: var(--pl-ink);
+    color: var(--pl-cream);
+    text-align: center;
+    padding: 5px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-radius: 2px;
+  }
+  .pv-tier.pop .cta {
+    background: white;
+    color: var(--pl-pink-deep);
+  }
+
+  /* ——— Right: Colophon marginalia ——— */
+  .margin {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-top: 6px;
+    min-width: 0;
+  }
+
+  .m-head {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mute);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .m-head .caps {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink);
+    margin-right: 6px;
+  }
+
+  .coloph {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    padding-left: 14px;
+    border-left: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .coloph .row {
+    display: block;
+  }
+  .coloph .row .k {
+    display: block;
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 2px;
+  }
+  .coloph .row .v {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13.5px;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+  .coloph .row .v em {
+    font-style: italic;
+    color: var(--ink);
+  }
+  .coloph .row .v b {
+    font-weight: 500;
+    font-style: normal;
+    color: var(--ink);
+  }
+  .coloph .row .v .pink-sw {
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--pl-pink);
+    vertical-align: 0px;
+    margin: 0 3px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+  }
+
+  .coloph .prompt {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    padding: 6px 0 0 10px;
+    border-left: 2px solid var(--accent);
+    margin-top: 2px;
+    margin-left: -12px;
+    padding-left: 10px;
+  }
+  .coloph .prompt::before {
+    content: "“";
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 0;
+    position: relative;
+    top: 6px;
+    margin-right: 2px;
+  }
+  .coloph .prompt::after { content: "”"; color: var(--accent); }
+
+  .decision {
+    font-family: "Newsreader", Georgia, serif;
+    padding-left: 14px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .decision .t {
+    font-style: italic;
+    font-weight: 300;
+    font-size: 32px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.01em;
+  }
+  .decision .t .s {
+    font-size: 16px;
+    color: var(--mute);
+    margin-left: 2px;
+    letter-spacing: 0;
+  }
+  .decision .lbl {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--mute);
+    text-align: right;
+    line-height: 1.4;
+  }
+
+  /* ——— Closing band ——— */
+  .closing {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 28px;
+  }
+  .closing .line {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 620px;
+  }
+  .closing .line em { color: var(--ink); font-style: italic; }
+  .closing .set {
+    display: flex;
+    gap: 24px;
+    white-space: nowrap;
+  }
+  .closing .set a {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3px;
+  }
+  .closing .set a.quiet {
+    color: var(--mute);
+  }
+
+  /* Ornament hairline */
+  .ornament-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 10px;
+    color: var(--accent);
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 13px;
+    letter-spacing: 0.4em;
+    user-select: none;
+  }
+  .ornament-row .hr {
+    flex: 1;
+    height: 0;
+    border-top: 1px solid var(--rule);
+  }
+  .ornament-row .glyph {
+    font-style: italic;
+    font-size: 14px;
+    color: var(--accent);
+    letter-spacing: 0.3em;
+  }
+
+  /* ——— Footer ——— */
+  .colophon-foot {
+    position: absolute;
+    left: 64px; right: 64px; bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .colophon-foot .dots { letter-spacing: 0.4em; color: var(--rule); }
+  .colophon-foot em {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--mute);
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="masthead">
+      <div class="brand">
+        <span class="mark"><span class="dot"></span>Design Graph</span>
+        <span class="title">closing &mdash; the one that goes out</span>
+      </div>
+      <a class="export" href="#">Export as standalone</a>
+    </header>
+
+    <section class="body">
+
+      <!-- ——— Left: title + framed plate ——— -->
+      <div class="main">
+
+        <div class="kicker">
+          <span class="roman">V</span> &middot;&nbsp; The one we&rsquo;ll ship
+        </div>
+
+        <div class="title-block">
+          <h1>Draft II &mdash; <em>The playful one.</em></h1>
+          <p class="sub"><b>Chosen</b> in <em>4 minutes 31 seconds</em>, against four others.</p>
+        </div>
+
+        <div class="plate-wrap">
+          <div class="plate">
+
+            <div class="pv">
+              <div class="pv-mast">
+                <span>Pricing &nbsp;&middot;&nbsp; 03 tiers</span>
+                <span class="star">&#9733; &#9733; &#9733;</span>
+                <span>v. 2026</span>
+              </div>
+
+              <h2 class="pv-title">Pick <span class="pink">the one<br/>that fits.</span></h2>
+              <p class="pv-deck">Three shapes. No ribbons, no small print in grey &mdash; just the tier that matches the way you work.</p>
+
+              <div class="pv-grid">
+
+                <div class="pv-tier">
+                  <div class="tn">Solo</div>
+                  <div class="tt">For one designer, one bench.</div>
+                  <div class="price">$9<small>/mo</small></div>
+                  <div class="per">billed yearly</div>
+                  <ul>
+                    <li>One canvas</li>
+                    <li>Three drafts</li>
+                    <li>Email support</li>
+                  </ul>
+                  <div class="cta">Start free</div>
+                </div>
+
+                <div class="pv-tier pop">
+                  <div class="tn">Team</div>
+                  <div class="tt">For small studios sharing ideas.</div>
+                  <div class="price">$39<small>/seat</small></div>
+                  <div class="per">billed monthly</div>
+                  <ul>
+                    <li>Shared canvases</li>
+                    <li>Ten drafts each</li>
+                    <li>Priority</li>
+                  </ul>
+                  <div class="cta">Open a team</div>
+                </div>
+
+                <div class="pv-tier">
+                  <div class="tn">Studio</div>
+                  <div class="tt">For the whole practice.</div>
+                  <div class="price">$129<small>/mo</small></div>
+                  <div class="per">annual invoice</div>
+                  <ul>
+                    <li>Team archive</li>
+                    <li>Unlimited</li>
+                    <li>Named concierge</li>
+                  </ul>
+                  <div class="cta">Write to us</div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ——— Right: Colophon panel ——— -->
+      <aside class="margin">
+        <div class="m-head"><span class="caps">Colophon</span></div>
+
+        <div class="coloph">
+          <div class="row">
+            <span class="k">Set in</span>
+            <span class="v"><em>S&ouml;hne</em> &amp; <em>Caslon</em> &mdash; a quiet pair.</span>
+          </div>
+          <div class="row">
+            <span class="k">Palette</span>
+            <span class="v">off-white, lead, and a <span class="pink-sw"></span><em>deliberate pink</em>.</span>
+          </div>
+          <div class="row">
+            <span class="k">Chosen against</span>
+            <span class="v"><em>I, III, IV, V</em> &mdash; preserved in the canvas record.</span>
+          </div>
+          <div class="row">
+            <span class="k">Prompt</span>
+            <span class="prompt">a pricing page for a small design tool &mdash; warm, not corporate, three tiers, no dark patterns.</span>
+          </div>
+        </div>
+
+        <div class="decision">
+          <span class="t">4:31<span class="s">.</span></span>
+          <span class="lbl">Time to<br/>decision</span>
+        </div>
+      </aside>
+
+    </section>
+
+    <!-- ——— Closing hand-off ——— -->
+    <div class="closing">
+      <span class="line">Four other drafts remain in the canvas. You can <em>open them again</em>, or <em>start a new one</em>.</span>
+      <div class="set">
+        <a class="quiet" href="#">Archive canvas</a>
+        <a href="#">Start a new one</a>
+      </div>
+    </div>
+
+    <div class="ornament-row">
+      <span class="hr"></span>
+      <span class="glyph">&sect; &middot; &sect; &middot; &sect;</span>
+      <span class="hr"></span>
+    </div>
+
+    <footer class="colophon-foot">
+      <span>Filed &middot; 2026 &middot; Chapter V</span>
+      <em>An edition of Design Graph &middot; 2026</em>
+      <span class="dots">&middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot;</span>
+    </footer>
+
+  </div>
+</body>
+</html>

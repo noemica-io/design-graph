@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Design Graph — focus review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Fraunces:ital,wght@0,400;0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:          #fafaf7;
+    --canvas:      #f7f6f1;
+    --ink:         #111113;
+    --ink-2:       rgba(17,17,19,0.72);
+    --muted:       rgba(17,17,19,0.52);
+    --dim:         rgba(17,17,19,0.34);
+    --faint:       rgba(17,17,19,0.18);
+    --hairline:    rgba(17,17,19,0.10);
+    --hairline-s:  rgba(17,17,19,0.06);
+    --surface:     #ffffff;
+    --accent:      #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+    --accent-line: rgba(124,58,237,0.36);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.006em;
+  }
+
+  /* ── Minimal top chrome ─────────────────────────────────────── */
+  .chrome {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 40px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 14px;
+    z-index: 20;
+    font-size: 12px;
+  }
+  .logo {
+    width: 16px; height: 16px; border-radius: 4px;
+    background: var(--accent);
+    position: relative; display: inline-block;
+    margin-right: 10px;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -4px 0 0 #fff; }
+
+  .canvas-name {
+    font-size: 12.5px; font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.006em;
+  }
+  .canvas-name .sep { color: var(--faint); margin: 0 8px; font-weight: 400; }
+  .canvas-name .dim { color: var(--muted); font-weight: 450; }
+
+  .chrome-right {
+    margin-left: auto; display: flex; gap: 10px; align-items: center;
+  }
+  .share {
+    height: 26px; padding: 0 12px;
+    background: var(--ink); color: #fff;
+    border-radius: 5px;
+    font-size: 11.5px; font-weight: 500;
+    display: inline-flex; align-items: center;
+    letter-spacing: -0.003em;
+  }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    font-size: 10px; font-weight: 600; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent);
+  }
+
+  /* ── Stage ──────────────────────────────────────────────────── */
+  .stage {
+    position: absolute; top: 40px; left: 0; right: 0; bottom: 0;
+    background: var(--canvas);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(17,17,19,0.05) 1px, transparent 0);
+    background-size: 22px 22px;
+    background-position: -11px -11px;
+    overflow: hidden;
+  }
+
+  /* back affordance */
+  .back {
+    position: absolute; top: 18px; left: 20px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    border: 1px solid var(--hairline);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 13px; font-weight: 500;
+    z-index: 12;
+  }
+
+  /* ── Right-side minimal info stack ──────────────────────────── */
+  .info {
+    position: absolute;
+    top: 120px; right: 56px;
+    width: 210px;
+    z-index: 12;
+  }
+  .info .eyebrow {
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+  .info .vname {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 500;
+    font-size: 26px;
+    letter-spacing: -0.018em;
+    color: var(--ink);
+    line-height: 1.08;
+    margin-bottom: 12px;
+  }
+  .info .vdesc {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.5;
+    letter-spacing: -0.003em;
+    margin-bottom: 22px;
+    font-weight: 450;
+  }
+  .info .actions {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .info .act {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    letter-spacing: -0.003em;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-weight: 450;
+  }
+  .info .act .kb {
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 9.5px; color: var(--dim);
+    border: 1px solid var(--hairline);
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: auto;
+    letter-spacing: 0;
+  }
+  .info .act.primary {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .info .act.primary .kb {
+    color: var(--accent);
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+  }
+
+  /* ── Center stage ───────────────────────────────────────────── */
+  .center {
+    position: absolute;
+    top: 78px;
+    left: 84px;
+    width: 720px;
+    height: 560px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(17,17,19,0.02),
+      0 30px 80px -24px rgba(17,17,19,0.18),
+      0 8px 24px -8px rgba(17,17,19,0.08);
+  }
+
+  /* browser-ish chrome on the rendered page */
+  .page-chrome {
+    height: 28px;
+    background: #fafaf7;
+    border-bottom: 1px solid var(--hairline-s);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    gap: 4px;
+  }
+  .page-chrome .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(17,17,19,0.10);
+  }
+  .page-chrome .url {
+    margin-left: 14px;
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 10px; color: var(--muted);
+    letter-spacing: 0;
+  }
+  .page-chrome .url span { color: var(--dim); }
+
+  /* ── Rendered minimalist pricing page ──────────────────────── */
+  .pp {
+    padding: 52px 64px 48px;
+    height: calc(100% - 28px);
+    display: flex; flex-direction: column;
+  }
+  .pp-brand {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 17px; font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .pp-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 46px;
+  }
+  .pp-nav .links {
+    display: flex; gap: 22px;
+    font-size: 12px; color: var(--muted);
+    font-weight: 450;
+  }
+  .pp-nav .links a { color: var(--muted); text-decoration: none; }
+  .pp-nav .links a.on { color: var(--ink); }
+
+  .pp-eyebrow {
+    font-size: 10.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--dim);
+    margin-bottom: 14px;
+  }
+  .pp-h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 400;
+    font-size: 44px;
+    letter-spacing: -0.022em;
+    color: var(--ink);
+    line-height: 1.06;
+    margin-bottom: 14px;
+  }
+  .pp-h1 em { font-style: italic; font-weight: 400; color: var(--ink-2); }
+  .pp-sub {
+    font-size: 14px;
+    color: var(--muted);
+    letter-spacing: -0.004em;
+    line-height: 1.5;
+    max-width: 460px;
+    margin-bottom: 44px;
+    font-weight: 450;
+  }
+
+  .tiers {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+    padding-top: 28px;
+  }
+  .tier {
+    padding: 0 22px;
+    border-right: 1px solid var(--hairline-s);
+  }
+  .tier:first-child { padding-left: 0; }
+  .tier:last-child { padding-right: 0; border-right: none; }
+  .tier .nm {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 500;
+    color: var(--ink-2);
+    margin-bottom: 12px;
+  }
+  .tier .price {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 400;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .tier .price .u {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.003em;
+    margin-left: 2px;
+  }
+  .tier .blurb {
+    font-size: 11.5px;
+    color: var(--muted);
+    letter-spacing: -0.003em;
+    line-height: 1.45;
+    margin-top: 14px;
+    margin-bottom: 18px;
+    min-height: 34px;
+  }
+  .tier .feats {
+    list-style: none;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    letter-spacing: -0.003em;
+  }
+  .tier .feats li::before {
+    content: '—';
+    color: var(--faint);
+    margin-right: 8px;
+  }
+
+  /* ── Filmstrip at bottom ───────────────────────────────────── */
+  .film {
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 14;
+  }
+  .frame {
+    width: 110px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px;
+  }
+  .frame .thumb {
+    width: 110px; height: 80px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .frame.active .thumb {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 2px var(--accent-line),
+      0 6px 16px -6px rgba(124,58,237,0.28);
+  }
+  .frame .label {
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 9.5px;
+    color: var(--muted);
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .frame.active .label {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* thumb contents — miniature renders */
+  .t-head {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 6px; background: #fafaf7;
+    border-bottom: 1px solid var(--hairline-s);
+  }
+  .t-body { position: absolute; top: 6px; left: 0; right: 0; bottom: 0; padding: 6px 7px; }
+
+  /* thumb 1 - editorial / pricing card */
+  .t1 .t-body .t-title { width: 60%; height: 5px; background: #0f766e; border-radius: 1px; }
+  .t1 .t-body .t-sub1 { width: 82%; height: 2px; background: rgba(17,17,19,0.18); border-radius: 1px; margin-top: 5px;}
+  .t1 .t-body .t-sub2 { width: 70%; height: 2px; background: rgba(17,17,19,0.12); border-radius: 1px; margin-top: 3px;}
+  .t1 .t-body .t-rows { display: flex; gap: 3px; margin-top: 10px; }
+  .t1 .t-body .t-rows div { flex: 1; height: 28px; background: rgba(17,17,19,0.05); border-radius: 1px; }
+
+  /* thumb 2 - bold/grid */
+  .t2 { background: #fffdf5; }
+  .t2 .t-body { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; }
+  .t2 .t-body .c { background: rgba(17,17,19,0.08); border-radius: 1px; }
+  .t2 .t-body .c.dark { background: #111; }
+  .t2 .t-body .c.yel { background: #facc15; }
+
+  /* thumb 3 - minimalist (the selected one - mirror center) */
+  .t3 { background: #fff; }
+  .t3 .t-body .t-title { width: 55%; height: 5px; background: #111; border-radius: 1px; }
+  .t3 .t-body .t-sub { width: 78%; height: 2px; background: rgba(17,17,19,0.14); border-radius: 1px; margin-top: 5px; }
+  .t3 .t-body .t-line { height: 1px; background: rgba(17,17,19,0.14); margin-top: 10px; }
+  .t3 .t-body .t-3col { display: flex; gap: 4px; margin-top: 6px; }
+  .t3 .t-body .t-3col div { flex: 1; }
+  .t3 .t-body .t-3col .p { width: 60%; height: 3px; background: #111; border-radius: 1px; }
+  .t3 .t-body .t-3col .l { width: 85%; height: 1.5px; background: rgba(17,17,19,0.14); border-radius: 1px; margin-top: 3px; }
+
+  /* thumb 4 - warm / playful */
+  .t4 { background: #fff5f8; }
+  .t4 .t-body .dot { width: 6px; height: 6px; background: #ec4899; border-radius: 50%; }
+  .t4 .t-body .t-title { width: 60%; height: 4px; background: rgba(236,72,153,0.6); border-radius: 1px; margin-top: 5px; }
+  .t4 .t-body .card { height: 22px; background: rgba(236,72,153,0.14); border-radius: 2px; margin-top: 6px; }
+  .t4 .t-body .card2 { height: 12px; background: rgba(17,17,19,0.06); border-radius: 1px; margin-top: 4px; }
+
+  /* thumb 5 - dark */
+  .t5 { background: #0b0b0d; }
+  .t5 .t-head { background: #18181a; border-color: rgba(255,255,255,0.06); }
+  .t5 .t-body .t-title { width: 45%; height: 4px; background: #22c55e; border-radius: 1px; }
+  .t5 .t-body .t-sub { width: 80%; height: 2px; background: rgba(255,255,255,0.22); border-radius: 1px; margin-top: 4px; }
+  .t5 .t-body .t-sub2 { width: 60%; height: 2px; background: rgba(255,255,255,0.14); border-radius: 1px; margin-top: 3px; }
+  .t5 .t-body .t-rows { display: flex; gap: 3px; margin-top: 9px; }
+  .t5 .t-body .t-rows div { flex: 1; height: 28px; background: rgba(255,255,255,0.06); border-radius: 1px; border: 1px solid rgba(255,255,255,0.08); }
+
+  /* keyboard hint */
+  .kb-hint {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: 0.02em;
+    z-index: 14;
+    display: flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .kb-hint .k {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    color: var(--muted);
+    font-size: 9.5px;
+    margin: 0 1px;
+  }
+
+  /* variant index top-right of center image */
+  .index {
+    position: absolute;
+    top: 92px;
+    left: 814px;
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 10.5px;
+    color: var(--dim);
+    letter-spacing: 0.04em;
+    z-index: 11;
+  }
+  .index b { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- ── top chrome ──────────────────────────────────────────── -->
+<div class="chrome">
+  <div class="logo"></div>
+  <div class="canvas-name">
+    Design Graph <span class="sep">/</span>
+    <span class="dim">pricing-page exploration</span>
+  </div>
+  <div class="chrome-right">
+    <div class="share">Share</div>
+    <div class="avatar">SS</div>
+  </div>
+</div>
+
+<!-- ── stage ───────────────────────────────────────────────── -->
+<div class="stage">
+
+  <!-- back affordance -->
+  <div class="back">←</div>
+
+  <!-- center: the focused variant rendering -->
+  <div class="center">
+    <div class="page-chrome">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      <div class="url">preview <span>/</span> variant-03.minimalist</div>
+    </div>
+
+    <div class="pp">
+      <div class="pp-nav">
+        <div class="pp-brand">Halden</div>
+        <div class="links">
+          <a>Product</a>
+          <a>Docs</a>
+          <a class="on">Pricing</a>
+          <a>Log in</a>
+        </div>
+      </div>
+
+      <div class="pp-eyebrow">Pricing</div>
+      <div class="pp-h1">Simple plans,<br><em>no surprises.</em></div>
+      <div class="pp-sub">Pick the tier that fits how you work today. Change or cancel whenever. Annual billing saves you two months.</div>
+
+      <div class="tiers">
+        <div class="tier">
+          <div class="nm">Solo</div>
+          <div class="price">$0<span class="u">/mo</span></div>
+          <div class="blurb">Everything you need to explore the craft.</div>
+          <ul class="feats">
+            <li>1 workspace</li>
+            <li>Community support</li>
+            <li>Local exports</li>
+          </ul>
+        </div>
+        <div class="tier">
+          <div class="nm">Studio</div>
+          <div class="price">$24<span class="u">/mo</span></div>
+          <div class="blurb">For small teams shipping real work together.</div>
+          <ul class="feats">
+            <li>Up to 8 seats</li>
+            <li>Shared libraries</li>
+            <li>Priority email</li>
+          </ul>
+        </div>
+        <div class="tier">
+          <div class="nm">Atelier</div>
+          <div class="price">Talk<span class="u"> to us</span></div>
+          <div class="blurb">Custom terms, SSO, and dedicated support.</div>
+          <ul class="feats">
+            <li>Unlimited seats</li>
+            <li>SSO &amp; audit logs</li>
+            <li>Named contact</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- variant index label -->
+  <div class="index"><b>03</b> / 05</div>
+
+  <!-- right-side info stack -->
+  <div class="info">
+    <div class="eyebrow">VARIANT · READY</div>
+    <div class="vname">Minimalist<br>pricing page</div>
+    <div class="vdesc">Editorial restraint — serif display, three tiers on a single line, dashes instead of checkmarks. Reads like a good menu.</div>
+    <div class="actions">
+      <a class="act primary">Pick this one <span class="kb">⏎</span></a>
+      <a class="act">Annotate <span class="kb">A</span></a>
+      <a class="act">Fork <span class="kb">F</span></a>
+    </div>
+  </div>
+
+  <!-- filmstrip -->
+  <div class="film">
+    <div class="frame">
+      <div class="thumb t1">
+        <div class="t-head"></div>
+        <div class="t-body">
+          <div class="t-title"></div>
+          <div class="t-sub1"></div>
+          <div class="t-sub2"></div>
+          <div class="t-rows"><div></div><div></div><div></div></div>
+        </div>
+      </div>
+      <div class="label">01 · editorial</div>
+    </div>
+
+    <div class="frame">
+      <div class="thumb t2">
+        <div class="t-head"></div>
+        <div class="t-body">
+          <div class="c yel"></div><div class="c dark"></div><div class="c"></div>
+          <div class="c"></div><div class="c"></div><div class="c"></div>
+        </div>
+      </div>
+      <div class="label">02 · bold-grid</div>
+    </div>
+
+    <div class="frame active">
+      <div class="thumb t3">
+        <div class="t-head"></div>
+        <div class="t-body">
+          <div class="t-title"></div>
+          <div class="t-sub"></div>
+          <div class="t-line"></div>
+          <div class="t-3col">
+            <div><div class="p"></div><div class="l"></div><div class="l"></div></div>
+            <div><div class="p"></div><div class="l"></div><div class="l"></div></div>
+            <div><div class="p"></div><div class="l"></div><div class="l"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="label">03 · minimalist</div>
+    </div>
+
+    <div class="frame">
+      <div class="thumb t4">
+        <div class="t-head"></div>
+        <div class="t-body">
+          <div class="dot"></div>
+          <div class="t-title"></div>
+          <div class="card"></div>
+          <div class="card2"></div>
+        </div>
+      </div>
+      <div class="label">04 · warm</div>
+    </div>
+
+    <div class="frame">
+      <div class="thumb t5">
+        <div class="t-head"></div>
+        <div class="t-body">
+          <div class="t-title"></div>
+          <div class="t-sub"></div>
+          <div class="t-sub2"></div>
+          <div class="t-rows"><div></div><div></div><div></div></div>
+        </div>
+      </div>
+      <div class="label">05 · terminal</div>
+    </div>
+  </div>
+
+  <div class="kb-hint">
+    <span class="k">←</span><span class="k">→</span> to browse &nbsp;·&nbsp; <span class="k">⏎</span> pick &nbsp;·&nbsp; <span class="k">esc</span> back
+  </div>
+
+</div>
+
+</body>
+</html>

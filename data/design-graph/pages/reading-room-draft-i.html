@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Design Graph — The reading room, Draft I</title>
+<meta name="viewport" content="width=1280" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400;1,6..72,500&family=Inter:wght@400;500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #faf8f4;
+    --ink: #1a1714;
+    --ink-soft: #3d3731;
+    --rule: #e8e2d6;
+    --rule-soft: #efeae0;
+    --mute: #8a8176;
+    --accent: #8b5cf6;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    width: 1280px;
+    height: 800px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(1100px 500px at 90% -10%, rgba(139, 92, 246, 0.04), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(139, 92, 246, 0.025), transparent 60%);
+    pointer-events: none;
+  }
+
+  .page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 34px 56px 30px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Masthead */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .masthead .brand { display: flex; align-items: center; gap: 14px; }
+  .masthead .mark {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink); font-weight: 500;
+  }
+  .masthead .mark .dot {
+    width: 7px; height: 7px; border-radius: 999px;
+    background: var(--accent); display: inline-block;
+    transform: translateY(-1px);
+  }
+  .masthead .title {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic; font-weight: 400;
+    font-size: 13px; letter-spacing: 0.02em;
+    text-transform: none; color: var(--ink-soft);
+  }
+
+  /* Body: TOC | reading | marginalia */
+  .body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 180px 1fr 160px;
+    gap: 40px;
+    padding-top: 18px;
+    min-height: 0;
+  }
+
+  /* ——— Left rail: table of contents ——— */
+  .toc {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .toc-head {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mute);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 10px;
+  }
+  .toc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .toc-item {
+    position: relative;
+    padding: 9px 10px 9px 14px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+    border-left: 2px solid transparent;
+  }
+  .toc-item.active {
+    border-left-color: var(--accent);
+    background: rgba(139, 92, 246, 0.045);
+  }
+  .toc-item .rn {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13px;
+    color: var(--mute);
+    letter-spacing: 0;
+  }
+  .toc-item.active .rn { color: var(--accent); }
+  .toc-item .lbl {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    line-height: 1.2;
+    letter-spacing: 0.005em;
+  }
+  .toc-item.active .lbl { color: var(--ink); }
+  .toc-item .sw {
+    width: 9px; height: 9px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+    display: inline-block;
+  }
+  .toc-item .sw.ed { background: #f5efe2; }       /* editorial cream */
+  .toc-item .sw.pl { background: #fef3c7; }       /* playful amber */
+  .toc-item .sw.mn { background: #ffffff; }       /* minimal white */
+  .toc-item .sw.dn { background: #1a1714; }       /* dense ink */
+  .toc-item .sw.un { background: #d9b8ff; }       /* unexpected lilac */
+
+  .toc-foot {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--mute);
+  }
+  .toc-foot .status {
+    display: block;
+    font-family: "Inter", system-ui, sans-serif;
+    font-style: normal;
+    font-size: 9px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  /* ——— Center: reading column ——— */
+  .reading {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kicker {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 8px;
+  }
+  .kicker .roman {
+    color: var(--accent);
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-right: 8px;
+  }
+  .kicker .sep { color: var(--rule); margin: 0 10px; }
+
+  .reading h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .reading h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-soft);
+  }
+  .reading .sub {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin: 0 0 16px;
+    max-width: 560px;
+  }
+
+  /* The preview "page" — an actual-fidelity pricing page in Garamond */
+  .preview-frame {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: #f5efe2;
+    border: 1px solid var(--rule);
+    box-shadow:
+      0 1px 0 rgba(26,23,20,0.04),
+      0 18px 38px -22px rgba(26,23,20,0.22),
+      0 2px 6px -2px rgba(26,23,20,0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .preview-frame::before {
+    /* left binding shadow — like a page laid flat */
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 22px;
+    background: linear-gradient(90deg, rgba(26,23,20,0.08), transparent);
+    pointer-events: none;
+  }
+  .preview-frame::after {
+    /* faint page-number */
+    content: "— i —";
+    position: absolute;
+    bottom: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-size: 10px;
+    color: rgba(26,23,20,0.35);
+    letter-spacing: 0.2em;
+  }
+
+  .pv {
+    font-family: "EB Garamond", Garamond, serif;
+    color: var(--ink);
+    padding: 22px 48px 28px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .pv-mast {
+    text-align: center;
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: var(--mute);
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid rgba(26,23,20,0.2);
+    margin-bottom: 12px;
+  }
+  .pv-mast b {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.38em;
+  }
+  .pv-title {
+    font-family: "EB Garamond", Garamond, serif;
+    font-weight: 500;
+    font-size: 30px;
+    line-height: 1.06;
+    letter-spacing: -0.012em;
+    text-align: center;
+    margin: 4px 0 4px;
+    color: var(--ink);
+  }
+  .pv-title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+  .pv-deck {
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 13.5px;
+    line-height: 1.45;
+    text-align: center;
+    color: var(--ink-soft);
+    margin: 0 auto 14px;
+    max-width: 380px;
+  }
+
+  .pv-rule {
+    text-align: center;
+    color: rgba(26,23,20,0.35);
+    font-size: 10px;
+    letter-spacing: 0.8em;
+    margin: 0 0 12px;
+    user-select: none;
+  }
+
+  .pv-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+  .pv-tier {
+    padding: 8px 14px 6px;
+    border-left: 0.5px solid rgba(26,23,20,0.18);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .pv-tier:first-child { border-left: 0; }
+
+  .pv-tier .tn {
+    font-family: "EB Garamond", Garamond, serif;
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .pv-tier .tt {
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 10px;
+    line-height: 1.35;
+    min-height: 28px;
+  }
+  .pv-tier .price {
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 38px;
+    line-height: 1;
+    text-align: center;
+    color: var(--ink);
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+  }
+  .pv-tier .price .dl {
+    font-weight: 500;
+    font-style: italic;
+    color: var(--accent);
+    margin-right: 1px;
+  }
+  .pv-tier .price .ask {
+    font-style: italic;
+    font-size: 24px;
+    color: var(--ink-soft);
+  }
+  .pv-tier .per {
+    text-align: center;
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--mute);
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+  .pv-tier ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    font-family: "EB Garamond", Garamond, serif;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    flex: 1;
+  }
+  .pv-tier li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 0;
+  }
+  .pv-tier li::after {
+    content: "";
+    grid-column: 1 / 3;
+    height: 0;
+    border-bottom: 0.5px dotted rgba(26,23,20,0.28);
+    margin-top: 3px;
+  }
+  .pv-tier li .v {
+    font-style: italic;
+    color: var(--ink);
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+  .pv-tier .choose {
+    margin-top: 8px;
+    font-family: "EB Garamond", Garamond, serif;
+    font-style: italic;
+    font-size: 11.5px;
+    text-align: center;
+    color: var(--ink);
+    border-top: 0.5px solid rgba(26,23,20,0.2);
+    padding-top: 6px;
+    letter-spacing: 0.02em;
+  }
+  .pv-tier .choose span {
+    border-bottom: 0.5px solid var(--accent);
+    padding-bottom: 1px;
+  }
+
+  /* Footer band under preview — reading actions */
+  .actions {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .actions .set {
+    display: flex;
+    gap: 28px;
+  }
+  .actions a {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 3px;
+  }
+  .actions a.primary {
+    border-bottom-color: var(--accent);
+  }
+  .actions .folio {
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--mute);
+    letter-spacing: 0;
+  }
+
+  /* ——— Right: marginalia ——— */
+  .margin {
+    padding-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+  .margin .m-head {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mute);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .note {
+    position: relative;
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    padding-left: 14px;
+    border-left: 1px solid var(--rule);
+  }
+  .note em { color: var(--ink); font-style: italic; }
+  .note .gl {
+    position: absolute;
+    left: -4px; top: -4px;
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--accent);
+    background: var(--paper);
+    padding: 0 4px 0 0;
+  }
+  .note .pull {
+    display: block;
+    font-family: "Newsreader", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 5px;
+    font-style: normal;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+
+  .nav {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: "Newsreader", Georgia, serif;
+  }
+  .nav .prev {
+    font-style: italic;
+    font-size: 11.5px;
+    color: var(--mute);
+    letter-spacing: 0;
+  }
+  .nav .next {
+    font-size: 13px;
+    color: var(--ink);
+    text-decoration: none;
+    font-style: italic;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 2px;
+    align-self: flex-start;
+  }
+  .nav .next b {
+    font-style: normal;
+    font-family: "Inter", system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-right: 6px;
+  }
+  .nav .next::after {
+    content: " \2192";
+    color: var(--accent);
+    margin-left: 4px;
+  }
+  .nav .select {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--rule);
+    padding-bottom: 3px;
+    align-self: flex-start;
+  }
+
+  /* Colophon */
+  .colophon {
+    position: absolute;
+    left: 56px; right: 56px; bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .colophon .dots { letter-spacing: 0.4em; color: var(--rule); }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="masthead">
+      <div class="brand">
+        <span class="mark"><span class="dot"></span>Design Graph</span>
+        <span class="title">continued &mdash; the reading room</span>
+      </div>
+      <div>No. 01 &nbsp;&middot;&nbsp; Chapter IV &nbsp;&middot;&nbsp; Reading</div>
+    </header>
+
+    <section class="body">
+
+      <!-- ——— Left: Table of Contents ——— -->
+      <aside class="toc">
+        <div class="toc-head">Table of contents</div>
+        <div class="toc-list">
+          <div class="toc-item active">
+            <span class="rn">I.</span>
+            <span class="lbl">The editorial one</span>
+            <span class="sw ed"></span>
+          </div>
+          <div class="toc-item">
+            <span class="rn">II.</span>
+            <span class="lbl">The playful one</span>
+            <span class="sw pl"></span>
+          </div>
+          <div class="toc-item">
+            <span class="rn">III.</span>
+            <span class="lbl">The minimalist one</span>
+            <span class="sw mn"></span>
+          </div>
+          <div class="toc-item">
+            <span class="rn">IV.</span>
+            <span class="lbl">The dense one</span>
+            <span class="sw dn"></span>
+          </div>
+          <div class="toc-item">
+            <span class="rn">V.</span>
+            <span class="lbl">The unexpected one</span>
+            <span class="sw un"></span>
+          </div>
+        </div>
+
+        <div class="toc-foot">
+          <span class="status">5 / 5 &mdash; ready to read</span>
+          <em>Drawn in 3:42 total.</em>
+        </div>
+      </aside>
+
+      <!-- ——— Center: the active draft, read in full ——— -->
+      <article class="reading">
+        <div class="kicker">
+          <span class="roman">IV</span> &middot;&nbsp; The reading room &nbsp;<span class="sep">·</span>&nbsp; Draft I of V
+        </div>
+
+        <h1>Draft I &middot; <em>The editorial one.</em></h1>
+        <p class="sub">As a Garamond-set pricing page, prioritizing readability above all else &mdash; read it before you judge it.</p>
+
+        <!-- The in-situ preview of Draft I as a real page -->
+        <div class="preview-frame">
+          <div class="pv">
+            <div class="pv-mast">A Pricing Page <b>&nbsp;in Three Editions&nbsp;</b> &middot; Vol. I</div>
+
+            <h2 class="pv-title">Three <em>editions,</em> fairly priced.</h2>
+            <p class="pv-deck">For the reader at their desk, the studio with a bench, and the house that runs the press. Pick the one whose shape matches yours.</p>
+
+            <div class="pv-rule">&middot; &middot; &middot;</div>
+
+            <div class="pv-grid">
+
+              <div class="pv-tier">
+                <div class="tn">Reader</div>
+                <div class="tt">For the solo designer, working quietly.</div>
+                <div class="price"><span class="dl">$</span>9</div>
+                <div class="per">per month, billed yearly</div>
+                <ul>
+                  <li>Solo canvas <span class="v">1</span></li>
+                  <li>Drafts per prompt <span class="v">3</span></li>
+                  <li>Version history <span class="v">30d</span></li>
+                  <li>Export <span class="v">PDF</span></li>
+                  <li>Support <span class="v">email</span></li>
+                </ul>
+                <div class="choose"><span>Begin reading</span></div>
+              </div>
+
+              <div class="pv-tier">
+                <div class="tn">Studio</div>
+                <div class="tt">For small teams sharing one bench.</div>
+                <div class="price"><span class="dl">$</span>39</div>
+                <div class="per">per seat, per month</div>
+                <ul>
+                  <li>Shared canvas <span class="v">5</span></li>
+                  <li>Drafts per prompt <span class="v">10</span></li>
+                  <li>Version history <span class="v">&infin;</span></li>
+                  <li>Annotations <span class="v">yes</span></li>
+                  <li>Support <span class="v">priority</span></li>
+                </ul>
+                <div class="choose"><span>Open a studio</span></div>
+              </div>
+
+              <div class="pv-tier">
+                <div class="tn">House</div>
+                <div class="tt">For the whole practice, with shelves.</div>
+                <div class="price"><span class="ask">Ask</span></div>
+                <div class="per">annual, invoiced</div>
+                <ul>
+                  <li>Team archive <span class="v">yes</span></li>
+                  <li>Drafts per prompt <span class="v">&infin;</span></li>
+                  <li>SSO &amp; audit <span class="v">yes</span></li>
+                  <li>Concierge <span class="v">yes</span></li>
+                  <li>Support <span class="v">named</span></li>
+                </ul>
+                <div class="choose"><span>Write to us</span></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <div class="set">
+            <a href="#">Read notes</a>
+            <a href="#">Annotate</a>
+            <a href="#" class="primary">Mark as read</a>
+          </div>
+          <span class="folio">Folio i of v &middot; <em>drafted in 54s</em></span>
+        </div>
+      </article>
+
+      <!-- ——— Right: marginalia ——— -->
+      <aside class="margin">
+        <div class="m-head">Designer&rsquo;s notes</div>
+
+        <div class="note">
+          <span class="pull">On the setting</span>
+          I leaned into <em>Garamond</em> to strip away every distraction from the numbers. The dollar sign is the loudest thing on the page &mdash; and it should be.
+        </div>
+
+        <div class="note">
+          <span class="pull">On the grid</span>
+          Three columns with <em>dotted leaders</em> &mdash; the same typographic trick a table of contents uses. A pricing page <em>is</em> a table of contents for what the product costs.
+        </div>
+
+        <div class="note">
+          <span class="pull">On what I cut</span>
+          No badges. No &ldquo;most popular&rdquo; ribbon. <em>The reader decides</em> which tier is popular, not me.
+        </div>
+
+        <div class="nav">
+          <span class="prev">&larr; <em>No earlier chapter.</em></span>
+          <a class="next" href="#"><b>Next</b>Draft II &middot; the playful one</a>
+          <a class="select" href="#">Choose this draft</a>
+        </div>
+      </aside>
+
+    </section>
+
+    <footer class="colophon">
+      <span>Set in Newsreader, Inter &amp; EB Garamond</span>
+      <span class="dots">&middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot; &middot;</span>
+      <span>Design Graph &middot; Chapter IV &middot; Reading</span>
+    </footer>
+
+  </div>
+</body>
+</html>

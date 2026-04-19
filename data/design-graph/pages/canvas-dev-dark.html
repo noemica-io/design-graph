@@ -1,0 +1,960 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>design-graph — canvas (opened, dev-dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-side: #0f0f12;
+    --bg-2: #0d0d0f;
+    --bg-3: #111114;
+    --bg-4: #0c0c0f;
+    --line: #1a1a1d;
+    --line-2: #232327;
+    --line-3: #2a2a30;
+    --fg: #e8e8ea;
+    --fg-dim: #8a8a93;
+    --fg-mute: #55555d;
+    --fg-faint: #3a3a42;
+    --accent: #c084fc;
+    --accent-2: #a855f7;
+    --accent-bg: rgba(192,132,252,0.10);
+    --green: #6ee7b7;
+    --blue: #93c5fd;
+    --amber: #fcd34d;
+    --pink: #f9a8d4;
+    --orange: #fb923c;
+    --violet: #c4b5fd;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1280px;
+    min-height: 800px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  .shell { width: 1280px; height: 800px; display: flex; flex-direction: column; }
+
+  /* ---- TOPBAR ---- */
+  .topbar {
+    height: 42px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 16px 0 18px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fg-dim);
+    background: var(--bg);
+    flex-shrink: 0;
+    gap: 14px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 9px;
+    color: var(--fg);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-size: 12px;
+  }
+  .brand .glyph {
+    width: 12px; height: 12px; display: inline-block;
+    border: 1px solid var(--accent);
+    position: relative;
+  }
+  .brand .glyph::before, .brand .glyph::after {
+    content: ""; position: absolute; background: var(--accent);
+  }
+  .brand .glyph::before { width: 3px; height: 3px; top: -2px; left: -2px; }
+  .brand .glyph::after  { width: 3px; height: 3px; bottom: -2px; right: -2px; }
+  .sep-v { width: 1px; height: 18px; background: var(--line-2); }
+  .crumb {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--fg-dim);
+  }
+  .crumb .path { color: var(--fg); }
+  .crumb .dot-sep { color: var(--fg-faint); }
+  .crumb .count { color: var(--fg-dim); }
+  .crumb .ver { color: var(--fg-mute); }
+  .crumb .ver b { color: var(--accent); font-weight: 500; }
+
+  .cmdk-hint {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--fg-mute);
+    font-size: 11px;
+  }
+  .cmdk-hint .pressed {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    background: var(--bg-3);
+    color: var(--fg-dim);
+    font-size: 10.5px;
+  }
+  .cmdk-hint .pressed b { color: var(--fg); font-weight: 500; }
+
+  .fork-hint {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    background: var(--bg-3);
+    color: var(--fg-dim);
+    font-size: 10.5px;
+  }
+  .fork-hint .k { color: var(--accent); font-weight: 500; }
+  .fork-hint .lbl { color: var(--fg); font-weight: 500; }
+
+  .avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #c084fc, #7c3aed);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #fff; font-weight: 600;
+    font-family: var(--sans);
+  }
+
+  /* ---- LAYOUT ---- */
+  .layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    min-height: 0;
+  }
+
+  /* ---- LEFT SIDEBAR ---- */
+  .sidebar {
+    background: var(--bg-side);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .side-head {
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .side-head .label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .side-search {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--bg-3);
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    padding: 5px 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--fg-mute);
+  }
+  .side-search svg { flex-shrink: 0; }
+  .side-search .ph { flex: 1; }
+  .side-search .kbd {
+    font-size: 9.5px;
+    padding: 1px 4px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    color: var(--fg-mute);
+  }
+
+  .side-label {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 14px 14px 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .side-label .num {
+    color: var(--fg-dim);
+    font-weight: 500;
+  }
+
+  .vlist { display: flex; flex-direction: column; padding: 0 6px; }
+  .vitem {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+  }
+  .vitem + .vitem { margin-top: 1px; }
+  .vitem .sw {
+    width: 9px; height: 9px; border-radius: 2px;
+    margin-top: 4px;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+  }
+  .vitem .meta { flex: 1; min-width: 0; }
+  .vitem .fname {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fg-dim);
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .vitem .fmeta {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--fg-mute);
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+  }
+  .vitem.active {
+    background: var(--accent-bg);
+  }
+  .vitem.active .fname { color: var(--accent); }
+  .vitem.active::before {
+    content: ""; position: absolute;
+    left: 0; top: 6px; bottom: 6px; width: 2px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+  }
+  .vitem.active .fmeta { color: var(--fg-dim); }
+  .vitem:hover:not(.active) { background: var(--bg-3); }
+  .vitem:hover:not(.active) .fname { color: var(--fg); }
+
+  .side-foot {
+    margin-top: auto;
+    border-top: 1px solid var(--line);
+    padding: 10px 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-mute);
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .side-foot .row { display: flex; justify-content: space-between; }
+  .side-foot .row b { color: var(--fg-dim); font-weight: 500; }
+
+  /* ---- MAIN CANVAS ---- */
+  .canvas-wrap {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.045) 1px, transparent 1.5px),
+      var(--bg);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+  }
+
+  /* canvas top-strip: left press-⌘K, right mini status */
+  .canvas-strip {
+    position: absolute;
+    top: 12px; left: 18px; right: 18px;
+    display: flex; align-items: center;
+    z-index: 5;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    pointer-events: none;
+  }
+  .canvas-strip .left, .canvas-strip .right {
+    display: inline-flex; align-items: center; gap: 8px;
+    pointer-events: auto;
+  }
+  .canvas-strip .right { margin-left: auto; }
+  .canvas-strip .pill {
+    padding: 3px 8px;
+    border: 1px solid var(--line-2);
+    border-radius: 4px;
+    background: rgba(15,15,18,0.75);
+    backdrop-filter: blur(4px);
+    color: var(--fg-dim);
+  }
+  .canvas-strip .pill .k { color: var(--accent); font-weight: 500; }
+  .canvas-strip .pill.tag { color: var(--fg-mute); }
+  .canvas-strip .live {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 9.5px;
+    padding: 3px 8px;
+    border: 1px solid rgba(110,231,183,0.2);
+    border-radius: 4px;
+    background: rgba(110,231,183,0.04);
+  }
+  .canvas-strip .live .pulse {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  /* graph layer */
+  .graph {
+    position: absolute;
+    inset: 0;
+  }
+  .edges {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .card {
+    position: absolute;
+    border: 1px solid var(--line-2);
+    border-radius: 5px;
+    background: var(--bg-3);
+    overflow: hidden;
+    box-shadow: 0 8px 20px -12px rgba(0,0,0,0.6);
+  }
+  .card.sel {
+    border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent) inset,
+      0 10px 28px -10px rgba(192,132,252,0.35);
+  }
+  .card .c-chrome {
+    height: 12px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--line-2);
+    display: flex; align-items: center; gap: 2px;
+    padding: 0 5px;
+  }
+  .card .c-chrome i {
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--fg-faint);
+  }
+  .card .c-chrome .ct {
+    margin-left: 5px;
+    font-family: var(--mono);
+    font-size: 6.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+  }
+  .card .c-body {
+    position: relative;
+    width: 100%; height: calc(100% - 12px);
+    overflow: hidden;
+  }
+  .card .tag-id {
+    position: absolute;
+    bottom: -18px; left: 0; right: 0;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--fg-mute);
+    letter-spacing: 0.02em;
+    display: flex; justify-content: space-between;
+    padding: 0 2px;
+  }
+  .card .tag-id .sw {
+    width: 7px; height: 7px; border-radius: 2px;
+    display: inline-block;
+    vertical-align: -1px;
+    margin-right: 5px;
+  }
+  .card.sel .tag-id .fn { color: var(--accent); }
+
+  /* ---- variant 1: editorial cream ---- */
+  .v-edi { background: #f3ede1; color: #2b1e10; padding: 8px 9px; position: relative; width: 100%; height: 100%; }
+  .v-edi .kick { font-family: var(--mono); font-size: 5px; letter-spacing: 0.2em; text-transform: uppercase; color: #9a6a2e; font-weight: 600; }
+  .v-edi h5 { font-family: Georgia, "Playfair Display", serif; font-weight: 700; font-size: 14px; line-height: 0.9; letter-spacing: -0.025em; margin: 4px 0 4px; color: #1a1209; }
+  .v-edi h5 em { font-style: italic; font-weight: 400; }
+  .v-edi .rule { height: 1px; background: rgba(43,30,16,0.24); margin: 3px 0; }
+  .v-edi .lede { font-family: Georgia, serif; font-size: 5.5px; line-height: 1.5; color: rgba(43,30,16,0.7); font-style: italic; max-width: 90%; }
+  .v-edi .tiers { position: absolute; bottom: 8px; left: 9px; right: 9px; display: flex; gap: 3px; font-family: var(--mono); font-size: 5px; color: rgba(43,30,16,0.6); letter-spacing: 0.05em; }
+  .v-edi .tiers span { border-top: 1px solid rgba(43,30,16,0.28); padding-top: 2px; flex: 1; }
+  .v-edi .tiers span.on { color: #1a1209; border-color: #1a1209; }
+
+  /* ---- variant 2: minimal teal-cream ---- */
+  .v-min { background: #f7f5ef; color: #0f2e2a; padding: 9px 10px; position: relative; width: 100%; height: 100%; }
+  .v-min .eye { font-family: var(--mono); font-size: 5px; letter-spacing: 0.16em; text-transform: uppercase; color: #0d6b63; font-weight: 600; }
+  .v-min h5 { font-family: Georgia, serif; font-weight: 400; font-size: 13px; line-height: 1; letter-spacing: -0.02em; margin: 4px 0 4px; color: #0f2e2a; }
+  .v-min .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; margin-top: 4px; }
+  .v-min .cell { border: 1px solid rgba(15,46,42,0.18); padding: 2px 3px; }
+  .v-min .cell .pn { font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(15,46,42,0.55); }
+  .v-min .cell .pv { font-family: Georgia, serif; font-size: 8px; font-weight: 500; margin-top: 1px; color: #0f2e2a; font-variant-numeric: tabular-nums; }
+  .v-min .cell .pv small { font-size: 5px; color: rgba(15,46,42,0.5); font-weight: 400; }
+  .v-min .cta { position: absolute; left: 10px; bottom: 8px; font-family: var(--mono); font-size: 5px; letter-spacing: 0.1em; text-transform: uppercase; color: #0d6b63; border-bottom: 1px solid #0d6b63; padding-bottom: 1px; }
+
+  /* ---- variant 3: dense comparison table ---- */
+  .v-dense { background: #fafaf9; color: #1a1a1c; padding: 9px 10px; position: relative; width: 100%; height: 100%; }
+  .v-dense .top { display: flex; align-items: center; justify-content: space-between; }
+  .v-dense h5 { font-family: "Inter", sans-serif; font-weight: 600; font-size: 9px; letter-spacing: -0.01em; color: #1a1a1c; margin: 0; }
+  .v-dense .top small { font-family: var(--mono); font-size: 5px; color: rgba(17,17,19,0.45); letter-spacing: 0.06em; text-transform: uppercase; }
+  .v-dense table { width: 100%; font-family: var(--mono); font-size: 5.5px; border-collapse: collapse; margin-top: 5px; }
+  .v-dense thead th { text-align: right; padding: 2px 2px; border-bottom: 1px solid rgba(17,17,19,0.18); color: rgba(17,17,19,0.5); font-weight: 600; font-size: 4.5px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .v-dense thead th:first-child { text-align: left; }
+  .v-dense td { padding: 2.5px 2px; border-bottom: 1px solid rgba(17,17,19,0.06); text-align: right; font-variant-numeric: tabular-nums; color: rgba(17,17,19,0.78); }
+  .v-dense td:first-child { text-align: left; color: #1a1a1c; font-weight: 500; }
+  .v-dense td.on { color: #7c3aed; font-weight: 600; }
+
+  /* ---- variant 4: dark tech ---- */
+  .v-dark { background: #0b0d12; color: #e8e9ed; padding: 9px 10px; position: relative; overflow: hidden; width: 100%; height: 100%; }
+  .v-dark::before { content: ""; position: absolute; top: -22px; right: -22px; width: 90px; height: 90px; background: radial-gradient(circle, rgba(124,58,237,0.36), transparent 65%); pointer-events: none; }
+  .v-dark .nav { font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.12em; color: rgba(232,233,237,0.55); display: flex; justify-content: space-between; text-transform: uppercase; }
+  .v-dark .nav b { color: #fff; font-weight: 600; }
+  .v-dark h5 { font-family: "Inter", sans-serif; font-weight: 700; font-size: 13px; line-height: 0.98; letter-spacing: -0.03em; margin: 6px 0 4px; background: linear-gradient(100deg, #fff 40%, #c084fc); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .v-dark .sub { font-size: 5.5px; color: rgba(232,233,237,0.55); line-height: 1.45; max-width: 110px; }
+  .v-dark .tiers { margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+  .v-dark .tier { border: 1px solid rgba(232,233,237,0.13); border-radius: 2px; padding: 3px 4px; background: rgba(255,255,255,0.02); }
+  .v-dark .tier.on { border-color: rgba(192,132,252,0.55); background: rgba(192,132,252,0.10); }
+  .v-dark .tier .pn { font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.1em; color: rgba(232,233,237,0.55); text-transform: uppercase; }
+  .v-dark .tier.on .pn { color: #c084fc; }
+  .v-dark .tier .pv { font-family: "Inter", sans-serif; font-size: 9px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; margin-top: 1px; }
+
+  /* ---- variant 5: playful icon ---- */
+  .v-play { background: #fef3c7; color: #3b2b08; padding: 8px 9px; position: relative; width: 100%; height: 100%; }
+  .v-play .row1 { display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 5px; color: rgba(59,43,8,0.65); letter-spacing: 0.04em; }
+  .v-play .row1 .pill { background: #fff; border: 1px solid rgba(59,43,8,0.18); border-radius: 99px; padding: 1px 4px; color: #854d0e; font-weight: 600; font-size: 4.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .v-play .glyph {
+    margin: 3px auto 2px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #fb923c;
+    position: relative;
+    display: block;
+  }
+  .v-play .glyph::before { content: ""; position: absolute; inset: 7px; background: #fef3c7; border-radius: 50%; }
+  .v-play .glyph::after { content: ""; position: absolute; top: 10px; left: 10px; width: 10px; height: 10px; background: #fb923c; border-radius: 2px; transform: rotate(45deg); }
+  .v-play h5 { font-family: "Inter", sans-serif; font-weight: 800; font-size: 11px; line-height: 1; letter-spacing: -0.025em; margin: 4px 0 4px; text-align: center; color: #451a03; }
+  .v-play h5 em { font-style: normal; color: #c2410c; }
+  .v-play .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; margin-top: 2px; }
+  .v-play .tile { background: #fff; border-radius: 4px; padding: 3px 3px 4px; text-align: center; border: 1px solid rgba(59,43,8,0.08); }
+  .v-play .tile.on { background: #fb923c; color: #fff; }
+  .v-play .tile .t { font-family: var(--mono); font-size: 4.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(59,43,8,0.6); }
+  .v-play .tile.on .t { color: rgba(255,255,255,0.85); }
+  .v-play .tile .v { font-size: 9px; font-weight: 800; letter-spacing: -0.02em; margin-top: 1px; color: #451a03; font-variant-numeric: tabular-nums; }
+  .v-play .tile.on .v { color: #fff; }
+
+  /* ---- INSPECTOR (command-palette style) ---- */
+  .inspector {
+    position: absolute;
+    z-index: 8;
+    width: 268px;
+    background: rgba(17,17,20,0.96);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--line-3);
+    border-radius: 7px;
+    box-shadow:
+      0 24px 60px -16px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(192,132,252,0.18) inset;
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .ins-head {
+    padding: 9px 12px 8px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(192,132,252,0.04);
+  }
+  .ins-head .fp-ico { color: var(--accent); }
+  .ins-head .fp {
+    color: var(--fg);
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ins-head .fp .sub { color: var(--accent); }
+  .ins-head .x { color: var(--fg-mute); font-size: 10px; }
+
+  .ins-keys {
+    padding: 8px 12px;
+    display: flex; flex-wrap: wrap; gap: 7px 10px;
+    border-bottom: 1px solid var(--line-2);
+    font-size: 10px;
+    color: var(--fg-dim);
+  }
+  .ins-keys .k {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .ins-keys .k .kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    background: var(--bg-3);
+    color: var(--fg);
+    font-size: 9.5px;
+  }
+  .ins-keys .k.primary .kbd { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+  .ins-keys .sep { color: var(--fg-faint); }
+
+  .ins-meta {
+    padding: 9px 12px 10px;
+    border-bottom: 1px solid var(--line-2);
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    row-gap: 4px;
+    column-gap: 10px;
+    font-size: 10.5px;
+  }
+  .ins-meta .lbl { color: var(--fg-mute); text-transform: uppercase; letter-spacing: 0.08em; font-size: 9px; padding-top: 1px; }
+  .ins-meta .val { color: var(--fg-dim); }
+  .ins-meta .val b { color: var(--fg); font-weight: 500; }
+  .ins-meta .swatches { display: inline-flex; gap: 3px; vertical-align: -1px; margin-left: 4px; }
+  .ins-meta .swatches i {
+    display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .ins-preview {
+    padding: 9px 12px 11px;
+    background: rgba(10,10,11,0.6);
+  }
+  .ins-preview .run {
+    color: var(--fg-dim);
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ins-preview .run .ps1 { color: var(--accent); }
+  .ins-preview .run .cmd { color: var(--fg); }
+  .ins-preview .run .arg { color: var(--green); }
+  .ins-preview .mini {
+    margin-top: 7px;
+    height: 54px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    background: #f3ede1;
+  }
+  .ins-preview .mini .mp {
+    padding: 5px 6px; color: #2b1e10;
+  }
+  .ins-preview .mini .mk { font-family: var(--mono); font-size: 4px; letter-spacing: 0.2em; text-transform: uppercase; color: #9a6a2e; font-weight: 600; }
+  .ins-preview .mini .mh { font-family: Georgia, serif; font-weight: 700; font-size: 11px; line-height: 0.95; letter-spacing: -0.025em; margin: 2px 0 0; color: #1a1209; }
+  .ins-preview .mini .mh em { font-style: italic; font-weight: 400; }
+  .ins-preview .mini .mft { position: absolute; left: 6px; right: 6px; bottom: 4px; display: flex; gap: 2px; font-family: var(--mono); font-size: 4px; letter-spacing: 0.05em; color: rgba(43,30,16,0.7); }
+  .ins-preview .mini .mft span { flex: 1; border-top: 1px solid rgba(43,30,16,0.28); padding-top: 1px; }
+  .ins-preview .mini .mft span.on { color: #1a1209; border-color: #1a1209; }
+
+  /* ---- MINIMAP ---- */
+  .minimap {
+    position: absolute;
+    right: 14px;
+    bottom: 44px;
+    width: 148px;
+    height: 98px;
+    background: rgba(13,13,15,0.82);
+    border: 1px solid var(--line-2);
+    border-radius: 5px;
+    z-index: 6;
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+  }
+  .minimap .mhead {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--fg-mute);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--line-2);
+    display: flex; justify-content: space-between;
+  }
+  .minimap .mbody {
+    position: relative;
+    height: calc(100% - 20px);
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 1.2px),
+      rgba(10,10,11,0.7);
+    background-size: 8px 8px;
+  }
+  .minimap .mn {
+    position: absolute;
+    border-radius: 1px;
+    opacity: 0.85;
+  }
+  .minimap .mv {
+    position: absolute;
+    border: 1px solid var(--accent);
+    background: rgba(192,132,252,0.08);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  /* ---- STATUS BAR ---- */
+  .statusbar {
+    height: 26px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--line);
+    background: var(--bg-side);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--fg-mute);
+    gap: 14px;
+  }
+  .statusbar .seg { display: inline-flex; align-items: center; gap: 6px; }
+  .statusbar .ok { color: var(--green); }
+  .statusbar .acc { color: var(--accent); }
+  .statusbar .dim { color: var(--fg-dim); }
+  .statusbar b { color: var(--fg); font-weight: 500; }
+  .statusbar .dot-sep { color: var(--fg-faint); }
+  .statusbar .right { margin-left: auto; display: inline-flex; align-items: center; gap: 14px; }
+  .statusbar .hot { display: inline-flex; align-items: center; gap: 5px; }
+  .statusbar .hot .pulse {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 5px var(--green);
+  }
+  .statusbar .kbdinline {
+    padding: 0 4px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    color: var(--fg-dim);
+    font-size: 9.5px;
+  }
+
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand"><span class="glyph"></span> design-graph</div>
+    <div class="sep-v"></div>
+    <div class="crumb">
+      <span class="path">~/my-pricing-canvas</span>
+      <span class="dot-sep">·</span>
+      <span class="count">5 variants</span>
+      <span class="dot-sep">·</span>
+      <span class="ver">v<b>0.4.2</b></span>
+    </div>
+
+    <div class="cmdk-hint">
+      <span class="pressed">press <b>⌘K</b> to search</span>
+    </div>
+
+    <div class="fork-hint" style="margin-left:14px;">
+      <span class="k">⌘⏎</span>
+      <span class="lbl">fork</span>
+    </div>
+    <div class="avatar" style="margin-left:12px;">SS</div>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="side-head">
+        <div class="label">project</div>
+        <div class="side-search">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <span class="ph">find variant…</span>
+          <span class="kbd">/</span>
+        </div>
+      </div>
+
+      <div class="side-label">pages/ <span class="num">· 5</span></div>
+
+      <div class="vlist">
+        <div class="vitem">
+          <span class="sw" style="background:#9a6a2e"></span>
+          <div class="meta">
+            <div class="fname">pricing-editorial.html</div>
+            <div class="fmeta">14.2 kB · 2m ago</div>
+          </div>
+        </div>
+        <div class="vitem">
+          <span class="sw" style="background:#0d6b63"></span>
+          <div class="meta">
+            <div class="fname">pricing-minimal.html</div>
+            <div class="fmeta">11.8 kB · 2m ago</div>
+          </div>
+        </div>
+        <div class="vitem">
+          <span class="sw" style="background:#7c3aed"></span>
+          <div class="meta">
+            <div class="fname">pricing-dense-table.html</div>
+            <div class="fmeta">18.6 kB · 1m ago</div>
+          </div>
+        </div>
+        <div class="vitem active">
+          <span class="sw" style="background:#c084fc"></span>
+          <div class="meta">
+            <div class="fname">pricing-dark-tech.html</div>
+            <div class="fmeta">16.0 kB · 1m ago</div>
+          </div>
+        </div>
+        <div class="vitem">
+          <span class="sw" style="background:#fb923c"></span>
+          <div class="meta">
+            <div class="fname">pricing-playful-icon.html</div>
+            <div class="fmeta">13.4 kB · 40s ago</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-label">graph <span class="num">· 1</span></div>
+      <div class="vlist">
+        <div class="vitem">
+          <span class="sw" style="background:#2a2a30"></span>
+          <div class="meta">
+            <div class="fname">graph-data.js</div>
+            <div class="fmeta">1.1 kB · just now</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-foot">
+        <div class="row"><span>branch</span><b>main</b></div>
+        <div class="row"><span>depth</span><b>0 · root</b></div>
+        <div class="row"><span>tokens</span><b>42.8k</b></div>
+      </div>
+    </aside>
+
+    <!-- CANVAS -->
+    <div class="canvas-wrap">
+
+      <!-- strip -->
+      <div class="canvas-strip">
+        <div class="left">
+          <span class="pill tag">canvas · graph</span>
+          <span class="pill"><span class="k">j</span> <span class="k">k</span> &nbsp;step</span>
+          <span class="pill"><span class="k">z</span> &nbsp;zoom to fit</span>
+        </div>
+        <div class="right">
+          <span class="live"><span class="pulse"></span>watching pages/</span>
+        </div>
+      </div>
+
+      <!-- edges (SVG) -->
+      <svg class="edges" viewBox="0 0 1040 738" preserveAspectRatio="none">
+        <defs>
+          <marker id="arrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#2a2a30"/>
+          </marker>
+          <marker id="arrow-acc" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#c084fc"/>
+          </marker>
+        </defs>
+
+        <!-- editorial (top-left) → dense (center)  -->
+        <path d="M 200,230 C 320,230 340,340 440,340" stroke="#2a2a30" stroke-width="1" stroke-dasharray="2 3" fill="none" marker-end="url(#arrow)"/>
+        <!-- minimal (left-mid) → dense (center) -->
+        <path d="M 200,480 C 320,480 340,380 440,380" stroke="#2a2a30" stroke-width="1" stroke-dasharray="2 3" fill="none" marker-end="url(#arrow)"/>
+        <!-- dense (center) → dark-tech (right-selected) -->
+        <path d="M 588,370 C 640,370 680,340 720,340" stroke="#c084fc" stroke-width="1" stroke-dasharray="2 3" fill="none" marker-end="url(#arrow-acc)" opacity="0.75"/>
+        <!-- dense (center) → playful (right-bottom) -->
+        <path d="M 588,390 C 640,390 680,500 720,500" stroke="#2a2a30" stroke-width="1" stroke-dasharray="2 3" fill="none" marker-end="url(#arrow)"/>
+        <!-- editorial → minimal (vertical) -->
+        <path d="M 130,300 C 130,360 130,400 130,440" stroke="#2a2a30" stroke-width="1" stroke-dasharray="2 3" fill="none" marker-end="url(#arrow)"/>
+      </svg>
+
+      <!-- cards -->
+      <div class="graph">
+
+        <!-- 1: editorial cream (top-left) -->
+        <div class="card" style="left:42px; top:150px; width:176px; height:130px;">
+          <div class="c-chrome"><i></i><i></i><i></i><span class="ct">pricing-editorial.html</span></div>
+          <div class="c-body">
+            <div class="v-edi">
+              <div class="kick">Vol.01 · Pricing</div>
+              <h5>Books you'll<br/>actually <em>open.</em></h5>
+              <div class="rule"></div>
+              <div class="lede">Three tiers, one honest idea. You pay for what you actually keep open.</div>
+              <div class="tiers"><span class="on">Solo</span><span>Studio</span><span>Firm</span></div>
+            </div>
+          </div>
+          <div class="tag-id"><span class="fn"><span class="sw" style="background:#9a6a2e"></span>editorial</span><span>01</span></div>
+        </div>
+
+        <!-- 2: minimal teal (left-middle) -->
+        <div class="card" style="left:42px; top:430px; width:176px; height:130px;">
+          <div class="c-chrome"><i></i><i></i><i></i><span class="ct">pricing-minimal.html</span></div>
+          <div class="c-body">
+            <div class="v-min">
+              <div class="eye">LEDGER · PRICING</div>
+              <h5>Flat fee.<br/>No seat tax.</h5>
+              <div class="grid">
+                <div class="cell"><div class="pn">Solo</div><div class="pv">$0</div></div>
+                <div class="cell"><div class="pn">Team</div><div class="pv">$29<small>/mo</small></div></div>
+                <div class="cell"><div class="pn">Firm</div><div class="pv">Call</div></div>
+              </div>
+              <div class="cta">Start free →</div>
+            </div>
+          </div>
+          <div class="tag-id"><span class="fn"><span class="sw" style="background:#0d6b63"></span>minimal</span><span>02</span></div>
+        </div>
+
+        <!-- 3: dense table (center) -->
+        <div class="card" style="left:412px; top:305px; width:176px; height:130px;">
+          <div class="c-chrome"><i></i><i></i><i></i><span class="ct">pricing-dense-table.html</span></div>
+          <div class="c-body">
+            <div class="v-dense">
+              <div class="top">
+                <h5>Compare plans</h5>
+                <small>3 · 7</small>
+              </div>
+              <table>
+                <thead><tr><th>Feature</th><th>Solo</th><th>Team</th><th>Firm</th></tr></thead>
+                <tbody>
+                  <tr><td>Canvases</td><td>3</td><td class="on">∞</td><td>∞</td></tr>
+                  <tr><td>Seats</td><td>1</td><td class="on">10</td><td>∞</td></tr>
+                  <tr><td>Agents</td><td>2</td><td class="on">8</td><td>32</td></tr>
+                  <tr><td>History</td><td>—</td><td class="on">30d</td><td>∞</td></tr>
+                  <tr><td>SSO</td><td>—</td><td>—</td><td>✓</td></tr>
+                  <tr><td>Price</td><td>$0</td><td class="on">$29</td><td>Call</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tag-id"><span class="fn"><span class="sw" style="background:#7c3aed"></span>dense-table</span><span>03</span></div>
+        </div>
+
+        <!-- 4: dark tech (right-upper) — SELECTED -->
+        <div class="card sel" style="left:720px; top:280px; width:200px; height:152px;">
+          <div class="c-chrome"><i></i><i></i><i></i><span class="ct" style="color:#c084fc">pricing-dark-tech.html</span></div>
+          <div class="c-body">
+            <div class="v-dark">
+              <div class="nav"><b>LEDGER</b><span>Pricing · Docs · Log in</span></div>
+              <h5>Books that<br/>scale with<br/>the firm.</h5>
+              <div class="sub">Per-canvas pricing with headroom for bursty parallel runs.</div>
+              <div class="tiers">
+                <div class="tier"><div class="pn">Solo</div><div class="pv">$0</div></div>
+                <div class="tier on"><div class="pn">Team</div><div class="pv">$29<small>/mo</small></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="tag-id"><span class="fn"><span class="sw" style="background:#c084fc"></span>dark-tech</span><span>04</span></div>
+        </div>
+
+        <!-- 5: playful icon (right-lower) -->
+        <div class="card" style="left:720px; top:485px; width:176px; height:130px;">
+          <div class="c-chrome"><i></i><i></i><i></i><span class="ct">pricing-playful-icon.html</span></div>
+          <div class="c-body">
+            <div class="v-play">
+              <div class="row1"><span>ledger.app</span><span class="pill">new</span></div>
+              <div class="glyph"></div>
+              <h5>Pick a plan.<br/>Ship a <em>canvas.</em></h5>
+              <div class="grid3">
+                <div class="tile"><div class="t">Solo</div><div class="v">$0</div></div>
+                <div class="tile on"><div class="t">Team</div><div class="v">$29</div></div>
+                <div class="tile"><div class="t">Firm</div><div class="v">Call</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="tag-id"><span class="fn"><span class="sw" style="background:#fb923c"></span>playful-icon</span><span>05</span></div>
+        </div>
+
+        <!-- INSPECTOR (floats near selected card) -->
+        <div class="inspector" style="left:394px; top:118px;">
+          <div class="ins-head">
+            <svg class="fp-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <span class="fp">pages/<span class="sub">pricing-dark-tech</span>.html</span>
+            <span class="x">esc</span>
+          </div>
+
+          <div class="ins-keys">
+            <span class="k primary"><span class="kbd">o</span> open</span>
+            <span class="sep">·</span>
+            <span class="k"><span class="kbd">f</span> fork</span>
+            <span class="sep">·</span>
+            <span class="k"><span class="kbd">d</span> duplicate</span>
+            <span class="sep">·</span>
+            <span class="k"><span class="kbd">x</span> delete</span>
+          </div>
+
+          <div class="ins-meta">
+            <span class="lbl">agent</span>
+            <span class="val"><b>agent-03</b> <span style="color:var(--fg-mute)">· dev-dark</span></span>
+
+            <span class="lbl">duration</span>
+            <span class="val"><b>68.2s</b> <span style="color:var(--fg-mute)">· 4.2k tok</span></span>
+
+            <span class="lbl">palette</span>
+            <span class="val"><span class="swatches"><i style="background:#0b0d12"></i><i style="background:#c084fc"></i><i style="background:#ffffff"></i><i style="background:#232327"></i></span></span>
+
+            <span class="lbl">type</span>
+            <span class="val"><b>Inter 700</b> <span style="color:var(--fg-mute)">+ JetBrains Mono</span></span>
+
+            <span class="lbl">lens</span>
+            <span class="val">jakob's law</span>
+
+            <span class="lbl">depth</span>
+            <span class="val"><b>0</b> · no ancestors</span>
+          </div>
+
+          <div class="ins-preview">
+            <div class="run"><span class="ps1">$</span> <span class="cmd">design-graph</span> preview <span class="arg">pricing-dark-tech</span></div>
+            <div class="mini">
+              <div class="v-dark" style="padding: 5px 7px;">
+                <div class="nav" style="font-size:3.6px;"><b>LEDGER</b><span>PRICING · DOCS · LOG IN</span></div>
+                <h5 style="font-size:9px; margin: 4px 0 2px;">Books that scale<br/>with the firm.</h5>
+                <div class="tiers" style="margin-top:3px;">
+                  <div class="tier" style="padding:2px 3px;"><div class="pn" style="font-size:3.5px;">Solo</div><div class="pv" style="font-size:6px;">$0</div></div>
+                  <div class="tier on" style="padding:2px 3px;"><div class="pn" style="font-size:3.5px;">Team</div><div class="pv" style="font-size:6px;">$29</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MINIMAP -->
+      <div class="minimap">
+        <div class="mhead"><span>minimap</span><span style="color:var(--fg-dim)">1:8</span></div>
+        <div class="mbody">
+          <!-- proportional miniatures of the 5 cards -->
+          <div class="mn" style="left:8px;  top:18px; width:20px; height:14px; background:#9a6a2e;"></div>
+          <div class="mn" style="left:8px;  top:48px; width:20px; height:14px; background:#0d6b63;"></div>
+          <div class="mn" style="left:50px; top:33px; width:20px; height:14px; background:#7c3aed;"></div>
+          <div class="mn" style="left:90px; top:26px; width:24px; height:18px; background:#c084fc;"></div>
+          <div class="mn" style="left:90px; top:52px; width:20px; height:14px; background:#fb923c;"></div>
+          <!-- viewport rect -->
+          <div class="mv" style="left:3px; top:8px; width:128px; height:60px;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="statusbar">
+    <span class="seg"><span class="ok">✓</span> <b>5 variants</b></span>
+    <span class="dot-sep">·</span>
+    <span class="seg dim">ready</span>
+    <span class="dot-sep">·</span>
+    <span class="seg hot"><span class="pulse"></span><span class="dim">hot-reload</span> <b>on</b></span>
+    <span class="dot-sep">·</span>
+    <span class="seg dim">watching <span class="acc">pages/</span></span>
+
+    <span class="right">
+      <span class="seg dim">selected <b>pricing-dark-tech</b></span>
+      <span class="dot-sep">·</span>
+      <span class="seg"><span class="kbdinline">⌘⏎</span> fork</span>
+      <span class="seg"><span class="kbdinline">o</span> open</span>
+      <span class="seg"><span class="kbdinline">?</span> help</span>
+    </span>
+  </div>
+
+</div>
+</body>
+</html>

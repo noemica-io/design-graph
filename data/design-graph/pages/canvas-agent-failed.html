@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Design Graph — canvas (agent failed)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Fraunces:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:          #fafaf7;
+    --canvas:      #f5f4ef;
+    --ink:         #111113;
+    --ink-2:       rgba(17,17,19,0.72);
+    --muted:       rgba(17,17,19,0.52);
+    --dim:         rgba(17,17,19,0.34);
+    --faint:       rgba(17,17,19,0.18);
+    --hairline:    rgba(17,17,19,0.10);
+    --hairline-s:  rgba(17,17,19,0.06);
+    --surface:     #ffffff;
+    --accent:      #7c3aed;
+    --accent-soft: rgba(124,58,237,0.10);
+    --accent-line: rgba(124,58,237,0.32);
+    --ready:       #22c55e;
+    --ready-ink:   #15803d;
+    --ready-soft:  rgba(34,197,94,0.12);
+    --ready-line:  rgba(34,197,94,0.32);
+    --err:         #dc2626;
+    --err-soft:    rgba(220,38,38,0.06);
+    --err-tint:    rgba(220,38,38,0.10);
+    --err-line:    rgba(220,38,38,0.26);
+  }
+
+  html, body {
+    width: 1280px; height: 800px;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: 'cv11','ss01','ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.006em;
+  }
+
+  /* chrome */
+  .chrome {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 44px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--hairline);
+    display: flex; align-items: center;
+    padding: 0 16px;
+    z-index: 20;
+    font-size: 12px;
+  }
+  .logo {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--accent);
+    position: relative; display: inline-block;
+    margin-right: 10px;
+  }
+  .logo::before, .logo::after {
+    content: ''; position: absolute;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #fff;
+  }
+  .logo::before { top: 4px; left: 4px; }
+  .logo::after { bottom: 4px; right: 4px; box-shadow: -5px 0 0 #fff; }
+
+  .brand { font-weight: 600; letter-spacing: -0.012em; font-size: 13px; }
+  .brand .dim { color: var(--muted); font-weight: 450; margin-left: 6px; }
+  .chrome-sep { width: 1px; height: 18px; background: var(--hairline); margin: 0 14px; }
+  .breadcrumb {
+    font-size: 12px; color: var(--muted); font-weight: 450;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .breadcrumb strong { color: var(--ink); font-weight: 500; }
+  .breadcrumb .chev { color: var(--faint); font-size: 10px; }
+
+  .chrome-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .chip {
+    height: 26px; padding: 0 10px;
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ink-2); background: var(--surface);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .chip.status {
+    color: var(--ink-2);
+    background: var(--surface);
+  }
+  .chip.status .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--ready);
+  }
+  .chip.status .dot.err {
+    background: var(--err);
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.14);
+  }
+  .chip.kbd { color: var(--muted); padding: 0 8px; font-family: 'JetBrains Mono','SF Mono',Menlo,monospace; font-size: 10.5px; letter-spacing: 0.02em; }
+  .chip .k {
+    display: inline-block; padding: 1px 4px; border-radius: 2px;
+    background: #f5f4ef; border: 1px solid var(--hairline); margin: 0 2px; font-size: 9.5px;
+  }
+  .chip.share { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .avatars { display: flex; margin-right: 4px; }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--surface);
+    font-size: 9.5px; font-weight: 600; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar + .avatar { margin-left: -7px; }
+  .avatar.a { background: #7c3aed; }
+  .avatar.b { background: #a855f7; }
+
+  /* stage */
+  .stage {
+    position: absolute; top: 44px; left: 0; right: 0; bottom: 0;
+    background: var(--canvas);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(17,17,19,0.09) 1px, transparent 0);
+    background-size: 18px 18px;
+    background-position: -9px -9px;
+    overflow: hidden;
+  }
+  .stage::after {
+    content: ''; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 58% 46%, rgba(250,250,247,0.4) 0%, rgba(250,250,247,0.14) 42%, transparent 68%);
+    pointer-events: none;
+  }
+
+  /* prompt pin */
+  .prompt-pin {
+    position: absolute;
+    top: 14px; left: 58%;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 6px 6px 6px 14px;
+    box-shadow: 0 2px 10px -4px rgba(17,17,19,0.08);
+    z-index: 14;
+    font-size: 12.5px;
+    letter-spacing: -0.004em;
+  }
+  .prompt-pin .eye {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); font-weight: 600;
+    margin-right: 10px;
+  }
+  .prompt-pin .eye .md {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .prompt-pin .txt {
+    color: var(--ink); font-weight: 450;
+    max-width: 360px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .prompt-pin .txt q { quotes: none; }
+  .prompt-pin .sep { width: 1px; height: 14px; background: var(--hairline); margin: 0 10px; }
+  .prompt-pin .n-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    background: rgba(17,17,19,0.04);
+    color: var(--ink-2);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .prompt-pin .n-pill b { color: var(--ready-ink); font-weight: 600; }
+  .prompt-pin .n-pill i { color: var(--err); font-style: normal; font-weight: 600; }
+  .prompt-pin .n-pill .mid { color: var(--faint); margin: 0 2px; }
+
+  /* recovery banner */
+  .banner {
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--err-line);
+    border-left: 2px solid var(--err);
+    border-radius: 6px;
+    padding: 8px 12px 8px 12px;
+    z-index: 13;
+    font-size: 11.5px;
+    box-shadow: 0 2px 10px -4px rgba(17,17,19,0.06);
+  }
+  .banner .bicon {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--err-tint);
+    color: var(--err);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .banner .btxt { color: var(--ink-2); }
+  .banner .btxt b { color: var(--ink); font-weight: 500; }
+  .banner .sep { width: 1px; height: 14px; background: var(--hairline); }
+  .banner a.quiet {
+    color: var(--muted); text-decoration: none;
+    border-bottom: 1px dashed var(--faint); padding-bottom: 1px;
+    font-weight: 450;
+  }
+  .banner a.quiet:hover { color: var(--ink); }
+
+  /* sidebar */
+  .sidebar {
+    position: absolute; top: 20px; left: 20px;
+    width: 226px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 10px;
+    padding: 14px 12px 10px;
+    z-index: 12;
+    font-size: 11.5px;
+  }
+  .sidebar h4 {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--dim);
+    margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 2px;
+  }
+  .sidebar h4 .count {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500; letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .sidebar h4 .count b { color: var(--ready-ink); font-weight: 600; }
+  .sidebar h4 .count i { color: var(--err); font-style: normal; font-weight: 600; }
+  .v-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 6px; border-radius: 6px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    border: 1px solid transparent;
+  }
+  .v-row + .v-row { margin-top: 2px; }
+  .v-row.on { background: var(--accent-soft); color: var(--ink); }
+  .v-row.failed { background: var(--err-soft); border-color: var(--err-line); color: var(--ink); }
+  .v-row .thumb {
+    width: 24px; height: 18px; border-radius: 3px; flex-shrink: 0;
+    background: #fafaf7; border: 1px solid var(--hairline-s);
+    position: relative; overflow: hidden;
+  }
+  .v-row .thumb .tl-a { position:absolute; top:2px; left:2px; right:8px; height: 2px; background: rgba(17,17,19,0.18); border-radius: 1px; }
+  .v-row .thumb .tl-b { position:absolute; top:6px; left:2px; right:4px; height: 1.5px; background: rgba(17,17,19,0.10); border-radius: 1px; }
+  .v-row .thumb .tl-c { position:absolute; top:10px; left:2px; right:10px; height: 1.5px; background: rgba(17,17,19,0.10); border-radius: 1px; }
+  .v-row .thumb.failed {
+    border: 1px dashed var(--err-line);
+    background: var(--err-tint);
+  }
+  .v-row .thumb.failed::after {
+    content: '!'; position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--err); font-size: 10px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .v-row .v-meta {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .v-row .v-name {
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 10.5px; letter-spacing: 0;
+    color: var(--ink); font-weight: 500;
+  }
+  .v-row .v-sub {
+    font-size: 9.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .v-row.failed .v-sub { color: var(--err); }
+  .pill {
+    font-size: 9.5px; font-weight: 600;
+    padding: 2px 6px; border-radius: 3px;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .pill.ready { background: var(--ready-soft); color: var(--ready-ink); }
+  .pill.failed { background: var(--err-tint); color: var(--err); }
+
+  .side-sep { height: 1px; background: var(--hairline-s); margin: 10px 2px 8px; }
+
+  .log-title {
+    font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--dim);
+    padding: 0 4px 6px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .log-title .done {
+    color: var(--muted); font-weight: 500;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .log {
+    font-family: 'JetBrains Mono','SF Mono',Menlo,monospace;
+    font-size: 9.5px;
+    color: var(--ink-2);
+    padding: 2px 4px;
+    line-height: 1.55;
+    letter-spacing: 0;
+  }
+  .log-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .log-line + .log-line { margin-top: 2px; }
+  .log-line .ts { color: var(--dim); margin-right: 6px; }
+  .log-line .ag { color: var(--ink); }
+  .log-line.done .tag { color: var(--ready-ink); }
+  .log-line.fail .tag { color: var(--err); }
+  .log-line.fail { color: var(--err); }
+  .log-line .tag { margin-right: 4px; font-weight: 600; }
+  .log-line .ms { color: var(--muted); }
+  .log-line.fail .ms { color: rgba(220,38,38,0.72); }
+
+  .sidebar-foot {
+    margin-top: 10px; padding: 8px 4px 0;
+    border-top: 1px solid var(--hairline-s);
+    font-size: 9.5px; color: var(--dim);
+    display: flex; justify-content: space-between;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+  }
+  .sidebar-foot a { color: var(--muted); text-decoration: none; border-bottom: 1px dashed var(--faint); padding-bottom: 1px; }
+
+  /* zoom + minimap */
+  .zoom {
+    position: absolute; bottom: 20px; right: 20px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 4px; display: flex; gap: 2px;
+    z-index: 12;
+    font-family: 'JetBrains Mono',Menlo,monospace;
+    font-size: 11px;
+  }
+  .zoom button {
+    width: 26px; height: 26px;
+    border: none; background: transparent;
+    color: var(--ink-2); font-size: 13px;
+    border-radius: 5px; font-family: inherit;
+  }
+  .zoom .pct {
+    height: 26px; line-height: 26px;
+    padding: 0 8px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mini {
+    position: absolute; bottom: 20px; left: 20px;
+    width: 168px; height: 96px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    z-index: 12;
+    overflow: hidden;
+  }
+  .mini-label {
+    position: absolute; top: 6px; left: 8px;
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--dim); font-weight: 600;
+  }
+
+  /* edges */
+  .edges { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
+  .edges path { fill: none; stroke: rgba(124,58,237,0.42); stroke-width: 1; stroke-dasharray: none; }
+  .edges path.fail {
+    stroke: rgba(220,38,38,0.42);
+    stroke-dasharray: 3 3;
+  }
+
+  /* cards */
+  .card {
+    position: absolute;
+    width: 268px; height: 184px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 7px;
+    overflow: hidden;
+    z-index: 5;
+    box-shadow: 0 1px 0 rgba(17,17,19,0.02), 0 3px 10px -6px rgba(17,17,19,0.08);
+  }
+  .card.ready {
+    border-color: var(--ready-line);
+    box-shadow: 0 0 0 1px rgba(34,197,94,0.14), 0 6px 20px -10px rgba(34,197,94,0.18);
+  }
+  .card.failed {
+    background: var(--err-soft);
+    border: 1px dashed var(--err-line);
+    box-shadow: none;
+    z-index: 8;
+    width: 296px; height: 210px;
+  }
+  .card-head {
+    height: 18px;
+    border-bottom: 1px solid var(--hairline-s);
+    display: flex; align-items: center; gap: 3px;
+    padding: 0 8px;
+    background: #fafaf7;
+  }
+  .card-head .tl { width: 5px; height: 5px; border-radius: 50%; background: rgba(17,17,19,0.18); }
+  .card-head .bar { flex: 1; height: 6px; margin: 0 6px; background: #eeece4; border-radius: 2px; }
+  .card-head .corner {
+    font-size: 9px; color: var(--muted);
+    font-family: 'JetBrains Mono',Menlo,monospace;
+    letter-spacing: 0;
+  }
+  .card-meta {
+    position: absolute; bottom: -22px; left: 2px; right: 2px;
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--muted);
+    font-family: 'JetBrains Mono',Menlo,monospace;
+    letter-spacing: 0;
+  }
+  .card-meta .sub { color: var(--ink-2); font-weight: 500; font-family: 'Inter', sans-serif; letter-spacing: -0.005em; }
+  .card-meta .sub.fail { color: var(--err); }
+  .card-meta .id { color: var(--dim); }
+
+  .card .badge {
+    position: absolute; top: 5px; right: 6px;
+    z-index: 2;
+    display: inline-flex; align-items: center; gap: 4px;
+    height: 15px;
+    padding: 0 6px;
+    border-radius: 3px;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .card .badge.ready { background: var(--ready-soft); color: var(--ready-ink); }
+  .card .badge.failed { background: var(--err-tint); color: var(--err); border: 1px solid var(--err-line); }
+
+  /* ── mini pricing pages ─────────────────────────────────────── */
+
+  /* shared */
+  .page { padding: 12px 14px 0; height: 166px; overflow: hidden; position: relative; }
+
+  /* variant A — editorial serif */
+  .pA .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .pA .brand {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: -0.01em; color: var(--ink);
+  }
+  .pA .brand::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #0f766e; margin-right: 5px; vertical-align: middle;
+  }
+  .pA .nav { font-size: 7.5px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 500; }
+  .pA .nav span + span { margin-left: 7px; }
+  .pA .h {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 15px; line-height: 1.1;
+    font-weight: 500; letter-spacing: -0.018em;
+    color: var(--ink); margin-bottom: 3px; max-width: 200px;
+  }
+  .pA .h em { font-style: italic; color: #0f766e; font-weight: 500; }
+  .pA .sub {
+    font-size: 7px; color: var(--muted);
+    line-height: 1.4; margin-bottom: 10px;
+    max-width: 170px;
+  }
+  .pA .plans { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border-top: 1px solid rgba(17,17,19,0.12); }
+  .pA .plans > div { padding: 7px 6px 5px 0; border-right: 1px solid var(--hairline-s); }
+  .pA .plans > div:last-child { border-right: none; padding-right: 0; }
+  .pA .pn { font-family: 'Fraunces', Georgia, serif; font-size: 8.5px; font-style: italic; color: var(--muted); margin-bottom: 4px; }
+  .pA .pp { font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 500; letter-spacing: -0.025em; color: var(--ink); line-height: 1; }
+  .pA .pp span { font-size: 7.5px; color: var(--muted); font-family: 'Inter', sans-serif; font-weight: 450; margin-left: 1px; }
+  .pA .ft { margin-top: 4px; height: 1px; width: 70%; background: rgba(17,17,19,0.08); }
+  .pA .ft + .ft { margin-top: 3px; }
+  .pA .ft.s60 { width: 60%; }
+  .pA .ft.s85 { width: 85%; }
+  .pA .cta {
+    position: absolute; bottom: 8px; right: 12px;
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 8.5px; font-style: italic;
+    color: #0f766e;
+  }
+  .pA .cta::after { content: '→'; margin-left: 4px; font-style: normal; font-family: 'Inter', sans-serif; }
+
+  /* variant B — dense grid / playful */
+  .pB { background: #fffdf5; padding: 9px 11px 0; }
+  .pB .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+  .pB .brand { font-size: 9.5px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); display: inline-flex; align-items: center; gap: 5px; }
+  .pB .brand::before {
+    content: ''; width: 10px; height: 10px; background: #facc15;
+    border-radius: 2px; transform: rotate(8deg); display: inline-block;
+  }
+  .pB .toggle {
+    display: inline-flex; align-items: stretch;
+    border: 1px solid rgba(17,17,19,0.18); border-radius: 2px;
+    font-size: 7px; font-weight: 600; letter-spacing: 0.04em;
+    overflow: hidden; background: #fff;
+  }
+  .pB .toggle span { padding: 2px 5px; color: var(--muted); }
+  .pB .toggle span.on { background: var(--ink); color: #fff; }
+  .pB .h { font-size: 10px; font-weight: 700; letter-spacing: -0.012em; color: var(--ink); margin-bottom: 8px; line-height: 1.15; }
+  .pB .h b { background: #facc15; padding: 0 3px; border-radius: 1px; }
+  .pB .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+  .pB .pc { background: #fff; border: 1px solid rgba(17,17,19,0.14); border-radius: 3px; padding: 6px 6px 5px; position: relative; }
+  .pB .pc.hl { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .pB .pc.hl .pn { color: rgba(255,255,255,0.7); }
+  .pB .pc.hl .pr { color: #fff; }
+  .pB .pc.hl .pr span { color: rgba(255,255,255,0.65); }
+  .pB .pc.hl .ft { background: rgba(255,255,255,0.22); }
+  .pB .pc.hl .btn { background: #facc15; color: var(--ink); }
+  .pB .pc.hl::before {
+    content: '★ BEST'; position: absolute; top: -6px; right: 5px;
+    background: #facc15; color: var(--ink);
+    font-size: 6.5px; font-weight: 700;
+    padding: 1px 4px; border-radius: 1px; letter-spacing: 0.1em;
+  }
+  .pB .pn { font-size: 7px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+  .pB .pr { font-size: 13px; font-weight: 700; letter-spacing: -0.025em; color: var(--ink); line-height: 1; }
+  .pB .pr span { font-size: 6.5px; color: var(--muted); font-weight: 500; margin-left: 1px; }
+  .pB .fts { margin-top: 5px; }
+  .pB .ft { height: 1.5px; background: rgba(17,17,19,0.10); border-radius: 1px; margin-bottom: 2.5px; }
+  .pB .ft.s80 { width: 80%; }
+  .pB .ft.s60 { width: 60%; }
+  .pB .ft.s90 { width: 90%; }
+  .pB .btn { margin-top: 5px; padding: 3px 4px; font-size: 7.5px; font-weight: 700; background: var(--ink); color: #fff; text-align: center; border-radius: 2px; letter-spacing: 0.02em; }
+
+  /* variant C — single-column, calculator-driven, dark hero */
+  .pC { padding: 0; height: 166px; background: #0b1220; color: #e2e8f0; position: relative; }
+  .pC .hero {
+    padding: 10px 12px 8px; background: #0b1220; position: relative;
+  }
+  .pC .hero::after {
+    content: ''; position: absolute; right: -8px; top: -8px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(14,165,233,0.6) 0%, transparent 70%);
+  }
+  .pC .b { font-size: 9.5px; font-weight: 700; color: #fff; letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+  .pC .b::before { content: ''; width: 6px; height: 6px; background: #0ea5e9; border-radius: 50%; box-shadow: 0 0 0 3px rgba(14,165,233,0.22); }
+  .pC .h { font-family: 'Fraunces', Georgia, serif; font-size: 13px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1; color: #fff; margin-bottom: 4px; max-width: 210px; }
+  .pC .h em { color: #0ea5e9; font-style: italic; }
+  .pC .sub { font-size: 7.5px; color: rgba(226,232,240,0.6); line-height: 1.4; max-width: 180px; }
+
+  .pC .calc {
+    margin: 8px 12px 0;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 7px 8px;
+  }
+  .pC .calc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 7.5px; color: rgba(226,232,240,0.72); }
+  .pC .calc-row b { color: #fff; font-weight: 600; font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono',monospace; font-size: 8px; }
+  .pC .track { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; position: relative; margin-bottom: 5px; }
+  .pC .track::after { content: ''; position: absolute; top: -2px; left: 38%; width: 7px; height: 7px; background: #0ea5e9; border-radius: 50%; box-shadow: 0 0 0 2px #0b1220; }
+  .pC .track::before { content: ''; position: absolute; top: 0; left: 0; height: 3px; width: 38%; background: #0ea5e9; border-radius: 2px; }
+  .pC .total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .pC .total .lbl { font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(226,232,240,0.5); font-weight: 600; }
+  .pC .total .num { font-family: 'Fraunces', Georgia, serif; font-size: 15px; font-weight: 500; color: #fff; letter-spacing: -0.02em; }
+  .pC .total .num span { font-size: 7.5px; color: rgba(226,232,240,0.55); font-family: 'Inter', sans-serif; font-weight: 450; letter-spacing: 0; }
+
+  /* variant D — comparison table / enterprise */
+  .pD { padding: 10px 12px 0; height: 166px; background: #fafafb; position: relative; }
+  .pD .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .pD .b { font-size: 9.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--ink); display: inline-flex; align-items: center; gap: 5px; }
+  .pD .b::before { content: ''; width: 9px; height: 9px; background: #1e3a8a; border-radius: 1px; }
+  .pD .pill-n { font-size: 7px; color: #1e3a8a; background: rgba(30,58,138,0.08); padding: 2px 5px; border-radius: 2px; font-weight: 600; letter-spacing: 0.04em; }
+  .pD .h { font-size: 10.5px; font-weight: 600; color: var(--ink); letter-spacing: -0.012em; margin-bottom: 7px; }
+  .pD table { width: 100%; border-collapse: collapse; font-size: 7px; }
+  .pD th, .pD td {
+    text-align: left; padding: 3px 4px;
+    border-bottom: 1px solid rgba(17,17,19,0.06);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .pD th { font-size: 6.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); padding-bottom: 4px; }
+  .pD th.best, .pD td.best { background: rgba(30,58,138,0.04); color: var(--ink); }
+  .pD td.check { color: #1e3a8a; font-weight: 600; }
+  .pD td.x { color: var(--dim); }
+  .pD td.price { font-weight: 700; color: var(--ink); font-family: 'JetBrains Mono',monospace; }
+  .pD td.price span { font-weight: 400; color: var(--muted); }
+  .pD .foot { position: absolute; bottom: 6px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 7px; color: var(--muted); }
+  .pD .foot .btn { background: #1e3a8a; color: #fff; padding: 3px 8px; border-radius: 2px; font-size: 7.5px; font-weight: 600; letter-spacing: 0.02em; }
+
+  /* failed card content */
+  .fail-wrap {
+    height: 100%;
+    padding: 18px 18px 14px;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .fail-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .fail-title {
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.008em;
+    margin-bottom: 3px;
+  }
+  .fail-title::before {
+    content: ''; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--err);
+    margin-right: 7px; vertical-align: middle;
+  }
+  .fail-msg {
+    font-size: 10.5px;
+    color: var(--ink-2);
+    line-height: 1.4;
+    max-width: 240px;
+  }
+  .fail-msg b { color: var(--err); font-weight: 500; }
+  .fail-msg .mono {
+    font-family: 'JetBrains Mono',monospace;
+    font-size: 10px;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .fail-badge-big {
+    height: 18px; padding: 0 7px;
+    background: var(--err-tint);
+    color: var(--err);
+    border: 1px solid var(--err-line);
+    border-radius: 3px;
+    font-size: 9.5px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .fail-badge-big::before {
+    content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--err);
+  }
+
+  .details {
+    margin-top: 10px;
+    border-top: 1px solid var(--err-line);
+    padding-top: 8px;
+  }
+  .details summary {
+    list-style: none;
+    cursor: pointer;
+    font-size: 9.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 6px;
+  }
+  .details summary::-webkit-details-marker { display: none; }
+  .details summary::before {
+    content: '▾'; color: var(--dim); font-size: 8px;
+  }
+  .details .block {
+    font-family: 'JetBrains Mono',Menlo,monospace;
+    font-size: 9.5px;
+    color: var(--ink-2);
+    background: rgba(220,38,38,0.03);
+    border: 1px solid var(--err-line);
+    border-radius: 3px;
+    padding: 6px 8px;
+    line-height: 1.55;
+    letter-spacing: 0;
+  }
+  .details .block .k { color: var(--dim); }
+  .details .block .v { color: var(--ink); }
+  .details .block .v.bad { color: var(--err); font-weight: 500; }
+
+  .actions {
+    margin-top: auto;
+    display: flex; align-items: center; gap: 8px;
+    padding-top: 12px;
+  }
+  .btn {
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: -0.003em;
+    display: inline-flex; align-items: center; gap: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: inherit;
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: #fff;
+    padding: 8px 14px;
+    font-weight: 500;
+    box-shadow: 0 1px 0 rgba(124,58,237,0.25), 0 4px 10px -3px rgba(124,58,237,0.32);
+  }
+  .btn.primary::before {
+    content: '↻'; font-size: 13px; font-weight: 700;
+    margin-right: -1px;
+  }
+  .btn.secondary {
+    background: #fff;
+    color: var(--ink);
+    border-color: var(--hairline);
+    padding: 7px 11px;
+  }
+  .btn.tertiary {
+    background: transparent;
+    color: var(--muted);
+    padding: 7px 8px;
+    font-weight: 450;
+  }
+  .btn.tertiary:hover { color: var(--ink); }
+
+  /* bottom status strip */
+  .status-strip {
+    position: absolute;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 6px 14px;
+    z-index: 13;
+    font-size: 11.5px;
+    box-shadow: 0 2px 10px -4px rgba(17,17,19,0.06);
+  }
+  .status-strip .pstat {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .status-strip .pstat .d { width: 6px; height: 6px; border-radius: 50%; background: var(--ready); }
+  .status-strip .sep-s { width: 1px; height: 14px; background: var(--hairline); }
+  .status-strip .err-ct {
+    color: var(--err); font-weight: 500;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .status-strip .err-ct::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--err);
+  }
+  .status-strip a.ship {
+    color: var(--ink); font-size: 11px; font-weight: 500;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(17,17,19,0.04);
+    text-decoration: none;
+    letter-spacing: -0.003em;
+  }
+</style>
+</head>
+<body>
+
+<!-- top chrome -->
+<div class="chrome">
+  <div class="logo"></div>
+  <div class="brand">Design Graph <span class="dim">/ canvas</span></div>
+  <div class="chrome-sep"></div>
+  <div class="breadcrumb">
+    <span>workspace</span>
+    <span class="chev">›</span>
+    <strong>Pricing · Ledgerly</strong>
+  </div>
+  <div class="chrome-right">
+    <div class="avatars">
+      <div class="avatar a">SS</div>
+      <div class="avatar b">+</div>
+    </div>
+    <div class="chip status"><span class="dot err"></span>1 agent failed · 4 ready</div>
+    <div class="chip kbd"><span class="k">⌘</span><span class="k">K</span> spawn</div>
+    <div class="chip share">Share</div>
+  </div>
+</div>
+
+<!-- stage -->
+<div class="stage">
+
+  <!-- prompt pin -->
+  <div class="prompt-pin">
+    <span class="eye"><span class="md"></span>Prompt</span>
+    <span class="txt"><q>a pricing page for a startup accounting app</q></span>
+    <span class="sep"></span>
+    <span class="n-pill">5 <span class="mid">·</span> <b>4 ready</b> <span class="mid">·</span> <i>1 failed</i></span>
+  </div>
+
+  <!-- recovery banner -->
+  <div class="banner">
+    <span class="bicon">!</span>
+    <span class="btxt"><b>1 of 5 agents failed.</b> You can retry it, or ship with 4.</span>
+    <span class="sep"></span>
+    <a href="#" class="quiet">Continue with 4 →</a>
+  </div>
+
+  <!-- variants sidebar -->
+  <aside class="sidebar">
+    <h4><span>Variants</span><span class="count"><b>4 ready</b> · <i>1 failed</i></span></h4>
+
+    <div class="v-row">
+      <div class="thumb"><div class="tl-a"></div><div class="tl-b"></div><div class="tl-c"></div></div>
+      <div class="v-meta">
+        <span class="v-name">agent-01</span>
+        <span class="v-sub">Editorial serif · 48s</span>
+      </div>
+      <span class="pill ready">READY</span>
+    </div>
+    <div class="v-row">
+      <div class="thumb"><div class="tl-a" style="background:#facc15;"></div><div class="tl-b"></div><div class="tl-c"></div></div>
+      <div class="v-meta">
+        <span class="v-name">agent-02</span>
+        <span class="v-sub">Dense grid · 54s</span>
+      </div>
+      <span class="pill ready">READY</span>
+    </div>
+    <div class="v-row">
+      <div class="thumb"><div class="tl-a" style="background:#0ea5e9;"></div><div class="tl-b"></div><div class="tl-c"></div></div>
+      <div class="v-meta">
+        <span class="v-name">agent-03</span>
+        <span class="v-sub">Dark hero · 1m 02s</span>
+      </div>
+      <span class="pill ready">READY</span>
+    </div>
+    <div class="v-row failed">
+      <div class="thumb failed"></div>
+      <div class="v-meta">
+        <span class="v-name">agent-04</span>
+        <span class="v-sub">token_limit · halted 62%</span>
+      </div>
+      <span class="pill failed">FAIL</span>
+    </div>
+    <div class="v-row">
+      <div class="thumb"><div class="tl-a" style="background:#1e3a8a;"></div><div class="tl-b"></div><div class="tl-c"></div></div>
+      <div class="v-meta">
+        <span class="v-name">agent-05</span>
+        <span class="v-sub">Comparison table · 58s</span>
+      </div>
+      <span class="pill ready">READY</span>
+    </div>
+
+    <div class="side-sep"></div>
+
+    <div class="log-title">
+      <span>Activity</span>
+      <span class="done">complete · 1m 14s</span>
+    </div>
+    <div class="log">
+      <div class="log-line done"><span class="ts">12:04:18</span><span class="tag">✓</span><span class="ag">agent-01</span> <span class="ms">done · editorial.html</span></div>
+      <div class="log-line done"><span class="ts">12:04:24</span><span class="tag">✓</span><span class="ag">agent-02</span> <span class="ms">done · dense-grid.html</span></div>
+      <div class="log-line done"><span class="ts">12:04:32</span><span class="tag">✓</span><span class="ag">agent-03</span> <span class="ms">done · dark-hero.html</span></div>
+      <div class="log-line fail"><span class="ts">12:04:51</span><span class="tag">✗</span><span class="ag">agent-04</span> <span class="ms">token_limit · 62%</span></div>
+      <div class="log-line done"><span class="ts">12:05:02</span><span class="tag">✓</span><span class="ag">agent-05</span> <span class="ms">done · compare-table.html</span></div>
+    </div>
+
+    <div class="sidebar-foot">
+      <span>5 siblings</span>
+      <a href="#">⚙ agents</a>
+    </div>
+  </aside>
+
+  <!-- edges from prompt (~740, 44) -->
+  <svg class="edges" viewBox="0 0 1280 756" preserveAspectRatio="none">
+    <path d="M 740,44 C 740,100 520,140 440,190" />
+    <path d="M 740,44 C 740,100 820,140 860,190" />
+    <path d="M 740,44 C 740,180 520,300 440,410" />
+    <path class="fail" d="M 740,44 C 740,180 860,300 920,430" />
+    <path d="M 740,44 C 740,260 740,440 740,560" />
+  </svg>
+
+  <!-- ── cards ─────────────────────────────────────────────────── -->
+
+  <!-- agent-01 · READY · editorial serif -->
+  <div class="card ready" style="left: 306px; top: 100px;">
+    <div class="badge ready">READY</div>
+    <div class="card-head"><div class="tl"></div><div class="tl"></div><div class="tl"></div><div class="bar"></div><span class="corner">48s</span></div>
+    <div class="page pA">
+      <div class="top">
+        <div class="brand">Ledgerly</div>
+        <div class="nav"><span>Product</span><span>Pricing</span><span>Login</span></div>
+      </div>
+      <div class="h">Books that <em>close</em> themselves.</div>
+      <div class="sub">Flat pricing for founders who want bookkeeping to be the thing they don't think about.</div>
+      <div class="plans">
+        <div>
+          <div class="pn">Starter</div>
+          <div class="pp">$19<span>/mo</span></div>
+          <div class="ft s85"></div>
+          <div class="ft s60"></div>
+        </div>
+        <div>
+          <div class="pn">Growth</div>
+          <div class="pp">$49<span>/mo</span></div>
+          <div class="ft s85"></div>
+          <div class="ft"></div>
+          <div class="ft s60"></div>
+        </div>
+        <div>
+          <div class="pn">Scale</div>
+          <div class="pp">$129<span>/mo</span></div>
+          <div class="ft"></div>
+          <div class="ft s85"></div>
+        </div>
+      </div>
+      <div class="cta">Start a trial</div>
+    </div>
+    <div class="card-meta"><span class="sub">Editorial serif</span><span class="id">agent-01</span></div>
+  </div>
+
+  <!-- agent-02 · READY · dense grid -->
+  <div class="card ready" style="left: 606px; top: 100px;">
+    <div class="badge ready">READY</div>
+    <div class="card-head"><div class="tl"></div><div class="tl"></div><div class="tl"></div><div class="bar"></div><span class="corner">54s</span></div>
+    <div class="page pB">
+      <div class="top">
+        <div class="brand">Ledgerly.</div>
+        <div class="toggle"><span>MO</span><span class="on">YR −20%</span></div>
+      </div>
+      <div class="h">Pay for seats. <b>Not</b> for spreadsheets.</div>
+      <div class="grid">
+        <div class="pc">
+          <div class="pn">Free</div>
+          <div class="pr">$0</div>
+          <div class="fts">
+            <div class="ft s80"></div>
+            <div class="ft s60"></div>
+            <div class="ft s90"></div>
+          </div>
+          <div class="btn" style="background:#fff;color:var(--ink);border:1px solid rgba(17,17,19,0.18);">Try</div>
+        </div>
+        <div class="pc hl">
+          <div class="pn">Team</div>
+          <div class="pr">$39<span>/seat</span></div>
+          <div class="fts">
+            <div class="ft s90"></div>
+            <div class="ft"></div>
+            <div class="ft s80"></div>
+            <div class="ft s60"></div>
+          </div>
+          <div class="btn">Get Team</div>
+        </div>
+        <div class="pc">
+          <div class="pn">Agency</div>
+          <div class="pr">$119</div>
+          <div class="fts">
+            <div class="ft"></div>
+            <div class="ft s80"></div>
+          </div>
+          <div class="btn">Book demo</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta"><span class="sub">Dense grid / playful</span><span class="id">agent-02</span></div>
+  </div>
+
+  <!-- agent-03 · READY · dark hero + calculator -->
+  <div class="card ready" style="left: 906px; top: 100px;">
+    <div class="badge ready">READY</div>
+    <div class="card-head"><div class="tl"></div><div class="tl"></div><div class="tl"></div><div class="bar"></div><span class="corner">1m 02s</span></div>
+    <div class="page pC">
+      <div class="hero">
+        <div class="b">ledgerly</div>
+        <div class="h">Pricing that grows <em>with</em> your ledger.</div>
+        <div class="sub">Usage-based. One rate. No seats, no tiers, no surprise lines on your invoice.</div>
+      </div>
+      <div class="calc">
+        <div class="calc-row"><span>Monthly transactions</span><b>~2,400</b></div>
+        <div class="track"></div>
+        <div class="total">
+          <span class="lbl">Est.</span>
+          <span class="num">$74<span>/mo</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta"><span class="sub">Dark hero · calculator</span><span class="id">agent-03</span></div>
+  </div>
+
+  <!-- agent-04 · FAILED -->
+  <div class="card failed" style="left: 500px; top: 340px;">
+    <div class="fail-wrap">
+      <div class="fail-head">
+        <div>
+          <div class="fail-title">agent-04 · writing stopped at 62%</div>
+          <div class="fail-msg">Token limit reached mid-generation. The model ran out of context while writing the <span class="mono">&lt;section class="plans"&gt;</span> block. No partial HTML was saved.</div>
+        </div>
+        <div class="fail-badge-big">FAILED</div>
+      </div>
+
+      <details class="details" open>
+        <summary>Technical detail</summary>
+        <div class="block">
+          <span class="k">tokens</span>: <span class="v bad">8132 / 8000</span> &nbsp;·&nbsp;
+          <span class="k">halted at</span>: <span class="v">line 142</span><br>
+          <span class="k">last-rendered-element</span>: <span class="v">.plan-card:nth-of-type(2)</span><br>
+          <span class="k">model</span>: <span class="v">claude-sonnet-4.5</span> &nbsp;·&nbsp;
+          <span class="k">elapsed</span>: <span class="v">1m 06s</span>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button class="btn primary">Retry</button>
+        <button class="btn secondary">Simplify prompt &amp; retry</button>
+        <button class="btn tertiary">Dismiss</button>
+      </div>
+    </div>
+    <div class="card-meta"><span class="sub fail">Failed · token limit</span><span class="id">agent-04</span></div>
+  </div>
+
+  <!-- agent-05 · READY · comparison table -->
+  <div class="card ready" style="left: 906px; top: 370px;">
+    <div class="badge ready">READY</div>
+    <div class="card-head"><div class="tl"></div><div class="tl"></div><div class="tl"></div><div class="bar"></div><span class="corner">58s</span></div>
+    <div class="page pD">
+      <div class="top">
+        <div class="b">Ledgerly</div>
+        <div class="pill-n">ENTERPRISE</div>
+      </div>
+      <div class="h">Compare every plan, side by side.</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Solo</th>
+            <th class="best">Team</th>
+            <th>Firm</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Auto-reconcile</td>
+            <td class="check">●</td>
+            <td class="check best">●</td>
+            <td class="check">●</td>
+          </tr>
+          <tr>
+            <td>Multi-entity</td>
+            <td class="x">—</td>
+            <td class="check best">●</td>
+            <td class="check">●</td>
+          </tr>
+          <tr>
+            <td>SSO / SCIM</td>
+            <td class="x">—</td>
+            <td class="x best">—</td>
+            <td class="check">●</td>
+          </tr>
+          <tr>
+            <td class="price">Price</td>
+            <td class="price">$24<span>/mo</span></td>
+            <td class="price best">$89<span>/mo</span></td>
+            <td class="price">$249<span>/mo</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="foot">
+        <span>Billed annually · 30-day trial</span>
+        <span class="btn">Choose plan</span>
+      </div>
+    </div>
+    <div class="card-meta"><span class="sub">Comparison table</span><span class="id">agent-05</span></div>
+  </div>
+
+  <!-- zoom -->
+  <div class="zoom">
+    <button>−</button>
+    <div class="pct">82%</div>
+    <button>+</button>
+  </div>
+
+  <!-- minimap -->
+  <div class="mini">
+    <div class="mini-label">Map</div>
+    <svg viewBox="0 0 168 96" width="168" height="96">
+      <rect x="86" y="6" width="16" height="6" fill="rgba(124,58,237,0.55)" rx="2"/>
+      <path d="M 94,12 C 94,20 52,28 42,34" stroke="rgba(124,58,237,0.4)" stroke-width="0.6" fill="none"/>
+      <path d="M 94,12 C 94,20 94,26 94,34" stroke="rgba(124,58,237,0.4)" stroke-width="0.6" fill="none"/>
+      <path d="M 94,12 C 94,20 136,28 146,34" stroke="rgba(124,58,237,0.4)" stroke-width="0.6" fill="none"/>
+      <path d="M 94,12 C 94,40 72,56 62,62" stroke="rgba(220,38,38,0.5)" stroke-width="0.7" fill="none" stroke-dasharray="1.5 1.5"/>
+      <path d="M 94,12 C 94,40 136,56 146,62" stroke="rgba(124,58,237,0.4)" stroke-width="0.6" fill="none"/>
+      <!-- ready: green -->
+      <rect x="34" y="28" width="16" height="11" fill="rgba(34,197,94,0.5)" rx="1"/>
+      <rect x="86" y="28" width="16" height="11" fill="rgba(34,197,94,0.5)" rx="1"/>
+      <rect x="138" y="28" width="16" height="11" fill="rgba(34,197,94,0.5)" rx="1"/>
+      <!-- failed: red dashed -->
+      <rect x="54" y="56" width="18" height="13" fill="rgba(220,38,38,0.12)" stroke="#dc2626" stroke-width="0.6" stroke-dasharray="1.5 1.5" rx="1"/>
+      <!-- ready -->
+      <rect x="138" y="58" width="16" height="11" fill="rgba(34,197,94,0.5)" rx="1"/>
+      <rect x="6" y="4" width="156" height="84" fill="none" stroke="rgba(17,17,19,0.36)" stroke-width="0.6" stroke-dasharray="2 2"/>
+    </svg>
+  </div>
+
+  <!-- bottom status strip -->
+  <div class="status-strip">
+    <span class="pstat"><span class="d"></span>4 of 5 ready</span>
+    <span class="sep-s"></span>
+    <span class="err-ct">1 failed · agent-04</span>
+    <span class="sep-s"></span>
+    <a href="#" class="ship">Ship with 4 →</a>
+  </div>
+</div>
+
+</body>
+</html>
